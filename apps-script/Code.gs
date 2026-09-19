@@ -1,0 +1,55 @@
+/**
+ * Web App entry point.
+ *
+ * All requests from Next.js arrive as JSON POST bodies of the form
+ * { secret, action, ...fields }. Each action maps to a handler below.
+ */
+function doGet() {
+  return Responses.json(
+    Responses.fail(
+      Responses.CODES.METHOD_NOT_ALLOWED,
+      "This endpoint accepts JSON POST requests only."
+    )
+  )
+}
+
+function doPost(event) {
+  try {
+    var body = Validators.parseBody(event && event.postData ? event.postData.contents : "")
+    Auth.verify(body.secret)
+    var action = Validators.requireString(body, "action", "action")
+    var handler = router()[action]
+    if (!handler) {
+      throw new AppError(Responses.CODES.INVALID_REQUEST, "Unknown action: " + action)
+    }
+    return Responses.json(handler(body))
+  } catch (error) {
+    if (error instanceof AppError) {
+      return Responses.json(Responses.fail(error.code, error.message))
+    }
+    console.error("Unexpected error while handling request:", error)
+    return Responses.json(
+      Responses.fail(Responses.CODES.INTERNAL_ERROR, "An unexpected server error occurred.")
+    )
+  }
+}
+
+/**
+ * Builds the action registry. Built lazily at call time so the script is
+ * resilient to the order in which Apps Script loads its files.
+ *
+ * @returns {Object.<string, Function>}
+ */
+function router() {
+  return {
+    getEvents: Events.handleList,
+    getEvent: Events.handleGet,
+    createEvent: Events.handleCreate,
+    closeEvent: Events.handleClose,
+    recordAttendance: Attendance.handleRecord,
+    checkAttendance: Attendance.handleCheck,
+    getAttendance: Attendance.handleList,
+    getAttendanceReport: Reports.handleReport,
+    lookupStudent: Students.handleLookup,
+  }
+}

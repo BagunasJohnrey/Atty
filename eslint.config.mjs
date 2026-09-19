@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // The Apps Script backend is plain V8 JavaScript that runs inside Google
+  // Sheets; it is deployed with clasp and not part of the Next.js build.
+  globalIgnores(["apps-script/**"]),
 ]);
 
 export default eslintConfig;
