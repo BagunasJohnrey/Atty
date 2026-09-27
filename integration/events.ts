@@ -1,4 +1,8 @@
-import type { CreateEventInput, SchoolEvent } from "@/models/event"
+import type {
+  CreateEventInput,
+  SchoolEvent,
+  UpdateEventInput,
+} from "@/models/event"
 import { requestAppsScript } from "./http"
 
 export async function getEvents(): Promise<SchoolEvent[]> {
@@ -42,6 +46,17 @@ export async function openEvent(eventId: string): Promise<SchoolEvent> {
   const response = await requestAppsScript<{ event: SchoolEvent }>(
     "openEvent",
     { eventId }
+  )
+  return response.event
+}
+
+export async function updateEvent(
+  eventId: string,
+  input: UpdateEventInput
+): Promise<SchoolEvent> {
+  const response = await requestAppsScript<{ event: SchoolEvent }>(
+    "updateEvent",
+    { eventId, ...input }
   )
   return response.event
 }

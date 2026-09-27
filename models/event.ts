@@ -18,3 +18,11 @@ export interface CreateEventInput {
   location?: string
   description?: string
 }
+
+export interface UpdateEventInput {
+  name?: string
+  date?: string
+  location?: string
+  description?: string
+  status?: string
+}

@@ -33,6 +33,7 @@ Request body: `{ "secret": "...", "action": "<action>", ...fields }`
 | `getEvents`          | —                                      | List all events                          |
 | `getEvent`           | `eventId`                              | Single event                             |
 | `createEvent`        | `name`, `date`, `location?`, `description?`   | Create event + dynamic sheet             |
+| `updateEvent`        | `eventId` + any of `name`, `date`, `location`, `description`, `status` | Update event fields |
 | `openEvent`          | `eventId`                              | Mark event as Active                     |
 | `closeEvent`         | `eventId`                              | Mark event as Closed                     |
 | `lookupStudent`      | `srcode`                               | Lookup a student in the Masterlist       |

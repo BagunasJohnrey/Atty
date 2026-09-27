@@ -59,7 +59,7 @@ var Models = {
     return {
       id: id,
       name: String(row[columns.NAME] || ""),
-      date: String(row[columns.DATE] || ""),
+      date: Models.formatDate(row[columns.DATE]),
       status: String(row[columns.STATUS] || Config.DEFAULT_EVENT_STATUS),
       sheetName: String(row[columns.SHEET_NAME] || id),
       location: String(row[columns.LOCATION] || ""),
@@ -78,7 +78,7 @@ var Models = {
     var columns = Config.COLUMNS.ATTENDANCE
     var source = student || {}
     return {
-      timestamp: String(row[columns.TIMESTAMP] || ""),
+      timestamp: Models.formatDateTime(row[columns.TIMESTAMP]),
       srcode: String(row[columns.SRCODE] || "").trim(),
       name: String(source.name || ""),
       college: String(source.college || ""),
@@ -86,5 +86,33 @@ var Models = {
       yearLevel: String(source.yearLevel || ""),
       gender: String(source.gender || ""),
     }
+  },
+
+  /**
+   * Sheets returns date-formatted cells as Date objects, whose default
+   * string form ("Sat Jan 10 2026 00:00:00 GMT+0800...") is unstable and
+   * ugly. Normalize back to the sheet date format so reads match writes.
+   *
+   * @param {*} value
+   * @returns {string}
+   */
+  formatDate: function (value) {
+    if (value instanceof Date) {
+      return Utilities.formatDate(value, Session.getScriptTimeZone(), Config.DATE_FORMAT)
+    }
+    return String(value || "")
+  },
+
+  /**
+   * Same as formatDate but keeps the time component for timestamps.
+   *
+   * @param {*} value
+   * @returns {string}
+   */
+  formatDateTime: function (value) {
+    if (value instanceof Date) {
+      return Utilities.formatDate(value, Session.getScriptTimeZone(), Config.TIME_FORMAT)
+    }
+    return String(value || "")
   },
 }

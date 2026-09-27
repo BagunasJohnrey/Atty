@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { describe, expect, it, vi } from "vitest"
 import { AppsScriptError } from "@/integration/errors"
 import {
+  cachedJson,
   HttpError,
   optionalString,
   parseJsonBody,
@@ -79,6 +80,21 @@ describe("optionalString", () => {
       return NextResponse.json({ success: true })
     })
     expect(response.status).toBe(400)
+  })
+
+  it("rejects over-long values on both helpers", async () => {
+    expect(() => requireString({ name: "abc" }, "name", 2)).toThrow(HttpError)
+    expect(() => optionalString({ location: "abc" }, "location", 2)).toThrow(
+      HttpError
+    )
+    expect(requireString({ name: "ab" }, "name", 2)).toBe("ab")
+  })
+})
+
+describe("cachedJson", () => {
+  it("sets a private short-lived cache header", () => {
+    const response = cachedJson({ success: true }, 30)
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=30")
   })
 })
 

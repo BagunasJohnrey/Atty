@@ -6,6 +6,7 @@ import {
   getEvent,
   getEvents,
   openEvent,
+  updateEvent,
 } from "./events"
 import { requestAppsScript } from "./http"
 
@@ -96,5 +97,17 @@ describe("events integration", () => {
   it("propagates upstream errors", async () => {
     requestMock.mockRejectedValue(new Error("EVENT_NOT_FOUND"))
     await expect(getEvent("EVT-999")).rejects.toThrow("EVENT_NOT_FOUND")
+  })
+
+  it("updates an event via updateEvent", async () => {
+    mockSuccess({ event: { ...sampleEvent, location: "Auditorium" } })
+    await expect(
+      updateEvent("EVT-001", { location: "Auditorium", status: "Active" })
+    ).resolves.toMatchObject({ location: "Auditorium" })
+    expect(requestMock).toHaveBeenCalledWith("updateEvent", {
+      eventId: "EVT-001",
+      location: "Auditorium",
+      status: "Active",
+    })
   })
 })

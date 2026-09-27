@@ -59,7 +59,7 @@ var Attendance = {
     var result = { present: row > 0 }
     if (student) result.student = student
     if (row > 0) {
-      result.timestamp = String(
+      result.timestamp = Models.formatDateTime(
         Sheets.getCell(event.sheetName, row, Config.COLUMNS.ATTENDANCE.TIMESTAMP + 1)
       )
     }

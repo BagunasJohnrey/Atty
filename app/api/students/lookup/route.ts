@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic"
 export async function POST(request: Request) {
   return respondWith(async () => {
     const body = await parseJsonBody(request)
-    const srcode = requireString(body, "srcode")
+    const srcode = requireString(body, "srcode", 20)
     const student = await lookupStudent(srcode)
     return NextResponse.json({
       success: true,

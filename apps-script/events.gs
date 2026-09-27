@@ -60,6 +60,9 @@ var Events = {
    * Creates an event, its registry row, and its attendance sheet.
    * Location and description are optional and default to "".
    *
+   * A script lock serializes concurrent creations so two simultaneous
+   * calls cannot claim the same Event ID.
+   *
    * @param {string} name
    * @param {string} date
    * @param {string} [location]
@@ -67,11 +70,17 @@ var Events = {
    * @returns {SchoolEvent}
    */
   create: function (name, date, location, description) {
-    var id = Events.nextIdAfterEnsuringRegistry()
-    Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
-    var row = [id, name, date, Config.DEFAULT_EVENT_STATUS, id, location || "", description || ""]
-    Sheets.appendRow(Config.EVENTS_SHEET, row)
-    return Models.eventFromRow(row)
+    var lock = LockService.getScriptLock()
+    lock.waitLock(10000)
+    try {
+      var id = Events.nextIdAfterEnsuringRegistry()
+      Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
+      var row = [id, name, date, Config.DEFAULT_EVENT_STATUS, id, location || "", description || ""]
+      Sheets.appendRow(Config.EVENTS_SHEET, row)
+      return Models.eventFromRow(row)
+    } finally {
+      lock.releaseLock()
+    }
   },
 
   /**
@@ -83,6 +92,60 @@ var Events = {
   nextIdAfterEnsuringRegistry: function () {
     Sheets.ensureHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
     return Events.nextId()
+  },
+
+  /**
+   * Updates mutable event fields. Only keys present in the patch are
+   * changed; omitted keys keep their values. Status accepts any of the
+   * configured statuses, which also makes this the supported path for
+   * reopening a closed event. The attendance sheet is never touched.
+   *
+   * @param {string} eventId
+   * @param {Object} patch - May contain name, date, location, description, status.
+   * @returns {SchoolEvent}
+   */
+  update: function (eventId, patch) {
+    var event = Events.assertById(eventId)
+    var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
+    var columns = Config.COLUMNS.EVENTS
+    if (patch.name !== undefined) {
+      event.name = Validators.requireString(patch, "name", "Event name", Config.MAX_EVENT_NAME_LENGTH)
+    }
+    if (patch.date !== undefined) {
+      event.date = Validators.normalizeDate(patch.date)
+    }
+    if (patch.location !== undefined) {
+      event.location = Validators.optionalString(patch, "location", "Event location", Config.MAX_EVENT_LOCATION_LENGTH)
+    }
+    if (patch.description !== undefined) {
+      event.description = Validators.optionalString(patch, "description", "Event description", Config.MAX_EVENT_DESCRIPTION_LENGTH)
+    }
+    if (patch.status !== undefined) {
+      event.status = Events.normalizeStatus(patch.status)
+    }
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.NAME + 1, event.name)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.DATE + 1, event.date)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.STATUS + 1, event.status)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.LOCATION + 1, event.location)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.DESCRIPTION + 1, event.description)
+    return event
+  },
+
+  /**
+   * @param {*} status
+   * @returns {string}
+   */
+  normalizeStatus: function (status) {
+    var allowed = [Config.STATUS_UPCOMING, Config.STATUS_ACTIVE, Config.STATUS_CLOSED]
+    for (var i = 0; i < allowed.length; i++) {
+      if (typeof status === "string" && status.trim().toLowerCase() === allowed[i].toLowerCase()) {
+        return allowed[i]
+      }
+    }
+    throw new AppError(
+      Responses.CODES.INVALID_REQUEST,
+      "Event status is invalid. Use Upcoming, Active, or Closed."
+    )
   },
 
   /**
@@ -196,5 +259,29 @@ var Events = {
   handleOpen: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
     return Responses.ok("Event opened successfully.", { event: Events.open(eventId) })
+  },
+
+  /**
+   * API handler for "updateEvent". Accepts any subset of name, date,
+   * location, description, and status; rejects unknown keys so typos
+   * fail loudly instead of being silently ignored.
+   *
+   * @param {Object} body
+   * @returns {Object}
+   */
+  handleUpdate: function (body) {
+    var eventId = Validators.requireString(body, "eventId", "Event ID")
+    var allowed = ["name", "date", "location", "description", "status"]
+    var patch = {}
+    for (var key in body) {
+      if (key === "secret" || key === "action" || key === "eventId") continue
+      if (allowed.indexOf(key) < 0) {
+        throw new AppError(Responses.CODES.INVALID_REQUEST, "Unknown field: " + key)
+      }
+      patch[key] = body[key]
+    }
+    return Responses.ok("Event updated successfully.", {
+      event: Events.update(eventId, patch),
+    })
   },
 }
