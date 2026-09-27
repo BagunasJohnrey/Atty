@@ -35,3 +35,11 @@ export async function closeEvent(eventId: string): Promise<SchoolEvent> {
   )
   return response.event
 }
+
+export async function openEvent(eventId: string): Promise<SchoolEvent> {
+  const response = await requestAppsScript<{ event: SchoolEvent }>(
+    "openEvent",
+    { eventId }
+  )
+  return response.event
+}

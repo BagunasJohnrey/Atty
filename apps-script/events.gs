@@ -9,6 +9,7 @@ var Events = {
    * @returns {SchoolEvent[]}
    */
   all: function () {
+    if (!Sheets.sheetByName(Config.EVENTS_SHEET)) return []
     var data = Sheets.getValues(Config.EVENTS_SHEET)
     var events = []
     for (var i = Config.ROW_START - 1; i < data.length; i++) {
@@ -63,11 +64,21 @@ var Events = {
    * @returns {SchoolEvent}
    */
   create: function (name, date) {
-    var id = Events.nextId()
-    Sheets.writeHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
+    var id = Events.nextIdAfterEnsuringRegistry()
     Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
     Sheets.appendRow(Config.EVENTS_SHEET, [id, name, date, Config.DEFAULT_EVENT_STATUS, id])
     return Models.eventFromRow([id, name, date, Config.DEFAULT_EVENT_STATUS, id])
+  },
+
+  /**
+   * Ensures the Events registry exists before scanning it for the next ID,
+   * so the very first event can be created on a fresh spreadsheet.
+   *
+   * @returns {string} The next available Event ID.
+   */
+  nextIdAfterEnsuringRegistry: function () {
+    Sheets.writeHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
+    return Events.nextId()
   },
 
   /**
@@ -100,6 +111,28 @@ var Events = {
     var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
     Sheets.setCell(Config.EVENTS_SHEET, row, Config.COLUMNS.EVENTS.STATUS + 1, Config.STATUS_CLOSED)
     event.status = Config.STATUS_CLOSED
+    return event
+  },
+
+  /**
+   * Marks an event as Active so it starts accepting attendance.
+   * Closed events cannot be reopened; attendance records are never touched.
+   *
+   * @param {string} eventId
+   * @returns {SchoolEvent}
+   */
+  open: function (eventId) {
+    var event = Events.assertById(eventId)
+    if (event.status === Config.STATUS_ACTIVE) return event
+    if (event.status === Config.STATUS_CLOSED) {
+      throw new AppError(
+        Responses.CODES.EVENT_NOT_ACTIVE,
+        "The event is closed and cannot be reopened."
+      )
+    }
+    var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
+    Sheets.setCell(Config.EVENTS_SHEET, row, Config.COLUMNS.EVENTS.STATUS + 1, Config.STATUS_ACTIVE)
+    event.status = Config.STATUS_ACTIVE
     return event
   },
 
@@ -144,5 +177,16 @@ var Events = {
   handleClose: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
     return Responses.ok("Event closed successfully.", { event: Events.close(eventId) })
+  },
+
+  /**
+   * API handler for "openEvent".
+   *
+   * @param {Object} body
+   * @returns {Object}
+   */
+  handleOpen: function (body) {
+    var eventId = Validators.requireString(body, "eventId", "Event ID")
+    return Responses.ok("Event opened successfully.", { event: Events.open(eventId) })
   },
 }

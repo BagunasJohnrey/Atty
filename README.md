@@ -64,6 +64,7 @@ The Next.js app exposes these endpoints (all return JSON):
 | GET    | `/api/events`                           | List events                    |
 | POST   | `/api/events`                           | Create an event                |
 | GET    | `/api/events/[eventId]`                 | Event details                  |
+| POST   | `/api/events/[eventId]/open`            | Open an event (mark Active)    |
 | PATCH  | `/api/events/[eventId]`                 | Close an event                 |
 | GET    | `/api/events/[eventId]/attendance`      | Attendance records             |
 | POST   | `/api/events/[eventId]/attendance`      | Record attendance              |
@@ -79,5 +80,9 @@ npm run build      # production build
 npm run start      # start the production server
 npm run lint       # eslint
 npm run typecheck  # tsc --noEmit
+npm test           # vitest unit tests
 npm run format     # prettier --write
 ```
+
+CI (`.github/workflows/ci.yml`) runs `npm ci`, typecheck, lint, test, and build
+on every push and pull request.

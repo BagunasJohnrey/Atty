@@ -1,0 +1,19 @@
+import { NextResponse } from "next/server"
+import { openEvent } from "@/integration/events"
+import { respondWith } from "@/lib/api"
+
+export const dynamic = "force-dynamic"
+
+type OpenParams = { params: Promise<{ eventId: string }> }
+
+export async function POST(_request: Request, context: OpenParams) {
+  return respondWith(async () => {
+    const { eventId } = await context.params
+    const event = await openEvent(eventId)
+    return NextResponse.json({
+      success: true,
+      message: "Event opened successfully.",
+      event,
+    })
+  })
+}

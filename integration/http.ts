@@ -22,6 +22,11 @@ function isApiResult(value: unknown): value is ApiResult<object> {
  * redeploy: a GET warm-up resolves the redirect so the POST reaches the
  * executor directly.
  *
+ * Each request carries a cache-busting query parameter so intermediaries
+ * (including Next.js's fetch cache) can never serve a stale redirect target:
+ * Apps Script ignores query parameters for doPost routing, which reads the
+ * JSON body instead.
+ *
  * @param action - The API action to execute.
  * @param params  - Additional request fields, merged under the action.
  */
@@ -30,10 +35,6 @@ export async function requestAppsScript<TPayload extends object>(
   params: Record<string, unknown> = {}
 ): Promise<ApiSuccess<TPayload>> {
   const { url, secret } = getAppsScriptConfig()
-  const headers = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  }
   const body = JSON.stringify({ secret, action, ...params })
 
   if (!warmedUp) {
@@ -41,7 +42,7 @@ export async function requestAppsScript<TPayload extends object>(
   }
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const response = await send(url, body, action)
+    const response = await send(cacheBusted(url), body, action)
     const payload = parse(response, action)
 
     if (payload.success) {
@@ -84,7 +85,21 @@ async function send(
       signal: controller.signal,
       cache: "no-store",
     })
-    return await response.json()
+    const raw = await response.text()
+    try {
+      return parse(JSON.parse(raw), action)
+    } catch (error) {
+      if (error instanceof AppsScriptError) throw error
+      console.error(
+        `[apps-script] non-JSON upstream response: status=${response.status} ` +
+          `url=${response.url.slice(0, 90)} preview=${raw.slice(0, 160).replace(/\s+/g, " ")}`
+      )
+      throw new AppsScriptError(
+        "INVALID_RESPONSE",
+        "Apps Script returned an unexpected response.",
+        action
+      )
+    }
   } catch (error) {
     const detail =
       error instanceof Error ? error.message : "unknown network error"
@@ -111,10 +126,23 @@ function parse(value: unknown, action: string): ApiResult<object> {
 
 async function warmUp(url: string): Promise<void> {
   try {
-    await fetch(url, { method: "GET", redirect: "follow", cache: "no-store" })
+    await fetch(cacheBusted(url), {
+      method: "GET",
+      redirect: "follow",
+      cache: "no-store",
+    })
   } catch {
     // The warm-up is best-effort; the POST below will retry on its own.
   } finally {
     warmedUp = true
   }
+}
+
+/**
+ * Appends a unique query parameter so every request resolves a fresh
+ * redirect chain instead of reusing a cached (and possibly expired) one.
+ */
+function cacheBusted(url: string): string {
+  const separator = url.includes("?") ? "&" : "?"
+  return `${url}${separator}_r=${Date.now()}${Math.floor(Math.random() * 1000)}`
 }
