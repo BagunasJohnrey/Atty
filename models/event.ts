@@ -8,9 +8,13 @@ export interface SchoolEvent {
   date: string
   status: EventStatus
   sheetName: string
+  location: string
+  description: string
 }
 
 export interface CreateEventInput {
   name: string
   date: string
+  location?: string
+  description?: string
 }

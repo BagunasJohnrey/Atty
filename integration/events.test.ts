@@ -21,6 +21,8 @@ const sampleEvent: SchoolEvent = {
   date: "09/20/2026",
   status: "Active",
   sheetName: "EVT-001",
+  location: "Gymnasium",
+  description: "Welcome event.",
 }
 
 beforeEach(() => {
@@ -49,11 +51,29 @@ describe("events integration", () => {
   it("creates an event via createEvent", async () => {
     mockSuccess({ event: sampleEvent })
     await expect(
-      createEvent({ name: sampleEvent.name, date: "2026-09-20" })
+      createEvent({
+        name: sampleEvent.name,
+        date: "2026-09-20",
+        location: "Gymnasium",
+        description: "Welcome event.",
+      })
     ).resolves.toEqual(sampleEvent)
     expect(requestMock).toHaveBeenCalledWith("createEvent", {
       name: sampleEvent.name,
       date: "2026-09-20",
+      location: "Gymnasium",
+      description: "Welcome event.",
+    })
+  })
+
+  it("defaults missing location/description to empty strings", async () => {
+    mockSuccess({ event: { ...sampleEvent, location: "", description: "" } })
+    await createEvent({ name: sampleEvent.name, date: "2026-09-20" })
+    expect(requestMock).toHaveBeenCalledWith("createEvent", {
+      name: sampleEvent.name,
+      date: "2026-09-20",
+      location: "",
+      description: "",
     })
   })
 

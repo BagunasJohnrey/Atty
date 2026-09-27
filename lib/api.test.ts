@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 import { AppsScriptError } from "@/integration/errors"
 import {
   HttpError,
+  optionalString,
   parseJsonBody,
   requireString,
   respondWith,
@@ -59,6 +60,25 @@ describe("requireString", () => {
       success: false,
       code: "INVALID_FIELD",
     })
+  })
+})
+
+describe("optionalString", () => {
+  it("returns empty string when missing or blank", () => {
+    expect(optionalString({}, "location")).toBe("")
+    expect(optionalString({ location: "   " }, "location")).toBe("")
+  })
+
+  it("trims present values", () => {
+    expect(optionalString({ location: "  Gym  " }, "location")).toBe("Gym")
+  })
+
+  it("rejects non-string values", async () => {
+    const response = await respondWith(async () => {
+      optionalString({ location: 42 }, "location")
+      return NextResponse.json({ success: true })
+    })
+    expect(response.status).toBe(400)
   })
 })
 

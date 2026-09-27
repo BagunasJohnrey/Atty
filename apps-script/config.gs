@@ -10,7 +10,7 @@ var Config = {
   EVENTS_SHEET: "Events",
 
   MASTERLIST_HEADERS: ["SRCODE", "Full Name", "College", "Program", "Year Level", "Gender"],
-  EVENTS_HEADERS: ["Event ID", "Event Name", "Event Date", "Status", "Sheet Name"],
+  EVENTS_HEADERS: ["Event ID", "Event Name", "Event Date", "Status", "Sheet Name", "Location", "Description"],
   ATTENDANCE_HEADERS: ["Timestamp", "SRCODE"],
 
   STATUS_UPCOMING: "Upcoming",
@@ -28,6 +28,8 @@ var Config = {
 
   MAX_SRCODE_LENGTH: 20,
   MAX_EVENT_NAME_LENGTH: 150,
+  MAX_EVENT_LOCATION_LENGTH: 150,
+  MAX_EVENT_DESCRIPTION_LENGTH: 500,
 
   SECRET_PROPERTY: "APPS_SCRIPT_SECRET",
   SPREADSHEET_KEY_PROPERTY: "SPREADSHEET_ID",
@@ -47,6 +49,8 @@ var Config = {
       DATE: 2,
       STATUS: 3,
       SHEET_NAME: 4,
+      LOCATION: 5,
+      DESCRIPTION: 6,
     },
     ATTENDANCE: {
       TIMESTAMP: 0,

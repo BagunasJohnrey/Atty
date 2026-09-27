@@ -52,6 +52,22 @@ export function requireString(
   return candidate.trim()
 }
 
+/**
+ * Returns a trimmed string field, or "" when missing/blank. Throws when
+ * the field is present but not a string.
+ */
+export function optionalString(
+  value: Record<string, unknown>,
+  field: string
+): string {
+  const candidate = value[field]
+  if (candidate === undefined || candidate === null) return ""
+  if (typeof candidate !== "string") {
+    throw new HttpError(400, "INVALID_FIELD", `Invalid field: ${field}.`)
+  }
+  return candidate.trim()
+}
+
 function jsonError(
   status: number,
   code: string,

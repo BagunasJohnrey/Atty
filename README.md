@@ -66,9 +66,10 @@ The Next.js app exposes these endpoints (all return JSON):
 | GET    | `/api/events/[eventId]`                 | Event details                  |
 | POST   | `/api/events/[eventId]/open`            | Open an event (mark Active)    |
 | PATCH  | `/api/events/[eventId]`                 | Close an event                 |
-| GET    | `/api/events/[eventId]/attendance`      | Attendance records             |
+| GET    | `/api/events/[eventId]/attendance`      | Attendance records (`?q=&college=&program=&yearLevel=&gender=`) |
 | POST   | `/api/events/[eventId]/attendance`      | Record attendance              |
 | POST   | `/api/events/[eventId]/attendance/check`| Verify a student's attendance  |
+| GET    | `/api/events/[eventId]/attendance/export`| CSV export (same filters)     |
 | GET    | `/api/events/[eventId]/report`          | Attendance report              |
 | POST   | `/api/students/lookup`                  | Look up a student by SRCODE     |
 

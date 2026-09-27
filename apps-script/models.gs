@@ -23,6 +23,8 @@
  * @property {string} date
  * @property {string} status
  * @property {string} sheetName
+ * @property {string} location
+ * @property {string} description
  */
 
 /**
@@ -60,6 +62,8 @@ var Models = {
       date: String(row[columns.DATE] || ""),
       status: String(row[columns.STATUS] || Config.DEFAULT_EVENT_STATUS),
       sheetName: String(row[columns.SHEET_NAME] || id),
+      location: String(row[columns.LOCATION] || ""),
+      description: String(row[columns.DESCRIPTION] || ""),
     }
   },
 

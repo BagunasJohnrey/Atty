@@ -93,6 +93,32 @@ var Sheets = {
   },
 
   /**
+   * Ensures the header row contains at least the given headers, appending
+   * any missing trailing columns. Existing headers and data are preserved,
+   * so pre-migration sheets gain the new columns without data loss.
+   *
+   * @param {string} sheetName
+   * @param {string[]} headers
+   */
+  ensureHeaders: function (sheetName, headers) {
+    var sheet = Sheets.ensureSheet(sheetName)
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(headers)
+      return
+    }
+    var current = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    var missing = []
+    for (var i = 0; i < headers.length; i++) {
+      if (current[i] === undefined || String(current[i]).trim() === "") {
+        missing.push({ column: i + 1, value: headers[i] })
+      }
+    }
+    for (var j = 0; j < missing.length; j++) {
+      sheet.getRange(1, missing[j].column).setValue(missing[j].value)
+    }
+  },
+
+  /**
    * Number of data rows (all rows below the header row).
    *
    * @param {string} sheetName

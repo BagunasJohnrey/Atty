@@ -58,16 +58,20 @@ var Events = {
 
   /**
    * Creates an event, its registry row, and its attendance sheet.
+   * Location and description are optional and default to "".
    *
    * @param {string} name
    * @param {string} date
+   * @param {string} [location]
+   * @param {string} [description]
    * @returns {SchoolEvent}
    */
-  create: function (name, date) {
+  create: function (name, date, location, description) {
     var id = Events.nextIdAfterEnsuringRegistry()
     Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
-    Sheets.appendRow(Config.EVENTS_SHEET, [id, name, date, Config.DEFAULT_EVENT_STATUS, id])
-    return Models.eventFromRow([id, name, date, Config.DEFAULT_EVENT_STATUS, id])
+    var row = [id, name, date, Config.DEFAULT_EVENT_STATUS, id, location || "", description || ""]
+    Sheets.appendRow(Config.EVENTS_SHEET, row)
+    return Models.eventFromRow(row)
   },
 
   /**
@@ -77,7 +81,7 @@ var Events = {
    * @returns {string} The next available Event ID.
    */
   nextIdAfterEnsuringRegistry: function () {
-    Sheets.writeHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
+    Sheets.ensureHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
     return Events.nextId()
   },
 
@@ -165,7 +169,11 @@ var Events = {
   handleCreate: function (body) {
     var name = Validators.requireString(body, "name", "Event name", Config.MAX_EVENT_NAME_LENGTH)
     var date = Validators.normalizeDate(body.date)
-    return Responses.ok("Event created successfully.", { event: Events.create(name, date) })
+    var location = Validators.optionalString(body, "location", "Event location", Config.MAX_EVENT_LOCATION_LENGTH)
+    var description = Validators.optionalString(body, "description", "Event description", Config.MAX_EVENT_DESCRIPTION_LENGTH)
+    return Responses.ok("Event created successfully.", {
+      event: Events.create(name, date, location, description),
+    })
   },
 
   /**

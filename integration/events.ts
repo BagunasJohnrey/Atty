@@ -23,6 +23,8 @@ export async function createEvent(
     {
       name: input.name,
       date: input.date,
+      location: input.location ?? "",
+      description: input.description ?? "",
     }
   )
   return response.event
