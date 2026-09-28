@@ -69,12 +69,12 @@ describe("filterAttendance", () => {
     expect(filterAttendance(records, {})).toHaveLength(3)
   })
 
-  it("searches across srcode, name, college, and program", () => {
+  it("searches across srcode and name only (facets cover the rest)", () => {
     expect(filterAttendance(records, { q: "26-12346" })).toHaveLength(1)
     expect(filterAttendance(records, { q: "maria" })).toHaveLength(1)
-    expect(filterAttendance(records, { q: "coe" })).toHaveLength(1)
-    expect(filterAttendance(records, { q: "cics" })).toHaveLength(2)
-    expect(filterAttendance(records, { q: "bs" })).toHaveLength(3)
+    expect(filterAttendance(records, { q: "coe" })).toHaveLength(0)
+    expect(filterAttendance(records, { q: "cics" })).toHaveLength(0)
+    expect(filterAttendance(records, { q: "bs" })).toHaveLength(0)
     expect(filterAttendance(records, { q: "nobody" })).toHaveLength(0)
   })
 

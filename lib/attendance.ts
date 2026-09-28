@@ -8,7 +8,7 @@ import type { AttendanceRecord } from "@/models/attendance"
  * (no query params) behave exactly as before.
  */
 export interface AttendanceFilters {
-  /** Free-text search across SRCODE, name, college, and program. */
+  /** Free-text search across SRCODE and name only (facets cover the rest). */
   q?: string
   college?: string
   program?: string
@@ -37,6 +37,30 @@ function matches(value: string, filter: string | undefined): boolean {
   return value.trim().toLowerCase() === filter.trim().toLowerCase()
 }
 
+export interface FilterOptions {
+  colleges: string[]
+  programs: string[]
+  yearLevels: string[]
+  genders: string[]
+}
+
+/**
+ * Distinct dropdown values derived from the full (unfiltered) attendance
+ * list, so facet options never shrink as filters are applied.
+ */
+export function distinctFilterOptions(records: AttendanceRecord[]): FilterOptions {
+  const pick = (get: (r: AttendanceRecord) => string): string[] =>
+    [...new Set(records.map((r) => get(r).trim()).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b)
+    )
+  return {
+    colleges: pick((r) => r.college),
+    programs: pick((r) => r.program),
+    yearLevels: pick((r) => r.yearLevel),
+    genders: pick((r) => r.gender),
+  }
+}
+
 export function filterAttendance(
   records: AttendanceRecord[],
   filters: AttendanceFilters
@@ -44,9 +68,7 @@ export function filterAttendance(
   const q = filters.q?.trim().toLowerCase()
   return records.filter((record) => {
     if (q) {
-      const haystack = [record.srcode, record.name, record.college, record.program]
-        .join(" ")
-        .toLowerCase()
+      const haystack = [record.srcode, record.name].join(" ").toLowerCase()
       if (!haystack.includes(q)) return false
     }
     return (

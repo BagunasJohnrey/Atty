@@ -48,30 +48,30 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.488 0.243 264.376);
-    --primary-foreground: oklch(0.97 0.014 254.604);
-    --secondary: oklch(0.967 0.001 286.375);
-    --secondary-foreground: oklch(0.21 0.006 285.885);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
+    --background: #f6f4ff;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #6366f1;
+    --primary-foreground: #ffffff;
+    --secondary: #eef2ff;
+    --secondary-foreground: #3730a3;
+    --muted: #f1f5f9;
+    --muted-foreground: #475569;
+    --accent: #fdf4ff;
+    --accent-foreground: #831843;
+    --destructive: #e11d48;
     --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --input: #e2e8f0;
+    --ring: #6366f1;
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    --radius: 0;
+    --radius: 1rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.546 0.245 262.881);
@@ -80,24 +80,95 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* ---- Visual foundations: type scale (modular, 1.125 ratio) ---- */
+    --font-size-xs: 0.75rem;   /* 12px — badges, overlines */
+    --font-size-sm: 0.875rem;  /* 14px — UI labels, table */
+    --font-size-base: 1rem;    /* 16px — body */
+    --font-size-lg: 1.125rem;  /* 18px — card titles */
+    --font-size-xl: 1.25rem;   /* 20px */
+    --font-size-2xl: 1.5rem;   /* 24px — page titles */
+    --font-size-3xl: 1.875rem; /* 30px */
+    --leading-heading: 1.2;
+    --leading-body: 1.6;
+    --leading-label: 1.4;
+
+    /* ---- Visual foundations: 8pt spacing grid ---- */
+    --space-1: 0.25rem;  /* 4px */
+    --space-2: 0.5rem;   /* 8px — icon-text gap */
+    --space-3: 0.75rem;  /* 12px */
+    --space-4: 1rem;     /* 16px — form field gap */
+    --space-5: 1.25rem;  /* 20px — card padding */
+    --space-6: 1.5rem;   /* 24px — card padding, section gap */
+    --space-8: 2rem;     /* 32px — section gap */
+    --space-12: 3rem;    /* 48px */
+    --space-16: 4rem;    /* 64px */
+
+    /* ---- Visual foundations: icon scale ---- */
+    --icon-xs: 12px;
+    --icon-sm: 16px;
+    --icon-md: 20px;
+    --icon-lg: 24px;
+    --icon-xl: 32px;
+
+    /* ---- Claymorphism: shadow-stack recipe (light) ----
+       Outer: ambient + tinted directional drop.
+       Inner: top-left reflection + bottom-right shade. */
+    --clay-ambient: 0 8px 16px rgb(15 23 42 / 0.04);
+    --clay-drop: 0 20px 40px rgb(99 102 241 / 0.08);
+    --clay-inner-light: inset 3px 3px 6px rgb(255 255 255 / 0.85);
+    --clay-inner-shade: inset -4px -4px 8px rgb(15 23 42 / 0.06);
+    --clay-rim: inset 0 0 0 2px rgb(255 255 255 / 0.4);
+    --clay-canvas: #eef2ff;
+    --clay-canvas-end: #fdf4ff;
+    --clay-heading: #0f172a;
+    --clay-body: #475569;
+    --clay-radius-card: 28px;
+    --clay-radius-pressed: 20px;
+    --clay-radius-control: 18px;
+    --clay-radius-pill: 9999px;
+
+    /* ---- Energy accents (fills) + AA-safe inks (text on tint) ---- */
+    --clay-indigo: #6366f1;
+    --clay-coral: #fb7185;
+    --clay-mint: #34d399;
+    --clay-mint-ink: #065f46;
+    --clay-tangerine: #f97316;
+    --clay-tangerine-ink: #9a3412;
+    --clay-coral-ink: #9f1239;
+    --clay-crimson: #f43f5e;
+
+    /* ---- Semantic status tokens (light, WCAG AA on tinted bg) ---- */
+    --color-success: #065f46;
+    --color-success-bg: #d1fae5;
+    --color-success-border: #6ee7b7;
+    --color-warning: #9a3412;
+    --color-warning-bg: #ffedd5;
+    --color-warning-border: #fdba74;
+    --color-error: #9f1239;
+    --color-error-bg: #ffe4e6;
+    --color-error-border: #fda4af;
+    --color-info: #3730a3;
+    --color-info-bg: #e0e7ff;
+    --color-info-border: #a5b4fc;
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.424 0.199 265.638);
-    --primary-foreground: oklch(0.97 0.014 254.604);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
+    --background: #0f172a;
+    --foreground: #f8fafc;
+    --card: #1e293b;
+    --card-foreground: #f8fafc;
+    --popover: #1e293b;
+    --popover-foreground: #f8fafc;
+    --primary: #818cf8;
+    --primary-foreground: #0f172a;
+    --secondary: #312e81;
+    --secondary-foreground: #e0e7ff;
+    --muted: #334155;
+    --muted-foreground: #cbd5e1;
+    --accent: #334155;
+    --accent-foreground: #fbcfe8;
+    --destructive: #fb7185;
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
@@ -114,16 +185,379 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* ---- Claymorphism + semantic tokens (dark: deep slate stage) ---- */
+    --clay-ambient: 0 8px 16px rgb(0 0 0 / 0.4);
+    --clay-drop: 0 20px 40px rgb(0 0 0 / 0.45);
+    --clay-inner-light: inset 3px 3px 6px rgb(255 255 255 / 0.06);
+    --clay-inner-shade: inset -4px -4px 8px rgb(0 0 0 / 0.35);
+    --clay-rim: inset 0 0 0 2px rgb(255 255 255 / 0.08);
+    --clay-canvas: #0f172a;
+    --clay-canvas-end: #1e1b4b;
+    --clay-heading: #f8fafc;
+    --clay-body: #cbd5e1;
+    --clay-indigo: #818cf8;
+    --clay-coral: #fb7185;
+    --clay-mint: #34d399;
+    --clay-mint-ink: #a7f3d0;
+    --clay-tangerine: #fdba74;
+    --clay-tangerine-ink: #fed7aa;
+    --clay-coral-ink: #fecdd3;
+    --clay-crimson: #fb7185;
+    --color-success: #a7f3d0;
+    --color-success-bg: rgb(6 95 70 / 0.45);
+    --color-success-border: rgb(52 211 153 / 0.35);
+    --color-warning: #fed7aa;
+    --color-warning-bg: rgb(154 52 18 / 0.45);
+    --color-warning-border: rgb(251 146 60 / 0.35);
+    --color-error: #fecdd3;
+    --color-error-bg: rgb(159 18 57 / 0.45);
+    --color-error-border: rgb(251 113 133 / 0.35);
+    --color-info: #c7d2fe;
+    --color-info-bg: rgb(55 48 163 / 0.5);
+    --color-info-border: rgb(129 140 248 / 0.4);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
-    }
   html {
     @apply font-sans;
     }
+  body {
+    color: var(--clay-body);
+    font-weight: 500;
+    background:
+      radial-gradient(46rem 28rem at 6% -8%, rgb(199 210 254 / 0.7), transparent 60%),
+      radial-gradient(38rem 26rem at 96% 2%, rgb(249 168 212 / 0.35), transparent 60%),
+      radial-gradient(44rem 30rem at 50% 112%, rgb(167 243 208 / 0.5), transparent 60%),
+      linear-gradient(180deg, var(--clay-canvas) 0%, var(--clay-canvas-end) 100%);
+    background-attachment: fixed;
+    font-size: var(--font-size-base);
+    line-height: var(--leading-body);
+    }
+  .dark body {
+    background:
+      radial-gradient(46rem 28rem at 6% -8%, rgb(99 102 241 / 0.20), transparent 60%),
+      radial-gradient(38rem 26rem at 96% 2%, rgb(251 113 133 / 0.12), transparent 60%),
+      radial-gradient(44rem 30rem at 50% 110%, rgb(52 211 153 / 0.10), transparent 60%),
+      linear-gradient(180deg, var(--clay-canvas) 0%, var(--clay-canvas-end) 100%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    color: var(--clay-heading);
+    font-weight: 800;
+    line-height: var(--leading-heading);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    }
+  p {
+    max-width: 65ch;
+  }
+}
+
+@layer components {
+  /* ---- Fluid page title: 24px → 30px across viewports ---- */
+  .display {
+    font-size: clamp(var(--font-size-2xl), 4vw + 1rem, var(--font-size-3xl));
+    line-height: var(--leading-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .overline {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Consistent vertical rhythm for prose blocks ---- */
+  .stack > * + * { margin-top: var(--space-4); }
+  .stack > h2 + * { margin-top: var(--space-2); }
+  .stack > * + h2 { margin-top: var(--space-8); }
+
+  /* ---- Icon scale helpers (pair with lucide size-*) ---- */
+  .icon-xs { width: var(--icon-xs); height: var(--icon-xs); }
+  .icon-sm { width: var(--icon-sm); height: var(--icon-sm); }
+  .icon-md { width: var(--icon-md); height: var(--icon-md); }
+  .icon-lg { width: var(--icon-lg); height: var(--icon-lg); }
+
+  /* ---- Claymorphism surfaces: volumetric molded silicone ----
+     Outer: ambient + tinted directional drop.
+     Inner: top-left reflection + bottom-right shade.
+     Edge: translucent rim highlight, never a harsh 1px border. */
+  .clay {
+    border-radius: var(--clay-radius-card);
+    border: 0;
+    background: var(--card);
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light),
+      var(--clay-inner-shade);
+  }
+  .clay-pressed {
+    border-radius: var(--clay-radius-pressed);
+    border: 0;
+    box-shadow:
+      var(--clay-rim),
+      inset 4px 4px 10px rgb(15 23 42 / 0.08),
+      inset -4px -4px 10px rgb(255 255 255 / 0.9);
+  }
+  .dark .clay-pressed {
+    box-shadow:
+      var(--clay-rim),
+      inset 4px 4px 10px rgb(0 0 0 / 0.5),
+      inset -4px -4px 10px rgb(255 255 255 / 0.05);
+  }
+  /* ---- Sunken clay wells: inputs, selects, search bars ---- */
+  .clay-input {
+    border-radius: var(--clay-radius-control);
+    border: 0;
+    background: var(--card);
+    box-shadow:
+      inset 2px 2px 4px rgb(0 0 0 / 0.08),
+      inset -2px -2px 4px rgb(255 255 255 / 0.9);
+  }
+  .dark .clay-input {
+    box-shadow:
+      inset 2px 2px 4px rgb(0 0 0 / 0.5),
+      inset -2px -2px 4px rgb(255 255 255 / 0.06);
+  }
+  .clay-search {
+    border-radius: var(--clay-radius-pill);
+  }
+  /* ---- Puffy extruded pills: buttons ---- */
+  .clay-btn {
+    border-radius: var(--clay-radius-pill);
+    border: 2px solid color-mix(in oklch, currentColor 22%, transparent);
+    font-weight: 700;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  }
+  .clay-btn:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--clay-rim),
+      0 10px 20px rgb(15 23 42 / 0.06),
+      0 24px 48px rgb(99 102 241 / 0.12),
+      var(--clay-inner-light);
+  }
+  .clay-btn:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Pressed: translate down 2px, flatten the directional drop */
+  .clay-btn:active {
+    transform: translateY(2px);
+    box-shadow:
+      var(--clay-ambient),
+      var(--clay-inner-shade);
+  }
+  .clay-btn:disabled {
+    opacity: 0.55;
+    transform: none;
+    cursor: not-allowed;
+  }
+  /* Primary CTA: volumetric electric indigo */
+  .clay-btn-primary {
+    background-image: linear-gradient(180deg, #818cf8 0%, #6366f1 100%);
+    color: #fff;
+  }
+  .clay-btn-primary:hover {
+    background-image: linear-gradient(180deg, #93a0fa 0%, #6d70f2 100%);
+  }
+  /* Secondary CTA: bubblegum coral (decorative surfaces pair with dark ink) */
+  .clay-btn-coral {
+    background-image: linear-gradient(180deg, #fda4af 0%, #fb7185 100%);
+    color: #fff;
+  }
+  /* 44px minimum touch target for nav + kiosk controls */
+  nav .clay-btn, form .clay-btn {
+    min-height: 44px;
+  }
+
+  /* ---- Candy-clay identity: gradients, hero, motion ---- */
+  .clay-gradient {
+    background-image: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    color: white;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+  }
+  .clay-tile-mint {
+    background-image: linear-gradient(135deg, #a7f3d0, #34d399);
+    color: #064e3b;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+  }
+  .clay-tile-peach {
+    background-image: linear-gradient(135deg, #fed7aa, #f97316);
+    color: #7c2d12;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+  }
+  .clay-tile-berry {
+    background-image: linear-gradient(135deg, #c7d2fe, #818cf8);
+    color: #1e1b4b;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+  }
+  .clay-tile-frost {
+    background-image: linear-gradient(135deg, #f1f5f9, #cbd5e1);
+    color: #1e293b;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+  }
+  .dark .clay-tile-mint, .dark .clay-tile-peach,
+  .dark .clay-tile-berry, .dark .clay-tile-frost {
+    color: #0f172a;
+  }
+  .clay-topglow {
+    position: relative;
+  }
+  .clay-topglow::before {
+    content: "";
+    position: absolute;
+    inset: 3px 10px auto 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.8), transparent);
+    pointer-events: none;
+  }
+  .clay-hero {
+    border-radius: 32px;
+    border: 0;
+    background-image:
+      radial-gradient(24rem 12rem at 90% 0%, rgb(255 255 255 / 0.35), transparent 60%),
+      linear-gradient(120deg, #6366f1 0%, #a855f7 55%, #fb7185 100%);
+    color: white;
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      var(--clay-drop),
+      var(--clay-inner-light);
+  }
+  .dark .clay-hero {
+    background-image:
+      radial-gradient(24rem 12rem at 90% 0%, rgb(255 255 255 / 0.12), transparent 60%),
+      linear-gradient(120deg, #4f46e5 0%, #7e22ce 55%, #e11d48 100%);
+  }
+  .clay-hero .text-muted-foreground { color: rgb(255 255 255 / 0.82); }
+  .clay-dashed {
+    border-style: dashed;
+    border-width: 3px;
+    border-color: color-mix(in oklch, var(--muted-foreground) 40%, transparent);
+    background: transparent;
+    box-shadow: none;
+  }
+  .clay-table-head {
+    background: color-mix(in oklch, var(--muted) 55%, transparent);
+  }
+  @keyframes clay-pop {
+    0% { transform: scale(0.92); opacity: 0; }
+    60% { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes clay-ring {
+    0% { box-shadow: 0 0 0 0 rgb(74 222 128 / 0.55); }
+    100% { box-shadow: 0 0 0 18px rgb(74 222 128 / 0); }
+  }
+  .animate-clay-pop { animation: clay-pop 280ms ease both; }
+  .animate-clay-ring { animation: clay-ring 900ms ease-out 2; }
+  /* Kiosk focus mode: hide app chrome while any element is fullscreen,
+     then center the remaining content with room to breathe.
+     NOTE: these live outside @layer on purpose — layered utilities
+     (e.g. `flex`) would otherwise override them. */
+  /* Donut segments: highlight on hover/focus, siblings dim via inline style */
+  .donut-seg { transition: opacity 150ms ease, filter 150ms ease; }
+  .donut-seg:hover { filter: brightness(1.12); }
+  .donut-seg:focus-visible { outline: none; filter: brightness(1.12); }
+  @media (prefers-reduced-motion: reduce) {
+    .clay-btn, .clay-btn:hover { transition: none; transform: none; }
+    .animate-clay-pop, .animate-clay-ring { animation: none; }
+    .donut-seg { transition: none; }
+  }
+}
+
+/* ---- Kiosk focus mode (UNLAYERED — must beat layered utilities) ----
+   Hides app chrome in fullscreen, collapses the shell grid to one track,
+   and centers/scales the kiosk stage. */
+:fullscreen .app-chrome {
+  display: none;
+}
+:fullscreen .app-shell-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+:fullscreen main {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 6dvh;
+  padding-bottom: var(--space-8);
+}
+:fullscreen .kiosk {
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* ---- Official report printing (UNLAYERED) ----
+   Legal landscape, 1.27cm narrow margins, app chrome hidden. */
+@media print {
+  @page {
+    size: legal landscape;
+    margin: 1.27cm;
+  }
+  .app-chrome,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .app-shell {
+    padding: 0 !important;
+  }
+  main {
+    display: block !important;
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+  .print-table thead {
+    display: table-header-group;
+  }
+  /* Pinned footer: parked inside the bottom margin (negative offset from
+     the content area), so it repeats at the same spot every page and no
+     table row can ever slide under it. */
+  .report-footer {
+    position: fixed;
+    bottom: -0.9cm;
+    left: 0;
+    right: 0;
+  }
+  .print-table tr {
+    break-inside: avoid;
+  }
 }

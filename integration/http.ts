@@ -5,7 +5,76 @@ import type { ApiFailure, ApiResult, ApiSuccess } from "@/models/api"
 const REQUEST_TIMEOUT_MS = 15_000
 const MAX_ATTEMPTS = 2
 
+/**
+ * Short-lived server read cache. Apps Script roundtrips dominate page
+ * latency (seconds each, cold starts worse), while dashboard refreshes,
+ * kiosk polls, and the RSC-then-client double-fetch pattern re-request
+ * identical data within seconds. Reads below are cached per server
+ * instance; mutations invalidate the affected prefixes immediately, so
+ * writes stay authoritative. Disabled under test to keep suites hermetic.
+ */
+const READ_TTL_MS: Record<string, number> = {
+  getEvents: 30_000,
+  getEvent: 30_000,
+  getAttendance: 10_000,
+  getAttendanceReport: 15_000,
+}
+
+interface CacheEntry {
+  at: number
+  payload: ApiSuccess<object>
+}
+
+const readCache = new Map<string, CacheEntry>()
+const pendingReads = new Map<string, Promise<ApiSuccess<object>>>()
+/** Enabled unless explicitly opted out; suites control it per-case. */
+const cacheEnabled = (): boolean => process.env.APPS_SCRIPT_CACHE !== "off"
+
+function cacheKey(action: string, params: Record<string, unknown>): string {
+  return `${action}:${JSON.stringify(params)}`
+}
+
+/** Drops cached reads whose key starts with any of the given prefixes. */
+function invalidateReads(...prefixes: string[]): void {
+  if (prefixes.length === 0) return
+  for (const key of [...readCache.keys()]) {
+    if (prefixes.some((p) => key.startsWith(p))) readCache.delete(key)
+  }
+}
+
+/**
+ * Write actions and the read prefixes they stale. Runs after a successful
+ * mutation so subsequent reads re-fetch exactly once, then re-cache.
+ */
+function invalidatedBy(action: string): string[] {
+  switch (action) {
+    case "createEvent":
+      return ["getEvents:"]
+    case "openEvent":
+    case "closeEvent":
+    case "updateEvent":
+      return ["getEvents:", "getEvent:"]
+    case "recordAttendance":
+      return ["getAttendance:", "getAttendanceReport:"]
+    default:
+      return []
+  }
+}
+
 let warmedUp = false
+let warmUpTask: Promise<void> | null = null
+
+/** Shared warm-up so concurrent cold calls resolve one redirect chain. */
+function ensureWarmedUp(url: string): Promise<void> {
+  if (warmedUp) return Promise.resolve()
+  warmUpTask ??= warmUp(url)
+  return warmUpTask
+}
+
+function resetWarmUp(): void {
+  warmedUp = false
+  warmUpTask = null
+}
 
 function isApiResult(value: unknown): value is ApiResult<object> {
   if (typeof value !== "object" || value === null) return false
@@ -38,31 +107,63 @@ export async function requestAppsScript<TPayload extends object>(
   const body = JSON.stringify({ secret, action, ...params })
 
   if (!warmedUp) {
-    await warmUp(url)
+    await ensureWarmedUp(url)
   }
 
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-    const response = await send(cacheBusted(url), body, action)
-    const payload = parse(response, action)
-
-    if (payload.success) {
-      return payload as ApiSuccess<TPayload>
+  const key = cacheKey(action, params)
+  const ttl = READ_TTL_MS[action]
+  if (ttl !== undefined && cacheEnabled()) {
+    const hit = readCache.get(key)
+    if (hit && Date.now() - hit.at < ttl) {
+      return { ...hit.payload } as ApiSuccess<TPayload>
     }
-
-    if (payload.code === "METHOD_NOT_ALLOWED" && attempt === 0) {
-      warmedUp = false
-      await warmUp(url)
-      continue
+    // Batch concurrent identical reads onto one upstream call.
+    const inflight = pendingReads.get(key)
+    if (inflight) {
+      return { ...((await inflight) as ApiSuccess<TPayload>) }
     }
-
-    throw new AppsScriptError(payload.code, payload.message, action)
   }
 
-  throw new AppsScriptError(
-    "UPSTREAM_UNAVAILABLE",
-    "Apps Script request failed repeatedly.",
-    action
-  )
+  const task = (async (): Promise<ApiSuccess<TPayload>> => {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      const response = await send(cacheBusted(url), body, action)
+      const payload = parse(response, action)
+
+      if (payload.success) {
+        const ok = payload as ApiSuccess<TPayload>
+        if (ttl !== undefined && cacheEnabled()) {
+          readCache.set(key, { at: Date.now(), payload: ok })
+        } else {
+          invalidateReads(...invalidatedBy(action))
+        }
+        return ok
+      }
+
+      if (payload.code === "METHOD_NOT_ALLOWED" && attempt === 0) {
+        resetWarmUp()
+        await ensureWarmedUp(url)
+        continue
+      }
+
+      throw new AppsScriptError(payload.code, payload.message, action)
+    }
+
+    throw new AppsScriptError(
+      "UPSTREAM_UNAVAILABLE",
+      "Apps Script request failed repeatedly.",
+      action
+    )
+  })()
+
+  if (ttl === undefined || !cacheEnabled()) {
+    return task
+  }
+  pendingReads.set(key, task)
+  try {
+    return await task
+  } finally {
+    pendingReads.delete(key)
+  }
 }
 
 async function send(
