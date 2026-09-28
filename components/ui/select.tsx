@@ -1,7 +1,8 @@
 "use client"
 
 import { Select as SelectPrimitive } from "@base-ui/react/select"
-import { Check, ChevronDown } from "lucide-react"
+import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
+import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /**
@@ -78,5 +79,86 @@ export function ClaySelect({
         </SelectPrimitive.Positioner>
       </SelectPrimitive.Portal>
     </SelectPrimitive.Root>
+  )
+}
+
+/**
+ * Searchable clay dropdown for long option lists (Course facet).
+ * Typed text stays visible in the input and filters the popup list.
+ */
+export function ClayCombobox({
+  id,
+  value,
+  onChange,
+  placeholder,
+  options,
+  className,
+}: {
+  id?: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  options: string[]
+  className?: string
+}) {
+  return (
+    <ComboboxPrimitive.Root
+      items={options}
+      value={value || null}
+      onValueChange={(v) => onChange(typeof v === "string" ? v : "")}
+    >
+      <ComboboxPrimitive.InputGroup
+        className={cn(
+          "clay-input flex h-11 w-full items-center gap-1 pr-2 pl-4 outline-none",
+          "focus-within:border-ring",
+          className
+        )}
+      >
+        <ComboboxPrimitive.Input
+          id={id}
+          placeholder={placeholder}
+          autoComplete="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+        {value ? (
+          <ComboboxPrimitive.Clear
+            aria-label="Clear course filter"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" aria-hidden />
+          </ComboboxPrimitive.Clear>
+        ) : null}
+        <ComboboxPrimitive.Trigger
+          aria-label="Show all options"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ChevronDown className="size-4" aria-hidden />
+        </ComboboxPrimitive.Trigger>
+      </ComboboxPrimitive.InputGroup>
+      <ComboboxPrimitive.Portal>
+        <ComboboxPrimitive.Positioner sideOffset={6} className="z-50">
+          <ComboboxPrimitive.Popup className="clay animate-clay-pop max-h-64 w-[var(--anchor-width)] overflow-y-auto p-2">
+            <ComboboxPrimitive.Empty className="px-3 py-2.5 text-sm text-muted-foreground">
+              No matches found.
+            </ComboboxPrimitive.Empty>
+            <ComboboxPrimitive.List>
+              {(item: string) => (
+                <ComboboxPrimitive.Item
+                  key={item}
+                  value={item}
+                  className="flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none data-[highlighted]:bg-muted data-[selected]:font-semibold"
+                >
+                  {item}
+                  <ComboboxPrimitive.ItemIndicator>
+                    <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                  </ComboboxPrimitive.ItemIndicator>
+                </ComboboxPrimitive.Item>
+              )}
+            </ComboboxPrimitive.List>
+          </ComboboxPrimitive.Popup>
+        </ComboboxPrimitive.Positioner>
+      </ComboboxPrimitive.Portal>
+    </ComboboxPrimitive.Root>
   )
 }

@@ -3,14 +3,14 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
 import { Input, Label } from "@/components/ui/input"
-import { ClaySelect } from "@/components/ui/select"
+import { ClaySelect, ClayCombobox } from "@/components/ui/select"
 import type { FilterOptions } from "@/lib/attendance"
 
 const DROPDOWNS = [
-  { key: "college", label: "Department", values: (o: FilterOptions) => o.colleges },
-  { key: "program", label: "Course", values: (o: FilterOptions) => o.programs },
-  { key: "yearLevel", label: "Year level", values: (o: FilterOptions) => o.yearLevels },
-  { key: "gender", label: "Gender", values: (o: FilterOptions) => o.genders },
+  { key: "college", label: "Department", values: (o: FilterOptions) => o.colleges, searchable: false },
+  { key: "program", label: "Course", values: (o: FilterOptions) => o.programs, searchable: true },
+  { key: "yearLevel", label: "Year level", values: (o: FilterOptions) => o.yearLevels, searchable: false },
+  { key: "gender", label: "Gender", values: (o: FilterOptions) => o.genders, searchable: false },
 ] as const
 
 export function AttendanceFilters({
@@ -55,20 +55,30 @@ export function AttendanceFilters({
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {DROPDOWNS.map(({ key, label, values }) => {
+        {DROPDOWNS.map(({ key, label, values, searchable }) => {
           const current = params.get(key) ?? ""
           const list = values(options)
           return (
             <div key={key} className="flex flex-col gap-1.5">
               <Label htmlFor={`f-${key}`}>{label}</Label>
-              <ClaySelect
-                id={`f-${key}`}
-                value={list.includes(current) ? current : ""}
-                onChange={(v) => update(key, v)}
-                placeholder={`All ${label.toLowerCase()}s`}
-                options={list}
-                allLabel={`All ${label.toLowerCase()}s`}
-              />
+              {searchable ? (
+                <ClayCombobox
+                  id={`f-${key}`}
+                  value={list.includes(current) ? current : ""}
+                  onChange={(v) => update(key, v)}
+                  placeholder={`Search ${label.toLowerCase()}s…`}
+                  options={list}
+                />
+              ) : (
+                <ClaySelect
+                  id={`f-${key}`}
+                  value={list.includes(current) ? current : ""}
+                  onChange={(v) => update(key, v)}
+                  placeholder={`All ${label.toLowerCase()}s`}
+                  options={list}
+                  allLabel={`All ${label.toLowerCase()}s`}
+                />
+              )}
             </div>
           )
         })}
