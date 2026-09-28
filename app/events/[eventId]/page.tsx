@@ -72,7 +72,7 @@ export default async function EventDetailPage({
             {event.status === "Active" ? (
               <Link
                 href={`/events/${event!.id}/check-in`}
-                className={buttonVariants({ size: "sm" })}
+                className={buttonVariants({ size: "sm", className: "clay-btn" })}
               >
                 <ScanLine className="size-4" aria-hidden /> Take Attendance
               </Link>

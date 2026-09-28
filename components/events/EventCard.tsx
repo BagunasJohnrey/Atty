@@ -25,13 +25,13 @@ export function EventCard({ event }: { event: SchoolEvent }) {
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Link href={`/events/${event.id}`} className={buttonVariants({ size: "sm" })}>
+          <Link href={`/events/${event.id}`} className={buttonVariants({ size: "sm", className: "clay-btn" })}>
             Open <ArrowRight className="size-3.5" aria-hidden />
           </Link>
           {event.status === "Active" ? (
             <Link
               href={`/events/${event.id}/check-in`}
-              className={buttonVariants({ size: "sm", variant: "secondary" })}
+              className={buttonVariants({ size: "sm", variant: "secondary", className: "clay-btn" })}
             >
               Take Attendance
             </Link>

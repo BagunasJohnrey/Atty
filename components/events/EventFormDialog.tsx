@@ -39,7 +39,7 @@ export function EventFormDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        render={<Button className="clay-btn"><Plus className="size-4" aria-hidden /> New Event</Button>}
+        render={<Button className="clay-btn clay-btn-primary"><Plus className="size-4" aria-hidden /> New Event</Button>}
       />
       <DialogContent>
         <DialogTitle>Create event</DialogTitle>

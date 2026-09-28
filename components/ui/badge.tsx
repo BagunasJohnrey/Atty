@@ -8,17 +8,17 @@ const badgeVariants = cva(
     variants: {
       variant: {
         active:
-          "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-950/60 dark:text-emerald-300",
+          "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success)]",
         upcoming:
-          "border-amber-200 bg-amber-100 text-amber-900 dark:border-amber-400/30 dark:bg-amber-950/60 dark:text-amber-300",
+          "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
         closed:
-          "border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-400/20 dark:bg-slate-800/60 dark:text-slate-300",
+          "border-border bg-muted text-muted-foreground",
         success:
-          "border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-950/60 dark:text-emerald-300",
+          "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success)]",
         warning:
-          "border-orange-200 bg-orange-100 text-orange-900 dark:border-orange-400/30 dark:bg-orange-950/60 dark:text-orange-300",
+          "border-[var(--color-warning-border)] bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
         error:
-          "border-red-200 bg-red-100 text-red-800 dark:border-red-400/30 dark:bg-red-950/60 dark:text-red-300",
+          "border-[var(--color-error-border)] bg-[var(--color-error-bg)] text-[var(--color-error)]",
         neutral: "border-border bg-muted text-muted-foreground",
       },
     },

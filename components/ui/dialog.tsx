@@ -21,7 +21,7 @@ export function DialogContent({
     <DialogPrimitive.Portal>
       <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40" />
       <DialogPrimitive.Popup
-        className={cn("clay fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 p-6", className)}
+        className={cn("clay animate-clay-pop fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 p-6", className)}
         {...props}
       >
         {children}

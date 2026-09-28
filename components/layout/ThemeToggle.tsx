@@ -11,6 +11,7 @@ export function ThemeToggle() {
       variant="outline"
       size="icon"
       aria-label="Toggle theme"
+      className="clay-btn rounded-full"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
       <Sun className="size-4 scale-100 dark:scale-0" aria-hidden />

@@ -42,6 +42,7 @@ export function AttendanceFilters({
           defaultValue={params.get("q") ?? ""}
           placeholder="SR Code, name, department, or course…"
           onChange={(e) => update("q", e.target.value)}
+          className="clay-search"
         />
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

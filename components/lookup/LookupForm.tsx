@@ -52,7 +52,7 @@ export function LookupForm() {
               autoComplete="off"
               className="h-12 font-mono text-lg tracking-widest"
             />
-            <Button type="submit" disabled={busy || !srcode.trim()} className="clay-btn">
+            <Button type="submit" disabled={busy || !srcode.trim()} className="clay-btn clay-btn-primary">
               {busy ? "Looking up…" : "Look up student"}
             </Button>
           </form>

@@ -131,7 +131,7 @@ export function CheckInForm({
                 Please confirm your attendance for <strong>{eventName}</strong>.
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button onClick={() => void onConfirm()} disabled={busy} className="clay-btn h-12 flex-1 text-base">
+                <Button onClick={() => void onConfirm()} disabled={busy} className="clay-btn clay-btn-primary h-12 flex-1 text-base">
                   <CircleCheck className="size-5" aria-hidden />
                   {busy ? "Recording…" : "Confirm Attendance"}
                 </Button>
@@ -187,7 +187,7 @@ export function CheckInForm({
                 disabled={!eventActive || busy}
                 className="h-14 text-center font-mono text-xl tracking-widest"
               />
-              <Button type="submit" disabled={!eventActive || busy || !srcode.trim()} className="clay-btn h-12 text-base">
+              <Button type="submit" disabled={!eventActive || busy || !srcode.trim()} className="clay-btn clay-btn-primary h-12 text-base">
                 <ScanLine className="size-5" aria-hidden />
                 {busy ? "Validating…" : "Validate SR Code"}
               </Button>

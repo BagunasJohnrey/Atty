@@ -83,43 +83,77 @@ if (!res.success) // code: EVENT_NOT_ACTIVE | DUPLICATE_ATTENDANCE | SRCODE_NOT_
 - Validation mirrors `lib/api.ts`: `requireString` semantics client-side for instant feedback, server remains source of truth.
 - No Apps Script URL/secret in client. No student PII duplicated — attendance rows join on render only.
 
-## 5. Claymorphism design system (visual foundations)
+## 5. Claymorphic UI system (production grade)
 
 Single source of truth: `app/globals.css` (`:root` / `.dark` tokens + `@layer components`).
-Named by purpose, never appearance. Tailwind utilities consume the same scale.
+Named by purpose, never appearance. Strict WCAG AA: body text `4.5:1`, large text & UI components `3:1`.
 
-### 5.1 Typography — single family + mono for IDs
+### 5.1 Typography — Plus Jakarta Sans + mono for IDs
 
-- Pairing: **IBM Plex Sans** (headings + body, geometric, 2 weights max) / **Geist Mono** (SRCODE, Event IDs, timestamps only). No third family.
-- Modular scale (1.125 ratio): `--font-size-xs 12px` (badges/overlines) → `sm 14px` (labels/tables) → `base 16px` (body) → `lg 18px` (card titles) → `2xl 24px` → `3xl 30px`.
-- Line heights: headings `1.2`, body `1.6`, labels `1.4`. Body max width `65ch`.
-- Fluid page titles via `.display`: `clamp(24px, 4vw + 1rem, 30px)`; section overlines via `.overline` (12px, 0.08em tracking, uppercase).
-- Vertical rhythm via `.stack`: `16px` between blocks, `8px` after `h2`, `32px` before `h2`.
+- Pairing: **Plus Jakarta Sans** (400/500/600/700/800 via `next/font`) for headings + body / **Geist Mono** (SR Code, Event IDs, timestamps only). No third family.
+- Headers Bold 700 / ExtraBold 800, tracking `-0.02em`; body Medium 500 / Regular 400 for legibility.
+- Modular scale (1.125 ratio): `--font-size-xs 12px` (badges/overlines) → `sm 14px` (labels/tables) → `base 16px` (body) → `lg 18px` (card titles) → `2xl 24px` → `3xl 30px`. Line heights: headings `1.2`, body `1.6`, labels `1.4`. Body max width `65ch`.
+- Fluid page titles via `.display`: `clamp(24px, 4vw + 1rem, 30px)`; section overlines via `.overline` (12px, 0.08em tracking, uppercase). Vertical rhythm via `.stack`.
 
 ### 5.2 Spacing — 8pt grid
 
-Tokens `--space-1..16` (4/8/12/16/20/24/32/48/64px) map 1:1 onto the Tailwind scale already used (`gap-2` = 8px, `gap-4` = 16px, `p-5` = 20px). No magic numbers.
-Component rules: card padding `20–24px`, section gaps `24–32px`, form field gaps `16px`, icon–text gap `8px`, button horizontal padding `16–24px`.
+Tokens `--space-1..16` (4/8/12/16/20/24/32/48/64px) map 1:1 onto Tailwind (`gap-2` = 8px, `p-5` = 20px). No magic numbers, no sharp right angles anywhere.
+Component rules: card padding `20–24px`, section gaps `24–32px`, form field gaps `16px`, icon–text gap `8px`.
 
-### 5.3 Color — shadcn base + semantic clay tokens
+### 5.3 Color — mesh canvas, milk surfaces, energy accents
 
-- Base stays shadcn `oklch` (`--background/foreground/card/primary/...`); clay adds `--clay-canvas` (`#E8EDF5` light / `#17181D` dark, applied as `body` background) and `--clay-card` so the pastel canvas promised here actually renders.
-- Semantic status tokens with bg/border pairs: `--color-success/warning/error/info` (+ `-bg`, `-border`), each with a `.dark` value. Mapping: Active = success/green, Upcoming = warning/amber, duplicate check-in = warning/orange, invalid/failed = error/red, Closed = neutral/slate. Status is **always icon + text**, never color-only.
-- Contrast targets (WCAG AA): body text `4.5:1`, large text `3:1`, UI components `3:1`. Badge text uses 800/900 shades on 100 tints (light) and 300 shades on translucent dark fills (see `badge.tsx` `dark:` variants) to hold the ratio in both themes.
+- Canvas: pastel mesh — sky lavender `#EEF2FF` blending into `#FDF4FF` (`--clay-canvas` → `--clay-canvas-end`; dark: `#0F172A` → `#1E1B4B`), with soft indigo/pink/mint radial blooms.
+- Surfaces: milk-white `#FFFFFF` (`--card`; dark: slate `#1E293B`) with volumetric highlights.
+- Brand accents: primary CTA electric indigo `#6366F1` (white text ≈ 4.8:1 ✓), secondary bubblegum coral `#FB7185` (decorative fills pair with dark ink `#9F1239`), success mint `#34D399` (ink `#065F46`), warning tangerine `#F97316` (ink `#9A3412`), alert crimson `#F43F5E` (text-carrying destructive is darker `#E11D48` ≈ 4.7:1 ✓).
+- Text: headings solid slate `#0F172A` (`--clay-heading`), body charcoal `#475569` (`--clay-body`, ≈ 7:1 on white ✓). Never gray-on-gray. Status is **always icon + text**, never color-only.
 
-### 5.4 Clay surfaces — tokenized shadows, full state matrix
+### 5.4 Surface architecture — the shadow-stack recipe
 
-Radii: cards `22px`, pressed `18px`, inputs/buttons `16px`. Shadows/borders come from `--clay-shadow-*` / `--clay-pressed-*` / `--clay-border` (inverted in `.dark`), so theming is a token swap, not a rule rewrite.
-Every interactive clay element implements all five states (the previous gap): default → `hover` (1px lift) → `focus-visible` (3px `ring` outline, offset 2px) → `active` (pressed/inset) → `disabled` (55% opacity, no transform, `not-allowed`). `prefers-reduced-motion` disables lift/transitions.
+```css
+.clay {
+  border-radius: 28px;              /* cards 24–32px */
+  border: 0;                        /* rim highlight instead of 1px borders */
+  background: var(--card);
+  box-shadow:
+    inset 0 0 0 2px rgb(255 255 255 / 0.4),   /* rim */
+    0 8px 16px rgb(15 23 42 / 0.04),          /* ambient */
+    0 20px 40px rgb(99 102 241 / 0.08),       /* tinted directional drop */
+    inset 3px 3px 6px rgb(255 255 255 / 0.85),/* top-left reflection */
+    inset -4px -4px 8px rgb(15 23 42 / 0.06); /* bottom-right shade */
+}
+```
 
-### 5.5 Iconography + touch targets
+Tokens: `--clay-ambient / --clay-drop / --clay-inner-light / --clay-inner-shade / --clay-rim`, radii `--clay-radius-card 28px / --clay-radius-pressed 20px / --clay-radius-control 18px / --clay-radius-pill 9999px`. Dark mode inverts the stack (deep ambient/directional, faint reflection). Theming is a token swap, never a rule rewrite.
+Buttons are puffy pills (`9999px`): hover lifts `1px`; `:active` translates down `2px` and flattens the directional drop. Inputs/selects/search are sunken wells (`inset 2px 2px 4px rgb(0 0 0/0.08)`, `inset -2px -2px 4px rgb(255 255 255/0.9)`); search bars go full-pill via `.clay-search`. Full five-state matrix + `prefers-reduced-motion` guard throughout.
 
-- Lucide only, decorative icons `aria-hidden`. Scale `--icon-xs 12` / `sm 16` / `md 20` / `lg 24` / `xl 32` with `.icon-*` helpers; standard usage: inline hints `12–14px`, nav/actions `16px`, stat glyphs `20px`.
-- Minimum touch target `44px`: enforced via `nav .clay-btn, form .clay-btn { min-height: 44px }` (covers SideNav links and kiosk CHECK IN at `h-12/48px`). Compact `h-7/h-8` buttons are reserved for mouse-dense table rows, never for kiosk or primary flows.
+### 5.5 Core component specs
 
-### 5.6 Accessibility checklist (per route)
+```tsx
+// Primary volumetric CTA (indigo gradient pill)
+<Button className="clay-btn clay-btn-primary h-12 text-base">Confirm Attendance</Button>
+// Secondary / neutral puffy pill
+<Button variant="outline" className="clay-btn">Back</Button>
+// Inset input + pill search bar
+<Input className="h-14 text-center font-mono text-xl" placeholder="23-19300" />
+<Input className="clay-search" placeholder="SR Code, name, department…" />
+// Metric card: gradient icon tile + tabular numeral + pill tag
+<Card className="clay-topglow"><CardContent className="flex-row items-center gap-3">
+  <span className="clay-tile-mint flex size-11 rounded-2xl …"><Icon /></span>
+  <span className="text-2xl font-extrabold tabular-nums">{value}</span>
+  <Badge variant="active">Live</Badge>
+</CardContent></Card>
+// Modal: clay surface + pop entrance (Base UI focus trap built in)
+<DialogContent className="animate-clay-pop">…</DialogContent>
+```
 
-Labels on all inputs · `aria-live="polite"` on check-in/lookup results · `role="alert"` on errors · focus trap in dialog (Base UI) · keyboard: Enter submits, autofocus on kiosk SRCODE · `aria-current="page"` on active nav · `aria-label` on icon-only ThemeToggle.
+### 5.6 Iconography + touch targets
+
+- Lucide only, decorative icons `aria-hidden`. Scale `--icon-xs 12` / `sm 16` / `md 20` / `lg 24` / `xl 32` with `.icon-*` helpers.
+- Minimum touch target `44px`: enforced via `nav .clay-btn, form .clay-btn { min-height: 44px }`. Compact buttons stay out of kiosk/primary flows.
+
+### 5.7 Accessibility checklist (per route)
+
+Labels on all inputs · `aria-live="polite"` on check-in/lookup results · `role="alert"` on errors · focus trap in dialog (Base UI) · visible 3px focus rings · keyboard: Enter submits, autofocus on kiosk SR Code · `aria-current="page"` on active nav · `aria-label` on icon-only ThemeToggle.
 
 ## 6. Performance: lazy loading, batching, caching
 
