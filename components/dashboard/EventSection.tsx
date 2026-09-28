@@ -1,5 +1,4 @@
 import { CalendarX2 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { EventCard } from "@/components/events/EventCard"
 import type { SchoolEvent } from "@/models/event"
 
@@ -7,8 +6,7 @@ export function EventSection({ title, events, empty }: { title: string; events: 
   return (
     <section aria-label={title} className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <h2 className="overline">{title}</h2>
-        <Badge variant="neutral">{events.length}</Badge>
+        <h2>{title}</h2>
       </div>
       {events.length === 0 ? (
         <p className="clay clay-dashed flex items-center gap-2 px-4 py-4 text-sm text-muted-foreground">
