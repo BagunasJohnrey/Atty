@@ -37,6 +37,30 @@ function matches(value: string, filter: string | undefined): boolean {
   return value.trim().toLowerCase() === filter.trim().toLowerCase()
 }
 
+export interface FilterOptions {
+  colleges: string[]
+  programs: string[]
+  yearLevels: string[]
+  genders: string[]
+}
+
+/**
+ * Distinct dropdown values derived from the full (unfiltered) attendance
+ * list, so facet options never shrink as filters are applied.
+ */
+export function distinctFilterOptions(records: AttendanceRecord[]): FilterOptions {
+  const pick = (get: (r: AttendanceRecord) => string): string[] =>
+    [...new Set(records.map((r) => get(r).trim()).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b)
+    )
+  return {
+    colleges: pick((r) => r.college),
+    programs: pick((r) => r.program),
+    yearLevels: pick((r) => r.yearLevel),
+    genders: pick((r) => r.gender),
+  }
+}
+
 export function filterAttendance(
   records: AttendanceRecord[],
   filters: AttendanceFilters

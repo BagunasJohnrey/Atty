@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ScanLine } from "lucide-react"
 import { getEvent } from "@/integration/events"
+import { getAttendance } from "@/integration/attendance"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EventActions } from "@/components/events/EventActions"
@@ -11,7 +12,11 @@ import { AttendanceTable } from "@/components/attendance/AttendanceTable"
 import { ExportButton } from "@/components/attendance/ExportButton"
 import { ReportSummary } from "@/components/reports/ReportSummary"
 import { formatEventDate } from "@/lib/format"
-import { parseAttendanceFilters } from "@/lib/attendance"
+import {
+  distinctFilterOptions,
+  parseAttendanceFilters,
+  type FilterOptions,
+} from "@/lib/attendance"
 
 export const revalidate = 10
 
@@ -37,6 +42,15 @@ export default async function EventDetailPage({
     notFound()
   }
   if (!event) notFound()
+
+  // Dropdown options come from the full attendance list (never the filtered
+  // view). Failure here must not break the page — fall back to empty facets.
+  let options: FilterOptions = { colleges: [], programs: [], yearLevels: [], genders: [] }
+  try {
+    options = distinctFilterOptions(await getAttendance(eventId))
+  } catch {
+    // keep empty options; search box and table handle their own states
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,7 +82,7 @@ export default async function EventDetailPage({
         </CardContent>
       </Card>
       <ReportSummary eventId={event.id} />
-      <AttendanceFilters eventId={event.id} />
+      <AttendanceFilters eventId={event.id} options={options} />
       <AttendanceTable eventId={event.id} filters={filters} />
     </div>
   )
