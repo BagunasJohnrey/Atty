@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
 import { Input, Label } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
+import { ClaySelect } from "@/components/ui/select"
 import type { FilterOptions } from "@/lib/attendance"
 
 const DROPDOWNS = [
@@ -61,18 +61,14 @@ export function AttendanceFilters({
           return (
             <div key={key} className="flex flex-col gap-1.5">
               <Label htmlFor={`f-${key}`}>{label}</Label>
-              <Select
+              <ClaySelect
                 id={`f-${key}`}
                 value={list.includes(current) ? current : ""}
-                onChange={(e) => update(key, e.target.value)}
-              >
-                <option value="">All {label.toLowerCase()}s</option>
-                {list.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => update(key, v)}
+                placeholder={`All ${label.toLowerCase()}s`}
+                options={list}
+                allLabel={`All ${label.toLowerCase()}s`}
+              />
             </div>
           )
         })}

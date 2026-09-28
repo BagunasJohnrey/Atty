@@ -1,29 +1,82 @@
-import * as React from "react"
-import { ChevronDown } from "lucide-react"
+"use client"
+
+import { Select as SelectPrimitive } from "@base-ui/react/select"
+import { Check, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function Select({
+/**
+ * Custom clay dropdown. Fully styled trigger + popup (no OS rendering),
+ * with Base UI keyboard support, typeahead, and ARIA built in.
+ */
+export function ClaySelect({
+  id,
+  value,
+  onChange,
+  placeholder,
+  options,
+  allLabel,
   className,
-  children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+}: {
+  id?: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  options: string[]
+  allLabel: string
+  className?: string
+}) {
   return (
-    <span className={cn("relative block")}>
-      <select
-        data-slot="select"
+    <SelectPrimitive.Root
+      value={value}
+      onValueChange={(v) => onChange(typeof v === "string" ? v : "")}
+    >
+      <SelectPrimitive.Trigger
+        id={id}
         className={cn(
-          "clay-input h-11 w-full appearance-none border-2 border-transparent bg-card pr-9 pl-4 text-sm outline-none",
-          "text-foreground focus:border-ring disabled:cursor-not-allowed disabled:opacity-55",
+          "clay-input group flex h-11 w-full items-center justify-between gap-2 px-4 text-left text-sm outline-none",
+          "focus:border-ring data-[placeholder]:text-muted-foreground [&[aria-expanded=true]_svg]:rotate-180",
           className
         )}
-        {...props}
       >
-        {children}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-        aria-hidden
-      />
-    </span>
+        <SelectPrimitive.Value placeholder={placeholder} />
+        <ChevronDown
+          className="size-4 shrink-0 text-muted-foreground transition-transform"
+          aria-hidden
+        />
+      </SelectPrimitive.Trigger>
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Positioner sideOffset={6} className="z-50">
+          <SelectPrimitive.Popup
+            className={cn(
+              "clay animate-clay-pop max-h-64 w-[var(--anchor-width)] overflow-y-auto p-2"
+            )}
+          >
+            <SelectPrimitive.List>
+              <SelectPrimitive.Item
+                value=""
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none data-[highlighted]:bg-muted"
+              >
+                <SelectPrimitive.ItemText>{allLabel}</SelectPrimitive.ItemText>
+                <SelectPrimitive.ItemIndicator>
+                  <Check className="size-4 text-primary" aria-hidden />
+                </SelectPrimitive.ItemIndicator>
+              </SelectPrimitive.Item>
+              {options.map((option) => (
+                <SelectPrimitive.Item
+                  key={option}
+                  value={option}
+                  className="flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm outline-none data-[highlighted]:bg-muted data-[selected]:font-semibold"
+                >
+                  <SelectPrimitive.ItemText>{option}</SelectPrimitive.ItemText>
+                  <SelectPrimitive.ItemIndicator>
+                    <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                  </SelectPrimitive.ItemIndicator>
+                </SelectPrimitive.Item>
+              ))}
+            </SelectPrimitive.List>
+          </SelectPrimitive.Popup>
+        </SelectPrimitive.Positioner>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   )
 }
