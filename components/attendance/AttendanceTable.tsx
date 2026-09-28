@@ -62,9 +62,13 @@ export function AttendanceTable({ eventId, filters }: { eventId: string; filters
               <TD className="whitespace-nowrap">{formatDateOnly(r.timestamp)}</TD>
               <TD className="whitespace-nowrap tabular-nums">{formatTimeOnly(r.timestamp)}</TD>
               <TD className="font-mono whitespace-nowrap">{r.srcode}</TD>
-              <TD className="max-w-45 truncate">{r.name}</TD>
-              <TD className="text-muted-foreground">{r.college}</TD>
-              <TD className="text-muted-foreground">{r.program}</TD>
+              <TD className="min-w-38">{r.name}</TD>
+              <TD className="max-w-40 truncate text-muted-foreground" title={r.college}>
+                {r.college}
+              </TD>
+              <TD className="min-w-30 truncate text-muted-foreground" title={r.program}>
+                {r.program}
+              </TD>
               <TD>
                 <Badge variant="success">Present</Badge>
               </TD>
