@@ -15,7 +15,7 @@ export function EventSection({ title, events, empty }: { title: string; events: 
           <CalendarX2 className="size-4 shrink-0" aria-hidden /> {empty}
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}

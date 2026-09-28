@@ -41,7 +41,7 @@ export default async function EventsPage({
       ) : filtered.length === 0 ? (
         <p className="clay p-4 text-sm text-muted-foreground">No events match. Create the first one.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
