@@ -159,7 +159,7 @@ Labels on all inputs · `aria-live="polite"` on check-in/lookup results · `role
 
 - Lazy: `next/dynamic(ssr:false)` for `EventFormDialog`, `ReportSummary`, `BreakdownBar`; `React.lazy+Suspense` skeletons per segment. No chart lib — CSS bars keep bundle ~0.
 - Batch: attendance table paginates client-side (50/page); kiosk debounces lookup 250ms, batches recent-check-ins render via `useDeferredValue`; report breakdowns memoized.
-- Cache: RSC `fetch(...,{next:{revalidate:30}})` for events (matches BFF 30s), 10s for attendance/report; client `hooks/*` implement SWR map (`stale-while-revalidate`, dedupe in-flight). Mutations call `router.refresh()` + cache invalidate by key prefix.
+- Cache: server TTL read cache in `integration/http.ts` (`getEvents`/`getEvent` 30s, `getAttendance` 10s, `getAttendanceReport` 15s) with in-flight dedupe and shared warm-up; mutations invalidate affected prefixes immediately (opt out via `APPS_SCRIPT_CACHE=off`). RSC `revalidate` 30/10 on top; client `hooks/*` implement SWR map (dedupe in-flight). Mutations call `router.refresh()` + cache invalidate by key prefix.
 - Kiosk polling: `checkAttendance` pre-check only on submit (no hot poll) to respect Apps Script quotas (NFR-02).
 
 ## 7. Key interactions (states)

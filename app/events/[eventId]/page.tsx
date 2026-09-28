@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import * as React from "react"
 import { ScanLine } from "lucide-react"
 import { getEvent } from "@/integration/events"
 import { getAttendance } from "@/integration/attendance"
@@ -11,14 +12,36 @@ import { AttendanceFilters } from "@/components/attendance/AttendanceFilters"
 import { AttendanceTable } from "@/components/attendance/AttendanceTable"
 import { ExportButton } from "@/components/attendance/ExportButton"
 import { ReportSummary } from "@/components/reports/ReportSummary"
+import { Skeleton } from "@/components/ui/skeleton"
 import { formatEventDate } from "@/lib/format"
 import {
   distinctFilterOptions,
   parseAttendanceFilters,
-  type FilterOptions,
 } from "@/lib/attendance"
+import type { AttendanceRecord } from "@/models/attendance"
 
 export const revalidate = 10
+
+/**
+ * Streams in after the header: resolves the shared attendance promise
+ * (started alongside the event fetch) into dropdown facet options.
+ * Failure degrades to empty facets, never a broken page.
+ */
+async function FilterSection({
+  eventId,
+  data,
+}: {
+  eventId: string
+  data: Promise<AttendanceRecord[]>
+}) {
+  let records: AttendanceRecord[] = []
+  try {
+    records = await data
+  } catch {
+    records = []
+  }
+  return <AttendanceFilters eventId={eventId} options={distinctFilterOptions(records)} />
+}
 
 export default async function EventDetailPage({
   params,
@@ -35,6 +58,10 @@ export default async function EventDetailPage({
   }
   const filters = parseAttendanceFilters(new URLSearchParams(flat))
 
+  // Both reads start concurrently. The header renders as soon as the event
+  // resolves; the filter facets stream in via Suspense below. The shared
+  // server read cache means repeat views cost zero upstream roundtrips.
+  const attendanceData = getAttendance(eventId)
   let event: Awaited<ReturnType<typeof getEvent>> | null = null
   try {
     event = await getEvent(eventId)
@@ -42,15 +69,8 @@ export default async function EventDetailPage({
     notFound()
   }
   if (!event) notFound()
-
-  // Dropdown options come from the full attendance list (never the filtered
-  // view). Failure here must not break the page — fall back to empty facets.
-  let options: FilterOptions = { colleges: [], programs: [], yearLevels: [], genders: [] }
-  try {
-    options = distinctFilterOptions(await getAttendance(eventId))
-  } catch {
-    // keep empty options; search box and table handle their own states
-  }
+  // Keep the streaming child alive even if the options fetch fails later.
+  void attendanceData.catch(() => [])
 
   return (
     <div className="flex flex-col gap-4">
@@ -82,7 +102,21 @@ export default async function EventDetailPage({
         </CardContent>
       </Card>
       <ReportSummary eventId={event.id} />
-      <AttendanceFilters eventId={event.id} options={options} />
+      <React.Suspense
+        fallback={
+          <div className="clay flex flex-col gap-3 p-4" aria-label="Loading filters">
+            <Skeleton className="h-11" />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Skeleton className="h-11" />
+              <Skeleton className="h-11" />
+              <Skeleton className="h-11" />
+              <Skeleton className="h-11" />
+            </div>
+          </div>
+        }
+      >
+        <FilterSection eventId={event.id} data={attendanceData} />
+      </React.Suspense>
       <AttendanceTable eventId={event.id} filters={filters} />
     </div>
   )

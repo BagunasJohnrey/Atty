@@ -1,6 +1,6 @@
 import { getEvents } from "@/integration/events"
 import { EventCard } from "@/components/events/EventCard"
-import { EventFormDialog } from "@/components/events/EventFormDialog"
+import { EventFormDialogLazy } from "@/components/events/EventFormDialogLazy"
 
 export const revalidate = 30
 
@@ -34,7 +34,7 @@ export default async function EventsPage({
           <h1 className="text-2xl font-bold tracking-tight">Events</h1>
           <p className="text-sm text-muted-foreground">Create, open, and track school events.</p>
         </div>
-        <EventFormDialog />
+        <EventFormDialogLazy />
       </div>
       {error ? (
         <p role="alert" className="clay p-4 text-sm text-destructive">{error}</p>
