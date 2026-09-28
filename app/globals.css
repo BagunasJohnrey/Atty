@@ -127,3 +127,54 @@
     @apply font-sans;
     }
 }
+
+@layer components {
+  .clay {
+    border-radius: 22px;
+    border: 3px solid rgb(255 255 255 / 0.65);
+    background: var(--card);
+    box-shadow:
+      8px 8px 18px rgb(163 177 198 / 0.45),
+      -8px -8px 18px rgb(255 255 255 / 0.9);
+  }
+  .dark .clay {
+    border-color: rgb(255 255 255 / 0.08);
+    box-shadow:
+      8px 8px 18px rgb(0 0 0 / 0.5),
+      -8px -8px 18px rgb(255 255 255 / 0.06);
+  }
+  .clay-pressed {
+    border-radius: 18px;
+    box-shadow:
+      inset 4px 4px 10px rgb(163 177 198 / 0.5),
+      inset -4px -4px 10px rgb(255 255 255 / 0.8);
+  }
+  .dark .clay-pressed {
+    box-shadow:
+      inset 4px 4px 10px rgb(0 0 0 / 0.55),
+      inset -4px -4px 10px rgb(255 255 255 / 0.06);
+  }
+  .clay-input {
+    border-radius: 16px;
+    box-shadow:
+      inset 3px 3px 8px rgb(163 177 198 / 0.45),
+      inset -3px -3px 8px rgb(255 255 255 / 0.9);
+  }
+  .clay-btn {
+    border-radius: 16px;
+    border: 2px solid rgb(255 255 255 / 0.5);
+    box-shadow:
+      4px 4px 10px rgb(163 177 198 / 0.5),
+      -4px -4px 10px rgb(255 255 255 / 0.85);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .clay-btn:active {
+    transform: translateY(1px);
+    box-shadow:
+      inset 3px 3px 8px rgb(163 177 198 / 0.5),
+      inset -3px -3px 8px rgb(255 255 255 / 0.7);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .clay-btn { transition: none; }
+  }
+}
