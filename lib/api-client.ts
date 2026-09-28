@@ -143,3 +143,15 @@ export function exportUrl(eventId: string, filters?: AttendanceFilters): string 
   const qs = params.toString()
   return `/api/events/${encodeURIComponent(eventId)}/attendance/export${qs ? `?${qs}` : ""}`
 }
+
+/** Official PDF report view (print-optimized); carries the same filters. */
+export function printUrl(eventId: string, filters?: AttendanceFilters): string {
+  const params = new URLSearchParams()
+  if (filters?.q) params.set("q", filters.q)
+  if (filters?.college) params.set("college", filters.college)
+  if (filters?.program) params.set("program", filters.program)
+  if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel)
+  if (filters?.gender) params.set("gender", filters.gender)
+  const qs = params.toString()
+  return `/events/${encodeURIComponent(eventId)}/report/print${qs ? `?${qs}` : ""}`
+}

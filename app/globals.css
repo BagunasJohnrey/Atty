@@ -522,3 +522,42 @@
   width: 100%;
   margin-inline: auto;
 }
+
+/* ---- Official report printing (UNLAYERED) ----
+   Legal landscape, 1.27cm narrow margins, app chrome hidden. */
+@media print {
+  @page {
+    size: legal landscape;
+    margin: 1.27cm;
+  }
+  .app-chrome,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .app-shell {
+    padding: 0 !important;
+  }
+  main {
+    display: block !important;
+    min-height: auto !important;
+    padding: 0 !important;
+  }
+  .print-table thead {
+    display: table-header-group;
+  }
+  /* Pinned footer: parked inside the bottom margin (negative offset from
+     the content area), so it repeats at the same spot every page and no
+     table row can ever slide under it. */
+  .report-footer {
+    position: fixed;
+    bottom: -0.9cm;
+    left: 0;
+    right: 0;
+  }
+  .print-table tr {
+    break-inside: avoid;
+  }
+}

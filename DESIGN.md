@@ -165,7 +165,7 @@ Check-in (`/events/[id]/check-in`, per Event-Based Attendance doc §§4/7): vali
 
 Events: create dialog validates name/date (date ≥ today warning, not block), optimistic card insert → `router.refresh()`. Open/Close are confirm dialogs mapping to `POST .../open` / `PATCH ...` (empty body = close).
 
-Reports: `ReportSummary` shows totalStudents/totalPresent/absent/rate + `BreakdownBar` per college/program/yearLevel/gender. Empty state when 0 present. Export button downloads CSV via same filters.
+Reports: `ReportSummary` shows totalStudents/totalPresent/absent/rate + `BreakdownBar` per college/program/yearLevel/gender. Empty state when 0 present. Export button opens the official PDF report view (`/events/[id]/report/print`, letterhead + records table, legal landscape) carrying the active filters.
 
 ## 8. Testing / verification
 
