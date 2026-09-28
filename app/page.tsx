@@ -1,7 +1,4 @@
-import Link from "next/link"
-import { ScanLine, CalendarPlus } from "lucide-react"
 import { getEvents } from "@/integration/events"
-import { buttonVariants } from "@/components/ui/button"
 import { EventSection } from "@/components/dashboard/EventSection"
 import { StatCards } from "@/components/dashboard/StatCards"
 
@@ -22,36 +19,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="clay-hero flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-        <div>
-          <p className="overline opacity-80">School Event Attendance</p>
-          <h1 className="display mt-1">
-            {active.length > 0
-              ? `${active.length} live check-in${active.length === 1 ? "" : "s"} right now`
-              : "Ready for check-ins"}
-          </h1>
-          <p className="mt-1 max-w-md text-sm text-muted-foreground">
-            {active.length > 0
-              ? "Students can scan their SR Code at any active event kiosk."
-              : "Mark an event Active to open its kiosk, or create a new event."}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {active.length > 0 ? (
-            <Link
-              href={`/events/${active[0].id}/check-in`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-white/95 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-lg transition-transform hover:-translate-y-px"
-            >
-              <ScanLine className="size-4" aria-hidden /> Open kiosk
-            </Link>
-          ) : null}
-          <Link
-            href="/events"
-            className={buttonVariants({ variant: "outline", className: "min-h-11 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white" })}
-          >
-            <CalendarPlus className="size-4" aria-hidden /> Manage events
-          </Link>
-        </div>
+      <div>
+        <h1 className="display">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Active, upcoming, and closed school events at a glance.
+        </p>
       </div>
       {error ? (
         <p role="alert" className="clay p-4 text-sm text-destructive">

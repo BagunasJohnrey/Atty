@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CalendarDays, ClipboardCheck, Home, Search } from "lucide-react"
+import { CalendarDays, Home, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const links = [
@@ -32,10 +32,6 @@ export function SideNav() {
           </Link>
         )
       })}
-      <p className="mt-2 flex items-center gap-2 px-2 text-xs text-muted-foreground">
-        <ClipboardCheck className="size-3.5" aria-hidden />
-        Kiosk: open an event → Take Attendance
-      </p>
     </nav>
   )
 }

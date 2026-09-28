@@ -11,7 +11,7 @@ export function SiteHeader() {
         </span>
         <span className="leading-tight">
           <span className="block text-sm font-bold">Atty</span>
-          <span className="block text-xs text-muted-foreground">School Event Attendance</span>
+          <span className="block text-xs text-muted-foreground">Event Attendance</span>
         </span>
       </Link>
       <div className="flex items-center gap-2">
