@@ -8,7 +8,7 @@ import type { AttendanceRecord } from "@/models/attendance"
  * (no query params) behave exactly as before.
  */
 export interface AttendanceFilters {
-  /** Free-text search across SRCODE, name, college, and program. */
+  /** Free-text search across SRCODE and name only (facets cover the rest). */
   q?: string
   college?: string
   program?: string
@@ -68,9 +68,7 @@ export function filterAttendance(
   const q = filters.q?.trim().toLowerCase()
   return records.filter((record) => {
     if (q) {
-      const haystack = [record.srcode, record.name, record.college, record.program]
-        .join(" ")
-        .toLowerCase()
+      const haystack = [record.srcode, record.name].join(" ").toLowerCase()
       if (!haystack.includes(q)) return false
     }
     return (

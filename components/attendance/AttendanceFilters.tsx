@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
+import { Search } from "lucide-react"
 import { Input, Label } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import type { FilterOptions } from "@/lib/attendance"
@@ -37,13 +38,21 @@ export function AttendanceFilters({
     >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="f-q">Search</Label>
-        <Input
-          id="f-q"
-          defaultValue={params.get("q") ?? ""}
-          placeholder="SR Code, name, department, or course…"
-          onChange={(e) => update("q", e.target.value)}
-          className="clay-search"
-        />
+        <span className="relative block">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            id="f-q"
+            defaultValue={params.get("q") ?? ""}
+            placeholder="SR Code or name…"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => update("q", e.target.value)}
+            className="clay-search pl-11"
+          />
+        </span>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {DROPDOWNS.map(({ key, label, values }) => {

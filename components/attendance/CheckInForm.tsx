@@ -184,6 +184,7 @@ export function CheckInForm({
                 onChange={(e) => setSrcode(e.target.value.toUpperCase())}
                 placeholder="23-19300"
                 autoComplete="off"
+                spellCheck={false}
                 disabled={!eventActive || busy}
                 className="h-14 text-center font-mono text-xl tracking-widest"
               />

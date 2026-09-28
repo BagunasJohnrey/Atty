@@ -50,6 +50,7 @@ export function LookupForm() {
               onChange={(e) => setSrcode(e.target.value.toUpperCase())}
               placeholder="26-12345"
               autoComplete="off"
+              spellCheck={false}
               className="h-12 font-mono text-lg tracking-widest"
             />
             <Button type="submit" disabled={busy || !srcode.trim()} className="clay-btn clay-btn-primary">
