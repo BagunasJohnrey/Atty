@@ -39,7 +39,8 @@ export async function parseJsonBody(
  */
 export function requireString(
   value: Record<string, unknown>,
-  field: string
+  field: string,
+  maxLength?: number
 ): string {
   const candidate = value[field]
   if (typeof candidate !== "string" || candidate.trim() === "") {
@@ -49,7 +50,46 @@ export function requireString(
       `Missing or empty field: ${field}.`
     )
   }
-  return candidate.trim()
+  const trimmed = candidate.trim()
+  if (maxLength !== undefined && trimmed.length > maxLength) {
+    throw new HttpError(400, "INVALID_FIELD", `Field too long: ${field}.`)
+  }
+  return trimmed
+}
+
+/**
+ * Returns a trimmed string field, or "" when missing/blank. Throws when
+ * the field is present but not a string.
+ */
+export function optionalString(
+  value: Record<string, unknown>,
+  field: string,
+  maxLength?: number
+): string {
+  const candidate = value[field]
+  if (candidate === undefined || candidate === null) return ""
+  if (typeof candidate !== "string") {
+    throw new HttpError(400, "INVALID_FIELD", `Invalid field: ${field}.`)
+  }
+  const trimmed = candidate.trim()
+  if (maxLength !== undefined && trimmed.length > maxLength) {
+    throw new HttpError(400, "INVALID_FIELD", `Field too long: ${field}.`)
+  }
+  return trimmed
+}
+
+/**
+ * JSON response with a short private cache lifetime.
+ *
+ * Reads dominate this system (kiosk refreshes, organizer dashboards) while
+ * writes are comparatively rare, so a few seconds of staleness is an
+ * acceptable trade for fewer upstream round trips. Mutating endpoints
+ * (POST/PATCH) stay uncached.
+ */
+export function cachedJson(data: unknown, maxAgeSeconds: number): NextResponse {
+  return NextResponse.json(data, {
+    headers: { "Cache-Control": `private, max-age=${maxAgeSeconds}` },
+  })
 }
 
 function jsonError(

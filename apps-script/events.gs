@@ -9,6 +9,7 @@ var Events = {
    * @returns {SchoolEvent[]}
    */
   all: function () {
+    if (!Sheets.sheetByName(Config.EVENTS_SHEET)) return []
     var data = Sheets.getValues(Config.EVENTS_SHEET)
     var events = []
     for (var i = Config.ROW_START - 1; i < data.length; i++) {
@@ -57,17 +58,94 @@ var Events = {
 
   /**
    * Creates an event, its registry row, and its attendance sheet.
+   * Location and description are optional and default to "".
+   *
+   * A script lock serializes concurrent creations so two simultaneous
+   * calls cannot claim the same Event ID.
    *
    * @param {string} name
    * @param {string} date
+   * @param {string} [location]
+   * @param {string} [description]
    * @returns {SchoolEvent}
    */
-  create: function (name, date) {
-    var id = Events.nextId()
-    Sheets.writeHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
-    Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
-    Sheets.appendRow(Config.EVENTS_SHEET, [id, name, date, Config.DEFAULT_EVENT_STATUS, id])
-    return Models.eventFromRow([id, name, date, Config.DEFAULT_EVENT_STATUS, id])
+  create: function (name, date, location, description) {
+    var lock = LockService.getScriptLock()
+    lock.waitLock(10000)
+    try {
+      var id = Events.nextIdAfterEnsuringRegistry()
+      Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
+      var row = [id, name, date, Config.DEFAULT_EVENT_STATUS, id, location || "", description || ""]
+      Sheets.appendRow(Config.EVENTS_SHEET, row)
+      return Models.eventFromRow(row)
+    } finally {
+      lock.releaseLock()
+    }
+  },
+
+  /**
+   * Ensures the Events registry exists before scanning it for the next ID,
+   * so the very first event can be created on a fresh spreadsheet.
+   *
+   * @returns {string} The next available Event ID.
+   */
+  nextIdAfterEnsuringRegistry: function () {
+    Sheets.ensureHeaders(Config.EVENTS_SHEET, Config.EVENTS_HEADERS)
+    return Events.nextId()
+  },
+
+  /**
+   * Updates mutable event fields. Only keys present in the patch are
+   * changed; omitted keys keep their values. Status accepts any of the
+   * configured statuses, which also makes this the supported path for
+   * reopening a closed event. The attendance sheet is never touched.
+   *
+   * @param {string} eventId
+   * @param {Object} patch - May contain name, date, location, description, status.
+   * @returns {SchoolEvent}
+   */
+  update: function (eventId, patch) {
+    var event = Events.assertById(eventId)
+    var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
+    var columns = Config.COLUMNS.EVENTS
+    if (patch.name !== undefined) {
+      event.name = Validators.requireString(patch, "name", "Event name", Config.MAX_EVENT_NAME_LENGTH)
+    }
+    if (patch.date !== undefined) {
+      event.date = Validators.normalizeDate(patch.date)
+    }
+    if (patch.location !== undefined) {
+      event.location = Validators.optionalString(patch, "location", "Event location", Config.MAX_EVENT_LOCATION_LENGTH)
+    }
+    if (patch.description !== undefined) {
+      event.description = Validators.optionalString(patch, "description", "Event description", Config.MAX_EVENT_DESCRIPTION_LENGTH)
+    }
+    if (patch.status !== undefined) {
+      event.status = Events.normalizeStatus(patch.status)
+    }
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.NAME + 1, event.name)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.DATE + 1, event.date)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.STATUS + 1, event.status)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.LOCATION + 1, event.location)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.DESCRIPTION + 1, event.description)
+    return event
+  },
+
+  /**
+   * @param {*} status
+   * @returns {string}
+   */
+  normalizeStatus: function (status) {
+    var allowed = [Config.STATUS_UPCOMING, Config.STATUS_ACTIVE, Config.STATUS_CLOSED]
+    for (var i = 0; i < allowed.length; i++) {
+      if (typeof status === "string" && status.trim().toLowerCase() === allowed[i].toLowerCase()) {
+        return allowed[i]
+      }
+    }
+    throw new AppError(
+      Responses.CODES.INVALID_REQUEST,
+      "Event status is invalid. Use Upcoming, Active, or Closed."
+    )
   },
 
   /**
@@ -104,6 +182,28 @@ var Events = {
   },
 
   /**
+   * Marks an event as Active so it starts accepting attendance.
+   * Closed events cannot be reopened; attendance records are never touched.
+   *
+   * @param {string} eventId
+   * @returns {SchoolEvent}
+   */
+  open: function (eventId) {
+    var event = Events.assertById(eventId)
+    if (event.status === Config.STATUS_ACTIVE) return event
+    if (event.status === Config.STATUS_CLOSED) {
+      throw new AppError(
+        Responses.CODES.EVENT_NOT_ACTIVE,
+        "The event is closed and cannot be reopened."
+      )
+    }
+    var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
+    Sheets.setCell(Config.EVENTS_SHEET, row, Config.COLUMNS.EVENTS.STATUS + 1, Config.STATUS_ACTIVE)
+    event.status = Config.STATUS_ACTIVE
+    return event
+  },
+
+  /**
    * API handler for "getEvents".
    *
    * @returns {Object}
@@ -132,7 +232,11 @@ var Events = {
   handleCreate: function (body) {
     var name = Validators.requireString(body, "name", "Event name", Config.MAX_EVENT_NAME_LENGTH)
     var date = Validators.normalizeDate(body.date)
-    return Responses.ok("Event created successfully.", { event: Events.create(name, date) })
+    var location = Validators.optionalString(body, "location", "Event location", Config.MAX_EVENT_LOCATION_LENGTH)
+    var description = Validators.optionalString(body, "description", "Event description", Config.MAX_EVENT_DESCRIPTION_LENGTH)
+    return Responses.ok("Event created successfully.", {
+      event: Events.create(name, date, location, description),
+    })
   },
 
   /**
@@ -144,5 +248,40 @@ var Events = {
   handleClose: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
     return Responses.ok("Event closed successfully.", { event: Events.close(eventId) })
+  },
+
+  /**
+   * API handler for "openEvent".
+   *
+   * @param {Object} body
+   * @returns {Object}
+   */
+  handleOpen: function (body) {
+    var eventId = Validators.requireString(body, "eventId", "Event ID")
+    return Responses.ok("Event opened successfully.", { event: Events.open(eventId) })
+  },
+
+  /**
+   * API handler for "updateEvent". Accepts any subset of name, date,
+   * location, description, and status; rejects unknown keys so typos
+   * fail loudly instead of being silently ignored.
+   *
+   * @param {Object} body
+   * @returns {Object}
+   */
+  handleUpdate: function (body) {
+    var eventId = Validators.requireString(body, "eventId", "Event ID")
+    var allowed = ["name", "date", "location", "description", "status"]
+    var patch = {}
+    for (var key in body) {
+      if (key === "secret" || key === "action" || key === "eventId") continue
+      if (allowed.indexOf(key) < 0) {
+        throw new AppError(Responses.CODES.INVALID_REQUEST, "Unknown field: " + key)
+      }
+      patch[key] = body[key]
+    }
+    return Responses.ok("Event updated successfully.", {
+      event: Events.update(eventId, patch),
+    })
   },
 }

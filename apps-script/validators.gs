@@ -46,6 +46,29 @@ var Validators = {
   },
 
   /**
+   * Returns a trimmed string field, or "" when missing/blank. Used for
+   * optional fields such as event location and description.
+   *
+   * @param {Object} record
+   * @param {string} field
+   * @param {string} label - Human-readable name used in error messages.
+   * @param {number} [maxLength]
+   * @returns {string}
+   */
+  optionalString: function (record, field, label, maxLength) {
+    var value = record[field]
+    if (value === undefined || value === null) return ""
+    if (typeof value !== "string") {
+      throw new AppError(Responses.CODES.INVALID_REQUEST, label + " must be a string.")
+    }
+    var trimmed = value.trim()
+    if (maxLength && trimmed.length > maxLength) {
+      throw new AppError(Responses.CODES.INVALID_REQUEST, label + " is too long.")
+    }
+    return trimmed
+  },
+
+  /**
    * Accepts YYYY-MM-DD or MM/DD/YYYY and normalizes to the sheet date format.
    *
    * @param {*} value

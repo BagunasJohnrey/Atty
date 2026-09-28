@@ -32,7 +32,9 @@ Request body: `{ "secret": "...", "action": "<action>", ...fields }`
 | -------------------- | -------------------------------------- | ---------------------------------------- |
 | `getEvents`          | —                                      | List all events                          |
 | `getEvent`           | `eventId`                              | Single event                             |
-| `createEvent`        | `name`, `date`                         | Create event + dynamic sheet             |
+| `createEvent`        | `name`, `date`, `location?`, `description?`   | Create event + dynamic sheet             |
+| `updateEvent`        | `eventId` + any of `name`, `date`, `location`, `description`, `status` | Update event fields |
+| `openEvent`          | `eventId`                              | Mark event as Active                     |
 | `closeEvent`         | `eventId`                              | Mark event as Closed                     |
 | `lookupStudent`      | `srcode`                               | Lookup a student in the Masterlist       |
 | `recordAttendance`   | `eventId`, `srcode`                    | Record attendance (validates + de-dupes) |
@@ -54,7 +56,7 @@ Error codes: `INVALID_REQUEST`, `INVALID_FIELD`, `UNAUTHORIZED`,
 | Sheet        | Columns                                       |
 | ------------ | --------------------------------------------- |
 | `Masterlist` | SRCODE, Full Name, College, Program, Year Level, Gender |
-| `Events`     | Event ID, Event Name, Event Date, Status, Sheet Name |
+| `Events`     | Event ID, Event Name, Event Date, Status, Sheet Name, Location, Description |
 | `EVT-XXX`    | Timestamp, SRCODE (one sheet per event)       |
 
 Notes:
