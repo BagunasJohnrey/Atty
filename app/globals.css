@@ -485,8 +485,13 @@
   }
   .animate-clay-pop { animation: clay-pop 280ms ease both; }
   .animate-clay-ring { animation: clay-ring 900ms ease-out 2; }
+  /* Donut segments: highlight on hover/focus, siblings dim via inline style */
+  .donut-seg { transition: opacity 150ms ease, filter 150ms ease; }
+  .donut-seg:hover { filter: brightness(1.12); }
+  .donut-seg:focus-visible { outline: none; filter: brightness(1.12); }
   @media (prefers-reduced-motion: reduce) {
     .clay-btn, .clay-btn:hover { transition: none; transform: none; }
     .animate-clay-pop, .animate-clay-ring { animation: none; }
+    .donut-seg { transition: none; }
   }
 }

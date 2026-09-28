@@ -13,10 +13,12 @@ export function AttendanceDonut({
   const R = 62
   const C = 2 * Math.PI * R
   const frac = total > 0 ? present / total : 0
+  // Floor the rendered arc so trace amounts (e.g. 0.2%) stay visible.
+  const arc = present > 0 ? Math.max(frac, 0.035) : 0
 
   return (
     <div
-      className="flex items-center gap-4"
+      className="flex items-center justify-center"
       role="img"
       aria-label={`Attendance: ${present} present, ${absent} absent, ${rate} percent rate`}
     >
@@ -44,7 +46,8 @@ export function AttendanceDonut({
           stroke="url(#donut-present)"
           strokeWidth="20"
           strokeLinecap="round"
-          strokeDasharray={`${frac * C} ${C}`}
+          className="donut-seg"
+          strokeDasharray={`${arc * C} ${C}`}
           transform="rotate(-90 74 74)"
         />
         <text
@@ -68,18 +71,6 @@ export function AttendanceDonut({
           attendance
         </text>
       </svg>
-      <ul className="flex flex-col gap-2 text-sm">
-        <li className="flex items-center gap-2">
-          <span className="size-3 rounded-full bg-emerald-500" aria-hidden />
-          <span className="font-semibold tabular-nums">{present}</span>
-          <span className="text-muted-foreground">Present</span>
-        </li>
-        <li className="flex items-center gap-2">
-          <span className="size-3 rounded-full bg-muted-foreground/50" aria-hidden />
-          <span className="font-semibold tabular-nums">{absent}</span>
-          <span className="text-muted-foreground">Absent</span>
-        </li>
-      </ul>
     </div>
   )
 }
