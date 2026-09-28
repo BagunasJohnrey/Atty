@@ -5,6 +5,14 @@ import { Input, Label } from "@/components/ui/input"
 
 const fields = ["q", "college", "program", "yearLevel", "gender"] as const
 
+const LABELS: Record<(typeof fields)[number], string> = {
+  q: "Search",
+  college: "College",
+  program: "Program",
+  yearLevel: "Year level",
+  gender: "Gender",
+}
+
 export function AttendanceFilters({ eventId }: { eventId: string }) {
   const router = useRouter()
   const params = useSearchParams()
@@ -24,7 +32,7 @@ export function AttendanceFilters({ eventId }: { eventId: string }) {
     >
       {fields.map((key) => (
         <div key={key} className="flex flex-col gap-1.5">
-          <Label htmlFor={`f-${key}`}>{key === "q" ? "Search" : key}</Label>
+          <Label htmlFor={`f-${key}`}>{LABELS[key]}</Label>
           <Input
             id={`f-${key}`}
             defaultValue={params.get(key) ?? ""}

@@ -83,20 +83,43 @@ if (!res.success) // code: EVENT_NOT_ACTIVE | DUPLICATE_ATTENDANCE | SRCODE_NOT_
 - Validation mirrors `lib/api.ts`: `requireString` semantics client-side for instant feedback, server remains source of truth.
 - No Apps Script URL/secret in client. No student PII duplicated — attendance rows join on render only.
 
-## 5. Claymorphism design system
+## 5. Claymorphism design system (visual foundations)
 
-Soft school-friendly clay: pastel background `#E8EDF5` (dark: `#17181D`), cards `#F4F6FB` with `border-radius: 20-24px`, dual shadows:
+Single source of truth: `app/globals.css` (`:root` / `.dark` tokens + `@layer components`).
+Named by purpose, never appearance. Tailwind utilities consume the same scale.
 
-```css
-.clay { border:3px solid rgba(255,255,255,.7); border-radius:22px;
-  box-shadow: 8px 8px 18px rgba(163,177,198,.45), -8px -8px 18px rgba(255,255,255,.9); }
-.clay-pressed { box-shadow: inset 4px 4px 10px rgba(163,177,198,.5), inset -4px -4px 10px rgba(255,255,255,.8); }
-```
+### 5.1 Typography — single family + mono for IDs
 
-- Status colors: Active=green, Upcoming=amber, Closed=slate; error=red, duplicate=orange — always paired with icon + text (not color-only).
-- Typography: existing `IBM_Plex_Sans` + `Geist_Mono` for SRCODE/IDs. Min touch target 44px on kiosk. `prefers-reduced-motion` disables clay bounce.
-- Dark mode via `next-themes` class; clay shadows inverted in `.dark`.
-- Accessibility: labels on all inputs, `aria-live="polite"` on check-in result, focus trap in dialog (Base UI), keyboard: Enter submits, `/` focuses SRCODE on kiosk.
+- Pairing: **IBM Plex Sans** (headings + body, geometric, 2 weights max) / **Geist Mono** (SRCODE, Event IDs, timestamps only). No third family.
+- Modular scale (1.125 ratio): `--font-size-xs 12px` (badges/overlines) → `sm 14px` (labels/tables) → `base 16px` (body) → `lg 18px` (card titles) → `2xl 24px` → `3xl 30px`.
+- Line heights: headings `1.2`, body `1.6`, labels `1.4`. Body max width `65ch`.
+- Fluid page titles via `.display`: `clamp(24px, 4vw + 1rem, 30px)`; section overlines via `.overline` (12px, 0.08em tracking, uppercase).
+- Vertical rhythm via `.stack`: `16px` between blocks, `8px` after `h2`, `32px` before `h2`.
+
+### 5.2 Spacing — 8pt grid
+
+Tokens `--space-1..16` (4/8/12/16/20/24/32/48/64px) map 1:1 onto the Tailwind scale already used (`gap-2` = 8px, `gap-4` = 16px, `p-5` = 20px). No magic numbers.
+Component rules: card padding `20–24px`, section gaps `24–32px`, form field gaps `16px`, icon–text gap `8px`, button horizontal padding `16–24px`.
+
+### 5.3 Color — shadcn base + semantic clay tokens
+
+- Base stays shadcn `oklch` (`--background/foreground/card/primary/...`); clay adds `--clay-canvas` (`#E8EDF5` light / `#17181D` dark, applied as `body` background) and `--clay-card` so the pastel canvas promised here actually renders.
+- Semantic status tokens with bg/border pairs: `--color-success/warning/error/info` (+ `-bg`, `-border`), each with a `.dark` value. Mapping: Active = success/green, Upcoming = warning/amber, duplicate check-in = warning/orange, invalid/failed = error/red, Closed = neutral/slate. Status is **always icon + text**, never color-only.
+- Contrast targets (WCAG AA): body text `4.5:1`, large text `3:1`, UI components `3:1`. Badge text uses 800/900 shades on 100 tints (light) and 300 shades on translucent dark fills (see `badge.tsx` `dark:` variants) to hold the ratio in both themes.
+
+### 5.4 Clay surfaces — tokenized shadows, full state matrix
+
+Radii: cards `22px`, pressed `18px`, inputs/buttons `16px`. Shadows/borders come from `--clay-shadow-*` / `--clay-pressed-*` / `--clay-border` (inverted in `.dark`), so theming is a token swap, not a rule rewrite.
+Every interactive clay element implements all five states (the previous gap): default → `hover` (1px lift) → `focus-visible` (3px `ring` outline, offset 2px) → `active` (pressed/inset) → `disabled` (55% opacity, no transform, `not-allowed`). `prefers-reduced-motion` disables lift/transitions.
+
+### 5.5 Iconography + touch targets
+
+- Lucide only, decorative icons `aria-hidden`. Scale `--icon-xs 12` / `sm 16` / `md 20` / `lg 24` / `xl 32` with `.icon-*` helpers; standard usage: inline hints `12–14px`, nav/actions `16px`, stat glyphs `20px`.
+- Minimum touch target `44px`: enforced via `nav .clay-btn, form .clay-btn { min-height: 44px }` (covers SideNav links and kiosk CHECK IN at `h-12/48px`). Compact `h-7/h-8` buttons are reserved for mouse-dense table rows, never for kiosk or primary flows.
+
+### 5.6 Accessibility checklist (per route)
+
+Labels on all inputs · `aria-live="polite"` on check-in/lookup results · `role="alert"` on errors · focus trap in dialog (Base UI) · keyboard: Enter submits, autofocus on kiosk SRCODE · `aria-current="page"` on active nav · `aria-label` on icon-only ThemeToggle.
 
 ## 6. Performance: lazy loading, batching, caching
 

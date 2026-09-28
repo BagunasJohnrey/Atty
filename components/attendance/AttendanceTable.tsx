@@ -4,6 +4,7 @@ import * as React from "react"
 import { formatTimestamp } from "@/lib/format"
 import { useAttendance } from "@/hooks/useQueries"
 import type { AttendanceFilters as Filters } from "@/lib/attendance"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, THead, TR, TH, TD } from "@/components/ui/table"
 
@@ -66,16 +67,26 @@ export function AttendanceTable({ eventId, filters }: { eventId: string; filters
         <div className="flex items-center justify-between text-sm">
           <p className="text-muted-foreground">Page {page + 1} of {pages} · {records.length} records</p>
           <div className="flex gap-2">
-            <button className="clay-btn px-3 py-1.5" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="clay-btn"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
               Prev
-            </button>
-            <button
-              className="clay-btn px-3 py-1.5"
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="clay-btn"
               disabled={page >= pages - 1}
               onClick={() => setPage((p) => Math.min(pages - 1, p + 1))}
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

@@ -80,6 +80,62 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* ---- Visual foundations: type scale (modular, 1.125 ratio) ---- */
+    --font-size-xs: 0.75rem;   /* 12px — badges, overlines */
+    --font-size-sm: 0.875rem;  /* 14px — UI labels, table */
+    --font-size-base: 1rem;    /* 16px — body */
+    --font-size-lg: 1.125rem;  /* 18px — card titles */
+    --font-size-xl: 1.25rem;   /* 20px */
+    --font-size-2xl: 1.5rem;   /* 24px — page titles */
+    --font-size-3xl: 1.875rem; /* 30px */
+    --leading-heading: 1.2;
+    --leading-body: 1.6;
+    --leading-label: 1.4;
+
+    /* ---- Visual foundations: 8pt spacing grid ---- */
+    --space-1: 0.25rem;  /* 4px */
+    --space-2: 0.5rem;   /* 8px — icon-text gap */
+    --space-3: 0.75rem;  /* 12px */
+    --space-4: 1rem;     /* 16px — form field gap */
+    --space-5: 1.25rem;  /* 20px — card padding */
+    --space-6: 1.5rem;   /* 24px — card padding, section gap */
+    --space-8: 2rem;     /* 32px — section gap */
+    --space-12: 3rem;    /* 48px */
+    --space-16: 4rem;    /* 64px */
+
+    /* ---- Visual foundations: icon scale ---- */
+    --icon-xs: 12px;
+    --icon-sm: 16px;
+    --icon-md: 20px;
+    --icon-lg: 24px;
+    --icon-xl: 32px;
+
+    /* ---- Claymorphism: canvas + shadow tokens (light) ---- */
+    --clay-canvas: #e8edf5;
+    --clay-card: #f4f6fb;
+    --clay-shadow-dark: rgb(163 177 198 / 0.45);
+    --clay-shadow-light: rgb(255 255 255 / 0.9);
+    --clay-pressed-dark: rgb(163 177 198 / 0.5);
+    --clay-pressed-light: rgb(255 255 255 / 0.8);
+    --clay-border: rgb(255 255 255 / 0.65);
+    --clay-radius-card: 22px;
+    --clay-radius-pressed: 18px;
+    --clay-radius-control: 16px;
+
+    /* ---- Semantic status tokens (light, WCAG AA on tinted bg) ---- */
+    --color-success: #15803d;
+    --color-success-bg: #dcfce7;
+    --color-success-border: #86efac;
+    --color-warning: #b45309;
+    --color-warning-bg: #fef3c7;
+    --color-warning-border: #fcd34d;
+    --color-error: #b91c1c;
+    --color-error-bg: #fee2e2;
+    --color-error-border: #fca5a5;
+    --color-info: #0e7490;
+    --color-info-bg: #cffafe;
+    --color-info-border: #67e8f9;
 }
 
 .dark {
@@ -114,67 +170,134 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* ---- Claymorphism + semantic tokens (dark) ---- */
+    --clay-canvas: #17181d;
+    --clay-card: #1f2129;
+    --clay-shadow-dark: rgb(0 0 0 / 0.5);
+    --clay-shadow-light: rgb(255 255 255 / 0.06);
+    --clay-pressed-dark: rgb(0 0 0 / 0.55);
+    --clay-pressed-light: rgb(255 255 255 / 0.06);
+    --clay-border: rgb(255 255 255 / 0.08);
+    --color-success: #4ade80;
+    --color-success-bg: rgb(20 83 45 / 0.4);
+    --color-success-border: rgb(74 222 128 / 0.35);
+    --color-warning: #fbbf24;
+    --color-warning-bg: rgb(120 53 15 / 0.45);
+    --color-warning-border: rgb(251 191 36 / 0.35);
+    --color-error: #f87171;
+    --color-error-bg: rgb(127 29 29 / 0.45);
+    --color-error-border: rgb(248 113 113 / 0.35);
+    --color-info: #22d3ee;
+    --color-info-bg: rgb(21 94 117 / 0.45);
+    --color-info-border: rgb(34 211 238 / 0.35);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
-    }
   html {
     @apply font-sans;
     }
+  body {
+    @apply text-foreground;
+    background: var(--clay-canvas);
+    font-size: var(--font-size-base);
+    line-height: var(--leading-body);
+    }
+  h1, h2, h3 {
+    line-height: var(--leading-heading);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    }
+  p {
+    max-width: 65ch;
+  }
 }
 
 @layer components {
+  /* ---- Fluid page title: 24px → 30px across viewports ---- */
+  .display {
+    font-size: clamp(var(--font-size-2xl), 4vw + 1rem, var(--font-size-3xl));
+    line-height: var(--leading-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .overline {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ---- Consistent vertical rhythm for prose blocks ---- */
+  .stack > * + * { margin-top: var(--space-4); }
+  .stack > h2 + * { margin-top: var(--space-2); }
+  .stack > * + h2 { margin-top: var(--space-8); }
+
+  /* ---- Icon scale helpers (pair with lucide size-*) ---- */
+  .icon-xs { width: var(--icon-xs); height: var(--icon-xs); }
+  .icon-sm { width: var(--icon-sm); height: var(--icon-sm); }
+  .icon-md { width: var(--icon-md); height: var(--icon-md); }
+  .icon-lg { width: var(--icon-lg); height: var(--icon-lg); }
+
+  /* ---- Claymorphism surfaces (token-driven, radius 22/18/16) ---- */
   .clay {
-    border-radius: 22px;
-    border: 3px solid rgb(255 255 255 / 0.65);
+    border-radius: var(--clay-radius-card);
+    border: 3px solid var(--clay-border);
     background: var(--card);
     box-shadow:
-      8px 8px 18px rgb(163 177 198 / 0.45),
-      -8px -8px 18px rgb(255 255 255 / 0.9);
-  }
-  .dark .clay {
-    border-color: rgb(255 255 255 / 0.08);
-    box-shadow:
-      8px 8px 18px rgb(0 0 0 / 0.5),
-      -8px -8px 18px rgb(255 255 255 / 0.06);
+      8px 8px 18px var(--clay-shadow-dark),
+      -8px -8px 18px var(--clay-shadow-light);
   }
   .clay-pressed {
-    border-radius: 18px;
+    border-radius: var(--clay-radius-pressed);
     box-shadow:
-      inset 4px 4px 10px rgb(163 177 198 / 0.5),
-      inset -4px -4px 10px rgb(255 255 255 / 0.8);
-  }
-  .dark .clay-pressed {
-    box-shadow:
-      inset 4px 4px 10px rgb(0 0 0 / 0.55),
-      inset -4px -4px 10px rgb(255 255 255 / 0.06);
+      inset 4px 4px 10px var(--clay-pressed-dark),
+      inset -4px -4px 10px var(--clay-pressed-light);
   }
   .clay-input {
-    border-radius: 16px;
+    border-radius: var(--clay-radius-control);
     box-shadow:
-      inset 3px 3px 8px rgb(163 177 198 / 0.45),
-      inset -3px -3px 8px rgb(255 255 255 / 0.9);
+      inset 3px 3px 8px var(--clay-pressed-dark),
+      inset -3px -3px 8px var(--clay-shadow-light);
   }
   .clay-btn {
-    border-radius: 16px;
-    border: 2px solid rgb(255 255 255 / 0.5);
+    border-radius: var(--clay-radius-control);
+    border: 2px solid var(--clay-border);
     box-shadow:
-      4px 4px 10px rgb(163 177 198 / 0.5),
-      -4px -4px 10px rgb(255 255 255 / 0.85);
-    transition: transform 120ms ease, box-shadow 120ms ease;
+      4px 4px 10px var(--clay-shadow-dark),
+      -4px -4px 10px var(--clay-shadow-light);
+    transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  }
+  /* Missing states (skill audit): hover lift, keyboard focus, pressed, disabled */
+  .clay-btn:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      6px 6px 14px var(--clay-shadow-dark),
+      -6px -6px 14px var(--clay-shadow-light);
+  }
+  .clay-btn:focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
   }
   .clay-btn:active {
     transform: translateY(1px);
     box-shadow:
-      inset 3px 3px 8px rgb(163 177 198 / 0.5),
-      inset -3px -3px 8px rgb(255 255 255 / 0.7);
+      inset 3px 3px 8px var(--clay-pressed-dark),
+      inset -3px -3px 8px var(--clay-pressed-light);
+  }
+  .clay-btn:disabled {
+    opacity: 0.55;
+    transform: none;
+    cursor: not-allowed;
+  }
+  /* 44px minimum touch target for nav + kiosk controls */
+  nav .clay-btn, form .clay-btn {
+    min-height: 44px;
   }
   @media (prefers-reduced-motion: reduce) {
-    .clay-btn { transition: none; }
+    .clay-btn, .clay-btn:hover { transition: none; transform: none; }
   }
 }
