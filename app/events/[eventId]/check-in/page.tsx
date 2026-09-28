@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { getEvent } from "@/integration/events"
 import { CheckInForm } from "@/components/attendance/CheckInForm"
+import { FullscreenToggle } from "@/components/attendance/FullscreenToggle"
 import { EventStatusBadge } from "@/components/events/EventStatusBadge"
 import { formatEventDate } from "@/lib/format"
 
@@ -17,7 +18,10 @@ export default async function CheckInPage({ params }: { params: Promise<{ eventI
   if (!event) notFound()
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
+    <div className="kiosk mx-auto flex w-full max-w-xl flex-col gap-4">
+      <div className="flex justify-end">
+        <FullscreenToggle />
+      </div>
       <div className="clay p-5 text-center">
         <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">{event.id}</p>
         <h1 className="mt-1 text-xl font-bold tracking-tight uppercase">{event.name}</h1>

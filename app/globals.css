@@ -485,6 +485,10 @@
   }
   .animate-clay-pop { animation: clay-pop 280ms ease both; }
   .animate-clay-ring { animation: clay-ring 900ms ease-out 2; }
+  /* Kiosk focus mode: hide app chrome while any element is fullscreen,
+     then center the remaining content with room to breathe.
+     NOTE: these live outside @layer on purpose — layered utilities
+     (e.g. `flex`) would otherwise override them. */
   /* Donut segments: highlight on hover/focus, siblings dim via inline style */
   .donut-seg { transition: opacity 150ms ease, filter 150ms ease; }
   .donut-seg:hover { filter: brightness(1.12); }
@@ -494,4 +498,27 @@
     .animate-clay-pop, .animate-clay-ring { animation: none; }
     .donut-seg { transition: none; }
   }
+}
+
+/* ---- Kiosk focus mode (UNLAYERED — must beat layered utilities) ----
+   Hides app chrome in fullscreen, collapses the shell grid to one track,
+   and centers/scales the kiosk stage. */
+:fullscreen .app-chrome {
+  display: none;
+}
+:fullscreen .app-shell-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+:fullscreen main {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 6dvh;
+  padding-bottom: var(--space-8);
+}
+:fullscreen .kiosk {
+  width: 100%;
+  margin-inline: auto;
 }
