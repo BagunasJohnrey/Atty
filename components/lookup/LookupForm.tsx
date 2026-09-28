@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input, Label } from "@/components/ui/input"
 import { ApiError, lookupStudent } from "@/lib/api-client"
-import { normalizeSrcode } from "@/lib/format"
+import {
+  isValidSrcodeFormat,
+  normalizeSrcode,
+  SRCODE_MAX_LENGTH,
+} from "@/lib/format"
 import type { Student } from "@/models/student"
 
 export function LookupForm() {
@@ -19,6 +23,11 @@ export function LookupForm() {
     e.preventDefault()
     const code = normalizeSrcode(srcode)
     if (!code || busy) return
+    if (!isValidSrcodeFormat(code)) {
+      setStudent(null)
+      setError("Invalid SR Code format. Use 00-00000 (e.g. 26-12345).")
+      return
+    }
     setBusy(true)
     setError(null)
     setStudent(null)
@@ -47,11 +56,20 @@ export function LookupForm() {
             <Input
               id="lookup-srcode"
               value={srcode}
-              onChange={(e) => setSrcode(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                const next = e.target.value.toUpperCase()
+                setSrcode(next)
+                setError(
+                  next === "" || /^[0-9-]*$/.test(next)
+                    ? null
+                    : "Invalid SR Code format. Use 00-00000 (e.g. 26-12345)."
+                )
+              }}
               placeholder="26-12345"
               autoComplete="off"
               spellCheck={false}
-              className="h-12 font-mono text-lg tracking-widest"
+              maxLength={SRCODE_MAX_LENGTH}
+              className="h-12 text-center font-mono text-lg tracking-widest"
             />
             <Button type="submit" disabled={busy || !srcode.trim()} className="clay-btn clay-btn-primary">
               {busy ? "Looking up…" : "Look up student"}

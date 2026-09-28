@@ -140,10 +140,10 @@ export function CheckInForm({
                 setError(
                   next === "" || /^[0-9-]*$/.test(next)
                     ? null
-                    : "Invalid SR Code format. Use 00-00000 (e.g. 23-19300)."
+                    : "Invalid SR Code format. Use 00-00000 (e.g. 26-12345)."
                 )
               }}
-              placeholder="20-00001"
+              placeholder="26-12345"
               autoComplete="off"
               spellCheck={false}
               maxLength={SRCODE_MAX_LENGTH}
