@@ -21,6 +21,31 @@ export function formatTimestamp(value: string): string {
   return value
 }
 
+/** Date half of a check-in timestamp (FR-12: separate Date column). */
+export function formatDateOnly(value: string): string {
+  const date = new Date(value)
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+  }
+  return value
+}
+
+/** Time half of a check-in timestamp (FR-12: separate Time column). */
+export function formatTimeOnly(value: string): string {
+  const date = new Date(value)
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+  return value
+}
+
 export function normalizeSrcode(value: string): string {
   return value.trim().toUpperCase()
 }

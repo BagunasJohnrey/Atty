@@ -26,7 +26,13 @@ export function LookupForm() {
       const res = await lookupStudent(code)
       setStudent(res.student)
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Lookup failed.")
+      setError(
+        e instanceof ApiError && e.code === "SRCODE_NOT_FOUND"
+          ? "Invalid SR Code. Please check your SR Code and try again."
+          : e instanceof ApiError
+            ? e.message
+            : "Lookup failed."
+      )
     } finally {
       setBusy(false)
     }
@@ -55,12 +61,25 @@ export function LookupForm() {
       {student ? (
         <Card>
           <CardContent>
-            <Badge variant="success">Found</Badge>
-            <p className="text-lg font-semibold">{student.name}</p>
-            <p className="font-mono text-sm text-muted-foreground">{student.srcode}</p>
-            <p className="text-sm text-muted-foreground">
-              {student.college} · {student.program} · {student.yearLevel} · {student.gender}
-            </p>
+            <Badge variant="success" className="self-start">Verified</Badge>
+            <div className="clay-pressed flex flex-col gap-2 p-4">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Department</span>
+                <span className="text-right font-semibold">{student.college}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Full Name</span>
+                <span className="text-right font-semibold">{student.name}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Course</span>
+                <span className="text-right font-semibold">{student.program}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">SR Code</span>
+                <span className="text-right font-mono">{student.srcode}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : null}

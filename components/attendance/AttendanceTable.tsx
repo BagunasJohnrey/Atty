@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { formatTimestamp } from "@/lib/format"
+import { formatDateOnly, formatTimeOnly } from "@/lib/format"
 import { useAttendance } from "@/hooks/useQueries"
 import type { AttendanceFilters as Filters } from "@/lib/attendance"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, THead, TR, TH, TD } from "@/components/ui/table"
@@ -46,19 +47,27 @@ export function AttendanceTable({ eventId, filters }: { eventId: string; filters
       <Table>
         <THead>
           <TR>
-            <TH>Timestamp</TH>
-            <TH>SRCODE</TH>
-            <TH>Name</TH>
-            <TH>Program</TH>
+            <TH>Date</TH>
+            <TH>Time</TH>
+            <TH>SR Code</TH>
+            <TH>Full Name</TH>
+            <TH>Department</TH>
+            <TH>Course</TH>
+            <TH>Status</TH>
           </TR>
         </THead>
         <tbody>
           {slice.map((r) => (
             <TR key={`${r.srcode}-${r.timestamp}`}>
-              <TD className="whitespace-nowrap">{formatTimestamp(r.timestamp)}</TD>
-              <TD className="font-mono">{r.srcode}</TD>
-              <TD>{r.name}</TD>
+              <TD className="whitespace-nowrap">{formatDateOnly(r.timestamp)}</TD>
+              <TD className="whitespace-nowrap tabular-nums">{formatTimeOnly(r.timestamp)}</TD>
+              <TD className="font-mono whitespace-nowrap">{r.srcode}</TD>
+              <TD className="max-w-45 truncate">{r.name}</TD>
+              <TD className="text-muted-foreground">{r.college}</TD>
               <TD className="text-muted-foreground">{r.program}</TD>
+              <TD>
+                <Badge variant="success">Present</Badge>
+              </TD>
             </TR>
           ))}
         </tbody>

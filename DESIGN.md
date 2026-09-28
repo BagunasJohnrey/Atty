@@ -130,7 +130,7 @@ Labels on all inputs · `aria-live="polite"` on check-in/lookup results · `role
 
 ## 7. Key interactions (states)
 
-Check-in (`/events/[id]/check-in`): idle → submitting (pressed button, spinner) → success (green clay, name/program/year + timestamp) | duplicate (orange, existing timestamp) | invalid SRCODE (red) | event-not-active (slate, disabled input). Auto-uppercase SRCODE, autofocus, clear-after-success optional toggle, last-5 check-ins list.
+Check-in (`/events/[id]/check-in`, per Event-Based Attendance doc §§4/7): validate SR Code → display Department / Full Name / Course → student confirms → record → "Attendance Confirmed." with name/department/course/event/datetime/Present. Invalid → "Invalid SR Code. Please check your SR Code and try again." Duplicate → "Attendance already recorded for this event." Auto-uppercase SRCODE, autofocus, last-5 check-ins list. Records table columns: Date | Time | SR Code | Full Name | Department | Course | Status.
 
 Events: create dialog validates name/date (date ≥ today warning, not block), optimistic card insert → `router.refresh()`. Open/Close are confirm dialogs mapping to `POST .../open` / `PATCH ...` (empty body = close).
 

@@ -25,7 +25,7 @@ export default async function CheckInPage({ params }: { params: Promise<{ eventI
           {formatEventDate(event.date)} <EventStatusBadge status={event.status} />
         </p>
       </div>
-      <CheckInForm eventId={event.id} eventActive={event.status === "Active"} />
+      <CheckInForm eventId={event.id} eventName={event.name} eventActive={event.status === "Active"} />
     </div>
   )
 }
