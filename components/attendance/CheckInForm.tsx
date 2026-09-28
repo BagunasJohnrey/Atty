@@ -118,7 +118,7 @@ export function CheckInForm({
         <CardContent>
           {phase.kind === "confirm" ? (
             <div className="animate-clay-pop flex flex-col gap-3" aria-live="polite">
-              <Badge variant="success" className="self-start">
+              <Badge variant="success" className="self-end">
                 SR Code verified
               </Badge>
               <div className="clay-pressed flex flex-col gap-2 p-4">
@@ -142,7 +142,7 @@ export function CheckInForm({
             </div>
           ) : phase.kind === "done" ? (
             <div className="animate-clay-pop flex flex-col gap-3" aria-live="polite">
-              <Badge variant="success" className="animate-clay-ring self-start">
+              <Badge variant="success" className="animate-clay-ring self-end">
                 Attendance Confirmed.
               </Badge>
               <div className="clay-pressed flex flex-col gap-2 p-4">
@@ -176,7 +176,7 @@ export function CheckInForm({
             </div>
           ) : (
             <form onSubmit={onLookup} className="flex flex-col gap-3">
-              <Label htmlFor="srcode">Enter / Scan SR Code</Label>
+              <Label htmlFor="srcode">Enter SR Code</Label>
               <Input
                 ref={inputRef}
                 id="srcode"

@@ -8,7 +8,7 @@ export function Input({ className, ref, ...props }: React.InputHTMLAttributes<HT
       data-slot="input"
       className={cn(
         "clay-input h-11 w-full border-2 border-transparent bg-card px-4 text-sm outline-none",
-        "placeholder:text-muted-foreground focus:border-ring",
+        "placeholder:text-muted-foreground/50 focus:border-ring",
         className
       )}
       {...props}

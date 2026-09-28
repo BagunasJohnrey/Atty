@@ -35,7 +35,7 @@ export function ClaySelect({
         id={id}
         className={cn(
           "clay-input group flex h-11 w-full items-center justify-between gap-2 px-4 text-left text-sm outline-none",
-          "focus:border-ring data-[placeholder]:text-muted-foreground [&[aria-expanded=true]_svg]:rotate-180",
+          "focus:border-ring data-[placeholder]:text-muted-foreground/50 [&[aria-expanded=true]_svg]:rotate-180",
           className
         )}
       >
@@ -119,7 +119,7 @@ export function ClayCombobox({
           placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
         />
         {value ? (
           <ComboboxPrimitive.Clear
