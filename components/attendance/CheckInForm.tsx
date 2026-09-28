@@ -81,8 +81,8 @@ export function CheckInForm({ eventId, eventActive }: { eventId: string; eventAc
           </form>
           <div aria-live="polite" className="mt-2">
             {outcome.kind === "success" ? (
-              <p className="clay-pressed flex flex-col gap-1 p-4">
-                <Badge variant="success">Attendance recorded</Badge>
+              <p className="clay-pressed animate-clay-pop flex flex-col gap-1 p-4">
+                <Badge variant="success" className="animate-clay-ring self-start">Attendance recorded</Badge>
                 <span className="font-semibold">{outcome.student.name}</span>
                 <span className="text-sm text-muted-foreground">
                   {outcome.student.program} · {outcome.student.yearLevel} · {formatTimestamp(outcome.timestamp)}

@@ -8,7 +8,7 @@ import { EventStatusBadge } from "./EventStatusBadge"
 
 export function EventCard({ event }: { event: SchoolEvent }) {
   return (
-    <Card>
+    <Card className="clay-topglow transition-transform hover:-translate-y-0.5">
       <CardHeader>
         <div className="min-w-0">
           <CardTitle className="truncate">{event.name}</CardTitle>

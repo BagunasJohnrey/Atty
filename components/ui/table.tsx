@@ -9,8 +9,8 @@ export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTab
   )
 }
 
-export function THead(props: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead {...props} />
+export function THead({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
+  return <thead className={cn("clay-table-head", className)} {...props} />
 }
 
 export function TR({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
