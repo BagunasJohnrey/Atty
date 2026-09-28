@@ -32,7 +32,6 @@ Separate offline-first kiosk bundle + admin bundle.
 | `/events` | RSC list + client dialog | View Events, Create Event (FR-02), search + status filter |
 | `/events/[eventId]` | RSC detail + tabs | Open/Close (FR-08), View Attendance, filters `?q=&college=&program=&yearLevel=&gender=`, CSV export link, report summary (FR-10) |
 | `/events/[eventId]/check-in` | Client kiosk | Event info + SRCODE input + CHECK IN (FR-05, §9.3), success/duplicate/invalid states (FR-06, FR-01) |
-| `/lookup` | Client | Standalone student lookup by SRCODE (FR-01) for staff verification |
 | `loading.tsx`, `error.tsx`, `not-found.tsx` | conventions | Skeletons, retry, 404 per route segment |
 
 Deep-linking: `?status=` on `/events`, all attendance filters in URL for shareability. CSV export is plain anchor to existing `GET .../attendance/export` (no JS needed).
@@ -50,14 +49,12 @@ app/
   events/page.tsx
   events/[eventId]/page.tsx
   events/[eventId]/check-in/page.tsx
-  lookup/page.tsx
 components/
   layout/AppShell.tsx / SiteHeader.tsx / SideNav.tsx / ThemeToggle.tsx
   dashboard/StatCards.tsx StatCard.tsx EventSection.tsx
   events/EventCard.tsx EventStatusBadge.tsx EventFormDialog.tsx EventActions.tsx
   attendance/CheckInForm.tsx CheckInResult.tsx AttendanceTable.tsx AttendanceFilters.tsx ExportButton.tsx
   reports/ReportSummary.tsx BreakdownBar.tsx
-  lookup/LookupForm.tsx
   ui/ card.tsx input.tsx badge.tsx dialog.tsx table.tsx skeleton.tsx sonner.tsx (shadcn-style, cva + @base-ui + cn)
   theme-provider.tsx (exists)
 hooks/ useEvents.ts useEvent.ts useAttendance.ts useReport.ts useStudentLookup.ts
@@ -153,12 +150,12 @@ Buttons are puffy pills (`9999px`): hover lifts `1px`; `:active` translates down
 
 ### 5.7 Accessibility checklist (per route)
 
-Labels on all inputs · `aria-live="polite"` on check-in/lookup results · `role="alert"` on errors · focus trap in dialog (Base UI) · visible 3px focus rings · keyboard: Enter submits, autofocus on kiosk SR Code · `aria-current="page"` on active nav · `aria-label` on icon-only ThemeToggle.
+Labels on all inputs · `aria-live="polite"` on check-in results · `role="alert"` on errors · focus trap in dialog (Base UI) · visible 3px focus rings · keyboard: Enter submits, autofocus on kiosk SR Code · `aria-current="page"` on active nav · `aria-label` on icon-only ThemeToggle.
 
 ## 6. Performance: lazy loading, batching, caching
 
 - Lazy: `next/dynamic(ssr:false)` for `EventFormDialog`, `ReportSummary`, `BreakdownBar`; `React.lazy+Suspense` skeletons per segment. No chart lib — CSS bars keep bundle ~0.
-- Batch: attendance table paginates client-side (50/page); kiosk debounces lookup 250ms, batches recent-check-ins render via `useDeferredValue`; report breakdowns memoized.
+- Batch: attendance table paginates client-side (50/page); report breakdowns memoized.
 - Cache: server TTL read cache in `integration/http.ts` (`getEvents`/`getEvent` 30s, `getAttendance` 10s, `getAttendanceReport` 15s) with in-flight dedupe and shared warm-up; mutations invalidate affected prefixes immediately (opt out via `APPS_SCRIPT_CACHE=off`). RSC `revalidate` 30/10 on top; client `hooks/*` implement SWR map (dedupe in-flight). Mutations call `router.refresh()` + cache invalidate by key prefix.
 - Kiosk polling: `checkAttendance` pre-check only on submit (no hot poll) to respect Apps Script quotas (NFR-02).
 
@@ -184,4 +181,4 @@ Reports: `ReportSummary` shows totalStudents/totalPresent/absent/rate + `Breakdo
 
 ## 10. Build order
 
-1. Tokens + `ui/*` clay primitives 2. Layout shell + nav 3. Dashboard 4. Events list + dialog 5. Check-in kiosk 6. Attendance table + filters + export 7. Reports 8. Lookup 9. Loading/error states 10. Verify + polish.
+1. Tokens + `ui/*` clay primitives 2. Layout shell + nav 3. Dashboard 4. Events list + dialog 5. Check-in kiosk 6. Attendance table + filters + export 7. Reports 8. Loading/error states 9. Verify + polish.

@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CalendarDays, Home, Search } from "lucide-react"
+import { CalendarDays, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const links = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/events", label: "Events", icon: CalendarDays },
-  { href: "/lookup", label: "Lookup", icon: Search },
 ]
 
 export function SideNav() {
