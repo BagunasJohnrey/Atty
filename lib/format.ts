@@ -50,6 +50,15 @@ export function normalizeSrcode(value: string): string {
   return value.trim().toUpperCase()
 }
 
+/** Kiosk SR Code shape: two digits, hyphen, five digits (e.g. 23-19300). */
+export const SRCODE_PATTERN = /^\d{2}-\d{5}$/
+
+export const SRCODE_MAX_LENGTH = 8
+
+export function isValidSrcodeFormat(value: string): boolean {
+  return SRCODE_PATTERN.test(value.trim())
+}
+
 export function attendanceRate(present: number, total: number): number {
   if (total <= 0) return 0
   return Math.round((present / total) * 1000) / 10
