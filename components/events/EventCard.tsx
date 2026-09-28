@@ -8,7 +8,7 @@ import { EventStatusBadge } from "./EventStatusBadge"
 
 export function EventCard({ event }: { event: SchoolEvent }) {
   return (
-    <Card className="clay-topglow transition-transform hover:-translate-y-0.5">
+    <Card className="clay-topglow flex h-full flex-col transition-transform hover:-translate-y-0.5">
       <CardHeader>
         <div className="min-w-0">
           <CardTitle className="truncate">{event.name}</CardTitle>
@@ -18,13 +18,13 @@ export function EventCard({ event }: { event: SchoolEvent }) {
         </div>
         <EventStatusBadge status={event.status} />
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {event.location ? (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="size-3.5" aria-hidden /> {event.location}
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-auto flex flex-wrap gap-2 pt-2">
           <Link href={`/events/${event.id}`} className={buttonVariants({ size: "sm", className: "clay-btn" })}>
             Open <ArrowRight className="size-3.5" aria-hidden />
           </Link>
