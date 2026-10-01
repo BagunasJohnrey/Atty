@@ -1,5 +1,12 @@
 import { revalidateTag } from "next/cache"
-import { EVENTS_TAG, attendanceTag, eventTag, reportTag } from "./cached"
+import {
+  EVENTS_TAG,
+  ORGANIZATIONS_TAG,
+  attendanceTag,
+  eventTag,
+  organizationTag,
+  reportTag,
+} from "./cached"
 
 /**
  * Tag expiry for mutation paths.
@@ -19,6 +26,15 @@ import { EVENTS_TAG, attendanceTag, eventTag, reportTag } from "./cached"
  */
 
 const EXPIRE_NOW = { expire: 0 } as const
+
+export function expireOrganizations(): void {
+  revalidateTag(ORGANIZATIONS_TAG, EXPIRE_NOW)
+}
+
+export function expireOrganization(orgId: string): void {
+  revalidateTag(ORGANIZATIONS_TAG, EXPIRE_NOW)
+  revalidateTag(organizationTag(orgId), EXPIRE_NOW)
+}
 
 export function expireEvents(): void {
   revalidateTag(EVENTS_TAG, EXPIRE_NOW)

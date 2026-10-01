@@ -29,7 +29,18 @@ export async function POST(request: Request) {
     const date = requireString(body, "date")
     const location = optionalString(body, "location", 150)
     const description = optionalString(body, "description", 500)
-    const event = await createEvent({ name, date, location, description })
+    // Optional: the event form collects neither yet. The backend validates
+    // orgId whenever it is present.
+    const orgId = optionalString(body, "orgId", 20)
+    const time = optionalString(body, "time", 100)
+    const event = await createEvent({
+      name,
+      date,
+      location,
+      description,
+      orgId,
+      time,
+    })
     expireEvents()
     return NextResponse.json(
       { success: true, message: "Event created successfully.", event },

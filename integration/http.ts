@@ -14,6 +14,8 @@ const MAX_ATTEMPTS = 2
  * writes stay authoritative. Disabled under test to keep suites hermetic.
  */
 const READ_TTL_MS: Record<string, number> = {
+  getOrganizations: 30_000,
+  getOrganization: 30_000,
   getEvents: 30_000,
   getEvent: 30_000,
   getAttendance: 10_000,
@@ -48,6 +50,15 @@ function invalidateReads(...prefixes: string[]): void {
  */
 function invalidatedBy(action: string): string[] {
   switch (action) {
+    case "createOrganization":
+      return ["getOrganizations:"]
+    case "updateOrganization":
+      return ["getOrganizations:", "getOrganization:"]
+    // A soft delete must not leave the row resolvable from a cached read, or
+    // a picker could keep offering an organization the operator just removed.
+    case "deleteOrganization":
+    case "restoreOrganization":
+      return ["getOrganizations:", "getOrganization:"]
     case "createEvent":
       return ["getEvents:"]
     case "openEvent":

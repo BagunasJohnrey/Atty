@@ -16,6 +16,8 @@ const UPDATABLE_FIELDS = [
   "location",
   "description",
   "status",
+  "orgId",
+  "time",
 ] as const
 
 export async function GET(_request: Request, context: EventParams) {
@@ -82,7 +84,7 @@ function parsePatchBody(raw: string): UpdateEventInput {
     throw new HttpError(
       400,
       "INVALID_FIELD",
-      "Provide at least one of: name, date, location, description, status."
+      "Provide at least one of: name, date, location, description, status, orgId, time."
     )
   }
   return input

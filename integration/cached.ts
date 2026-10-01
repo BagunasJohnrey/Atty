@@ -1,10 +1,12 @@
 import { unstable_cache } from "next/cache"
 import { getAttendance } from "./attendance"
 import { getEvent, getEvents } from "./events"
+import { getOrganization, getOrganizations } from "./organizations"
 import { getAttendanceReport } from "./reports"
 import type { AttendanceRecord } from "@/models/attendance"
 import type { AttendanceReport } from "@/models/report"
 import type { SchoolEvent } from "@/models/event"
+import type { Organization } from "@/models/organization"
 
 /**
  * Persistent read cache for Apps Script reads.
@@ -20,6 +22,12 @@ import type { SchoolEvent } from "@/models/event"
  * in-process TTLs, and every mutation expires the affected tags outright.
  */
 
+export const ORGANIZATIONS_TAG = "appsscript:organizations"
+
+export function organizationTag(orgId: string): string {
+  return `appsscript:organization:${orgId}`
+}
+
 export const EVENTS_TAG = "appsscript:events"
 
 export function eventTag(eventId: string): string {
@@ -33,6 +41,12 @@ export function attendanceTag(eventId: string): string {
 export function reportTag(eventId: string): string {
   return `appsscript:report:${eventId}`
 }
+
+export const getOrganizationsCached = unstable_cache(
+  getOrganizations,
+  ["appsscript", "getOrganizations"],
+  { tags: [ORGANIZATIONS_TAG], revalidate: 30 }
+)
 
 export const getEventsCached = unstable_cache(getEvents, ["appsscript", "getEvents"], {
   tags: [EVENTS_TAG],
@@ -61,6 +75,20 @@ export const getAttendanceReportCached = unstable_cache(
  * attendance or editing an event expires exactly the reads that mention
  * that event rather than every cached read.
  */
+/**
+ * Per-organization wrappers carrying the organization-scoped tag, so editing
+ * one org expires exactly the reads that mention it.
+ */
+export function getOrganizationCachedFor(
+  orgId: string
+): Promise<Organization> {
+  return unstable_cache(
+    getOrganization,
+    ["appsscript", "getOrganization", orgId],
+    { tags: [ORGANIZATIONS_TAG, organizationTag(orgId)], revalidate: 30 }
+  )(orgId)
+}
+
 export function getEventCachedFor(eventId: string): Promise<SchoolEvent> {
   return unstable_cache(getEvent, ["appsscript", "getEvent", eventId], {
     tags: [EVENTS_TAG, eventTag(eventId)],
