@@ -5,6 +5,11 @@
 > reviewer at the end, because Task 7 rewrites print output where a styling
 > regression is invisible to any test.
 
+> **Amendment 2026-10-02:** the org model is now `{ id, name, email }` only,
+> deletes are permanent, and there is no restore path. Tasks below are updated
+> to match; anything still mentioning address/phone/website, soft delete, or
+> restore is stale.
+
 **Goal:** Give organizations and event time ranges a real interface — a management page, an org picker on the create form, an edit dialog, and a print report that renders the organization's letterhead instead of hardcoded text.
 
 **Architecture:** The backend already exists and is uncommitted. This plan adds only the client. A new `/organizations` route group holds a list page and a per-org detail page reached by clicking the org name; the detail page lists that org's events. `EventFormDialog` gains a required org picker and a time input. A new `EventEditDialog` patches an existing event's org and time. The print page resolves its letterhead through a new pure module, `lib/report-letterhead.ts`, falling back to the pre-existing hardcoded letterhead when an event has no org — so every report printed before this change comes out byte-identical.
@@ -30,9 +35,9 @@ These were settled with the requester and are not reopenable during execution:
 
 1. **The org name links to that org's event list**, at `/organizations/[orgId]`. Not a combined org-wide report — that would need a new aggregate endpoint and a new print layout, and the per-event report already exists.
 2. **`orgId` is required when creating an event.** The form now collects it, so the dropdown has no "None" option. The backend still accepts a blank `orgId` (existing events and the kiosk path depend on it), so this is a UI-side requirement only — do not tighten the backend.
-3. **The letterhead fallback is all-or-nothing.** An event with no org prints the original hardcoded letterhead. An event with an org prints that org's fields, and a field the org left blank prints as nothing.
+3. **Only the org name and email ever change on the letterhead.** An event with no org prints the original hardcoded letterhead. An event with an org prints the org's name on the council line and its email on the contact line; a blank name or email falls back to that line's default. Every other line is fixed university identity.
 4. **`time` stays free text.** No `<input type="time">`, no parsing, no 12-hour formatting. A plain text input with a `12:00 pm - 5:00 pm` placeholder.
-5. **Deleting an organization is reversible, and deleting one never changes a past report.** The backend already implements this: the list excludes soft-deleted rows, a lookup by ID still resolves one, and the print page reads by ID. So the delete UI must not imply data loss — no "this cannot be undone", no red destructive styling that suggests the row is gone — and a deleted organization reached by direct URL must offer a **Restore** path rather than a dead end.
+5. **Deleting an organization is permanent, so the UI must read as data loss.** There is no restore path: the delete control uses destructive styling and a confirm step warning that events attached to the org stop resolving it. Only delete organizations with no events.
 
 ---
 
@@ -50,7 +55,7 @@ These were settled with the requester and are not reopenable during execution:
 | `components/organizations/OrganizationFormDialogLazy.tsx` | `next/dynamic` wrapper, matching `EventFormDialogLazy`. |
 | `components/organizations/OrganizationCard.tsx` | One organization in the list grid. |
 | `components/organizations/EventOrgFilter.tsx` | The `?org=` status/search bar on `/events`. |
-| `components/organizations/OrganizationDeleteButton.tsx` | Soft delete with a confirm step, plus restore. |
+| `components/organizations/OrganizationDeleteButton.tsx` | Hard delete with a confirm step. No restore. |
 | `components/events/EventEditDialog.tsx` | Patches an existing event's org and time. |
 | `app/api/organizations/[orgId]/route.ts` | Already exists uncommitted. No change needed. |
 
@@ -58,7 +63,7 @@ These were settled with the requester and are not reopenable during execution:
 
 | Path | Change |
 |---|---|
-| `lib/api-client.ts` | Add `listOrganizations`, `createOrganization`, `updateOrganization`, `deleteOrganization`, `restoreOrganization`. |
+| `lib/api-client.ts` | Add `listOrganizations`, `createOrganization`, `updateOrganization`, `deleteOrganization`. |
 | `hooks/useQueries.ts` | Add `useOrganizations`. |
 | `components/layout/SideNav.tsx` | Add an Organizations link. |
 | `components/events/EventFormDialog.tsx` | Add required org picker and time input. |
@@ -80,7 +85,7 @@ These were settled with the requester and are not reopenable during execution:
 Five failure modes the spec implies but that no unit test in this plan would otherwise catch. Each has a test added to the task that owns the code, in that task's own step style.
 
 1. **A legacy event with `orgId: ""` still prints.** The most likely visible regression: a report that comes out with an empty letterhead because the resolver returned blanks. Covered by `lib/report-letterhead.test.ts` → "falls back to the legacy letterhead when an event has no organization".
-2. **A new organization with only a name prints that name and nothing else.** The temptation is to fall back per-field, which would put the old school's address on the new school's report. Covered by "leaves unset contact fields blank rather than borrowing the default".
+2. **A new organization with only a name prints that name and the default email line.** Only name and email are org-driven; a blank email keeps the default contact line rather than printing a half-empty one. Covered by "keeps the default contact line when the org has no email".
 3. **Zero organizations exist.** The create-event form's required picker then has nothing to choose, and the user is stuck — the form is useless until they create an org. Task 3 handles this with an empty-state prompt and a link, not a disabled dropdown.
 4. **An organization is renamed or its contact details edited.** The print page must show the change on the next print without a redeploy, and a cached read must not serve the old letterhead. Covered by Task 6 wiring `expireOrganization` on the write path, and by the existing `integration/cached.test.ts` tag tests.
 5. **Time containing characters that look like markup or an em dash.** It is rendered as a React text child, never `dangerouslySetInnerHTML`, so it is escaped by construction. Assert it renders literally.
@@ -96,7 +101,7 @@ The only piece of this plan with real logic. Everything else is wiring, so this 
 - Test: `lib/report-letterhead.test.ts`
 
 **Interfaces:**
-- Consumes: `import type { Organization } from "@/models/organization"` — already exists uncommitted. Shape: `{ id, name, email, address, phone, website }`, all six strings.
+- Consumes: `import type { Organization } from "@/models/organization"` — already exists uncommitted. Shape: `{ id, name, email }`, all three strings.
 - Produces:
   ```ts
   export interface Letterhead {
@@ -129,9 +134,6 @@ const org: Organization = {
   id: "ORG-002",
   name: "Nueva Eatry",
   email: "nueva@example.edu",
-  address: "1 Test Street, Test City",
-  phone: "+63 43 000 0000",
-  website: "https://nueva.example.edu",
 }
 ```
 
@@ -139,12 +141,11 @@ Cases, one `it` each:
 
 - `letterheadFor(null)` deep-equals `DEFAULT_LETTERHEAD`
 - `letterheadFor(org).name` is `"Nueva Eatry"`
-- address, phone, email, website each come from the org
-- `{ ...org, address: "", phone: "", email: "" }` yields `""` for all three — **not** the defaults
-- `country`, `campus`, `branch`, `council`, `motto` equal `DEFAULT_LETTERHEAD`'s, since no org supplies them
-- `{ ...org, address: "   " }` yields `""` — whitespace-only is blank
-- `contact` is `"E-mail Address: nueva@example.edu | Website Address: https://nueva.example.edu"` with both; `"E-mail Address: nueva@example.edu"` with only email; `"Website Address: https://nueva.example.edu"` with only website; `""` with neither
+- the contact line uses the org email: `"E-mail Address: nueva@example.edu | Website Address: https://nueva.example.edu"`
+- `{ ...org, email: "" }` keeps the default contact line — a blank email never prints a half-empty line
+- `country`, `campus`, `branch`, `address`, `phone`, `website`, `council`, `motto` equal `DEFAULT_LETTERHEAD`'s, since no org supplies them
 - `letterheadFor({ ...org, name: "" })` falls back to `DEFAULT_LETTERHEAD.name` — an unnamed org is the one per-field fallback allowed, because a report with no school name at all is useless
+- `letterheadFor({ ...org, email: "   " })` keeps the default contact line — whitespace-only is blank
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -176,14 +177,14 @@ export const DEFAULT_LETTERHEAD: Letterhead = {
 
 Note the en dash in `council` and the typographic apostrophe-free `motto`. Copy the strings, do not retype them from memory.
 
-`letterheadFor` returns `DEFAULT_LETTERHEAD` itself (not a copy) when `org` is null. Otherwise start from `DEFAULT_LETTERHEAD` and override `name` (falling back to the default when blank), `address`, `phone`, `email`, `website` from the trimmed org fields, and recompute `contact` by joining the non-empty halves with `" | "`. Use a local `blank(v: string | undefined)` helper returning `(v ?? "").trim()`.
+`letterheadFor` returns `DEFAULT_LETTERHEAD` itself (not a copy) when `org` is null. Otherwise start from `DEFAULT_LETTERHEAD` and override `name` (falling back to the default when blank) and the email half of `contact` (keeping the default contact line when the org email is blank). The website half of `contact` is always the default. Use a local `blank(v: string | undefined)` helper returning `(v ?? "").trim()`.
 
-Add a module-level comment recording why the fallback is all-or-nothing: a per-field fallback would print one organization's address on another's report.
+Add a module-level comment recording why only name and email are org-driven: the rest is fixed university identity, not per-customer data.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run lib/report-letterhead.test.ts`
-Expected: PASS, 9 tests.
+Expected: PASS, 7 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -260,7 +261,7 @@ export function listOrganizations(): Promise<OrganizationsResponse> {
 
 `createOrganization` and `updateOrganization` take the input objects and `JSON.stringify` them as the POST / PATCH body against the same paths, matching `createEvent` and `updateEvent`. Add the three type imports to the existing import block at the top.
 
-Two more, for Task 4b:
+One more, for Task 4b:
 
 ```ts
 export function deleteOrganization(orgId: string): Promise<OrganizationResponse> {
@@ -269,16 +270,9 @@ export function deleteOrganization(orgId: string): Promise<OrganizationResponse>
     { method: "DELETE" }
   )
 }
-
-export function restoreOrganization(orgId: string): Promise<OrganizationResponse> {
-  return request<OrganizationResponse>(
-    `/api/organizations/${encodeURIComponent(orgId)}/restore`,
-    { method: "POST" }
-  )
-}
 ```
 
-Note `restoreOrganization` posts to a **named subroute**, not to the item itself. That matches how `openEvent` is `POST /api/events/[eventId]/open` — a state transition gets its own name, so the call site reads as what it does.
+Delete is permanent — there is no restore endpoint — so the call site stays a plain `DELETE` on the item.
 
 In `hooks/useQueries.ts`, mirror `useEvents`:
 
@@ -336,7 +330,7 @@ Create `components/organizations/OrganizationFormDialog.test.tsx` with a `@vites
 
 Two cases:
 
-- **create mode:** render `<OrganizationFormDialog />`, fill the `name` input with `"Nueva Eatry"`, submit the form, then assert `createOrganization` was called once with an object whose `name` is `"Nueva Eatry"` and whose `email`, `address`, `phone`, `website` are all `""` — the blank fields are sent explicitly rather than omitted, matching what `integration/organizations.ts` sends.
+- **create mode:** render `<OrganizationFormDialog />`, fill the `name` input with `"Nueva Eatry"`, submit the form, then assert `createOrganization` was called once with an object whose `name` is `"Nueva Eatry"` and whose `email` is `""` — the blank field is sent explicitly rather than omitted, matching what `integration/organizations.ts` sends.
 - **edit mode:** render `<OrganizationFormDialog organization={org} />` where `org` is a full fixture, assert every input carries the org's current value, change the `email` input, submit, and assert `updateOrganization` was called once with `(org.id, { email: "new@example.edu" })` — **only** the changed field, not the whole object. This is the partial-update contract from the backend `PATCH`.
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -348,19 +342,16 @@ Expected: FAIL — module not found.
 
 `"use client"` on line 1. Copy the structure of `EventFormDialog` (77 lines) exactly: `useRouter`, `open` / `error` / `saving` state, an `onSubmit(form: FormData)` that awaits the call, calls `invalidatePrefix`, closes, and `router.refresh()`, with `error` in a `<p role="alert">` and the submit button disabled while `saving`.
 
-Six fields, in this order, using `Label` + `Input` with these exact `name`, `maxLength`, and `placeholder` values:
+Two fields, in this order, using `Label` + `Input` with these exact `name`, `maxLength`, and `placeholder` values:
 
 | `name` | `maxLength` | `placeholder` | required |
 |---|---|---|---|
 | `name` | 150 | `Batangas State University` | yes |
 | `email` | 150 | `sscbalayan@g.batstate-u.edu.ph` | no |
-| `address` | 200 | `Caloocan, Balayan, Batangas` | no |
-| `phone` | 60 | `(+63 43) 980-0385` | no |
-| `website` | 200 | `https://` | no |
 
-Five fields, not six — `id` is assigned by the backend and is not editable.
+Two fields — `id` is assigned by the backend and is not editable.
 
-`DialogTitle` is `"Create organization"` or `"Edit organization"`. `DialogDescription` is `"Contact details appear on printed attendance reports."` in create mode and the org's id in edit mode. Submit button label is `"Create organization"` / `"Save changes"`.
+`DialogTitle` is `"Create organization"` or `"Edit organization"`. `DialogDescription` is `"The name and email appear on printed attendance reports."` in create mode and the org's id in edit mode. Submit button label is `"Create organization"` / `"Save changes"`.
 
 In edit mode send only the fields that differ from the loaded org. Build the patch by comparing each form value to `organization[field]` and including it when different. This mirrors `parsePatchBody` in `app/api/organizations/[orgId]/route.ts`, which rejects an empty body — so always send at least `name` on edit.
 
@@ -415,7 +406,7 @@ Empty state is `<p className="clay p-4 text-sm text-muted-foreground">No organiz
 
 - [ ] **Step 3: Create the card**
 
-`components/organizations/OrganizationCard.tsx`, a server component. `Card` with `clay-topglow`, `CardHeader` holding the org name as `CardTitle` and the id as `<p className="mt-1 font-mono text-xs text-muted-foreground">{org.id}</p>`, plus `CardContent` listing whichever of email, address, phone, website are non-empty, each as `<p className="flex items-center gap-1.5 text-sm text-muted-foreground">` with a `size-3.5` `aria-hidden` lucide icon (`Mail`, `MapPin`, `Phone`, `Globe`). Skip a line entirely when its value is blank rather than rendering an empty row.
+`components/organizations/OrganizationCard.tsx`, a server component. `Card` with `clay-topglow`, `CardHeader` holding the org name as `CardTitle` and the id as `<p className="mt-1 font-mono text-xs text-muted-foreground">{org.id}</p>`, plus `CardContent` listing the email when non-empty, as `<p className="flex items-center gap-1.5 text-sm text-muted-foreground">` with the `Mail` lucide icon (`size-3.5`, `aria-hidden`). Skip the line entirely when blank rather than rendering an empty row.
 
 **The org name is the link to its events.** Render it as `<Link href={`/organizations/${org.id}`}>` wrapping the `CardTitle`, with `className="hover:underline underline-offset-4"` added, matching the link treatment in `app/(app)/events/[eventId]/report/print/page.tsx:132-135`. Keep an `Edit` affordance out of the card — the detail page owns editing.
 
@@ -435,7 +426,7 @@ export default async function OrganizationDetailPage({
 
 Filter in memory: `events.filter((e) => e.orgId === org.id)`. Do **not** add a server-side org filter yet; the sheet read is already bulk and the client filter in Task 5 covers the `/events` page.
 
-Layout: a back link to `/organizations`, then a `Card` with the org's name, id, and contact fields, then a heading `Events` and a grid of `EventCard` for its events, or `<p className="clay p-4 text-sm text-muted-foreground">This organization has no events yet.</p>`.
+Layout: a back link to `/organizations`, then a `Card` with the org's name, id, and email, then a heading `Events` and a grid of `EventCard` for its events, or `<p className="clay p-4 text-sm text-muted-foreground">This organization has no events yet.</p>`.
 
 Show the count: `{events.length} event{events.length === 1 ? "" : "s"}`.
 
@@ -465,15 +456,15 @@ git commit -m "feat(org): add organization list and detail pages"
 
 ---
 
-## Task 4b: Soft delete and restore
+## Task 4b: Hard delete
 
-The backend already stamps the row and keeps it. This adds the affordances, and the wording matters more than usual: a soft delete must not read as data loss, or an operator will hesitate to remove a duplicate they created by mistake.
+Delete removes the row permanently: no Deleted stamp, no restore path. The control must read as data loss, because it is — destructive styling and a confirm step warning that events attached to the org stop resolving it. That is the data-loss wording from Decision 5.
 
 **Files:**
 - Create: `components/organizations/OrganizationDeleteButton.tsx`
 
 **Interfaces:**
-- Consumes: `deleteOrganization`, `restoreOrganization` from `@/lib/api-client` (Task 2); `Organization` from `@/models/organization`; `Button`, `Dialog*` from `@/components/ui/*`; `invalidatePrefix` from `@/hooks/useCached`.
+- Consumes: `deleteOrganization` from `@/lib/api-client` (Task 2); `Organization` from `@/models/organization`; `Button`, `Dialog*` from `@/components/ui/*`; `invalidatePrefix` from `@/hooks/useCached`.
 - Produces:
   ```ts
   export function OrganizationDeleteButton({
@@ -482,17 +473,15 @@ The backend already stamps the row and keeps it. This adds the affordances, and 
     organization: Organization
   }): React.JSX.Element
   ```
-  One component that renders **Delete** when `organization.deletedAt` is `""` and **Restore** when it is not, so a deleted organization reached by direct URL is not a dead end. That is Review Focus item 5.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `components/organizations/OrganizationDeleteButton.test.tsx` with a `@vitest-environment jsdom` docblock, mocking `deleteOrganization` and `restoreOrganization` to resolve `{ success: true, organization: {...} }`, and `next/navigation`'s `useRouter`.
+Create `components/organizations/OrganizationDeleteButton.test.tsx` with a `@vitest-environment jsdom` docblock, mocking `deleteOrganization` to resolve `{ success: true, organization: {...} }`, and `next/navigation`'s `useRouter`.
 
-Three cases:
+Two cases:
 
-- **an active organization offers Delete, not Restore.** Assert a button labelled `Delete` is present and no button labelled `Restore` is.
 - **delete is confirmed before it fires.** Click `Delete`, assert `deleteOrganization` has **not** been called yet, then click the confirm button inside the dialog and assert it was called once with the org's id. A destructive action that fires on the first click is a mis-click waiting to happen.
-- **a deleted organization offers Restore and nothing else.** Pass an org with `deletedAt: "10/01/2026 09:15:00"`, assert `Restore` is present, `Delete` is not, and clicking `Restore` calls `restoreOrganization` with the id.
+- **the confirm copy warns about attached events.** Assert the dialog text mentions that the delete is permanent.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -501,43 +490,28 @@ Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement the component**
 
-`"use client"`. Branch on `organization.deletedAt`.
+`"use client"`. A trigger `Button` labelled **Delete** in the `destructive` variant opens a `Dialog`. `DialogTitle` is `"Delete organization"`. `DialogDescription` says, in these words or close to them: **"This permanently removes the organization. Events attached to it stop resolving it, so only delete organizations with no events."** That sentence is the whole point of the copy — it is what stops an operator from orphaning live events.
 
-The delete branch opens a `Dialog` on trigger click. `DialogTitle` is `"Delete organization"`. `DialogDescription` says, in these words or close to them: **"This hides the organization from lists and pickers. Its events and past reports are unaffected, and you can restore it later."** That sentence is the whole point of the copy — it is what makes the action safe to take.
-
-Two buttons: a `variant="outline"` **Cancel**, and a `Button` **Delete organization** that calls `deleteOrganization(organization.id)`. Use the default primary variant, **not** `variant="destructive"` — red styling signals irreversible loss, and this is reversible.
+One confirm `Button` **Delete organization**, also `destructive`, calling `deleteOrganization(organization.id)`.
 
 On success: `invalidatePrefix("organizations:")`, `invalidatePrefix("events:")`, close, `router.refresh()`.
-
-The restore branch is a single `Button` labelled **Restore** calling `restoreOrganization(organization.id)`, with no dialog — restoring cannot lose anything, so a confirmation would be noise. Same invalidation on success.
 
 Errors go in a `<p role="alert">`, matching the other dialogs.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run components/organizations/OrganizationDeleteButton.test.tsx`
-Expected: PASS, 3 tests.
+Expected: PASS, 2 tests.
 
-- [ ] **Step 5: Mount it on both pages**
+- [ ] **Step 5: Mount it on the detail page**
 
 In `app/(app)/organizations/[orgId]/page.tsx`, render `<OrganizationDeleteButton organization={org} />` in the `CardHeader` beside `OrganizationFormDialog`.
-
-On that same page, when `org.deletedAt` is non-empty, render a visible notice above the events:
-
-```tsx
-<p role="status" className="clay p-4 text-sm text-muted-foreground">
-  This organization is deleted. It is hidden from lists, and its reports still
-  use its details.
-</p>
-```
-
-A deleted organization reached by direct URL is otherwise indistinguishable from an active one, and someone would reasonably assume the report is falling back to the default letterhead. It is not.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add components/organizations/OrganizationDeleteButton.tsx components/organizations/OrganizationDeleteButton.test.tsx "app/(app)/organizations/[orgId]/page.tsx"
-git commit -m "feat(org): soft delete and restore an organization"
+git commit -m "feat(org): hard-delete an organization"
 ```
 
 ---
@@ -722,14 +696,14 @@ async function getOrganizationsFor(eventId: string): Promise<Organization | null
 }
 ```
 
-The `.catch(() => null)` is load-bearing: an event pointing at a deleted organization must still print, falling back to the default letterhead, rather than 500 on the one page someone needs to file paperwork from. This also reuses the cached event read, so it costs no extra round trip.
+The `.catch(() => null)` is load-bearing: an event pointing at a deleted organization resolves to null and prints the default letterhead, rather than 500 on the one page someone needs to file paperwork from. This also reuses the cached event read, so it costs no extra round trip.
 
 - [ ] **Step 3: Drive the letterhead from the resolver**
 
 Replace the hardcoded `letterhead` JSX at lines 57-126. Compute `const head = letterheadFor(org)` above the JSX, then:
 
-- Country, name, campus, branch, address, phone, council each render `head.<field>` in the same `<p>` tags with the same inline styles and the same 12pt/16pt/10pt sizing already in the file. **Preserve the styles exactly** — this is print output, and the current layout is what these reports have always looked like.
-- Replace the single hardcoded email+website line with `{head.contact}`, rendering the `<p>` only when `head.contact` is non-empty.
+- Only `name` and `contact` are data-driven (`head.name`, `head.contact`); every other line renders its `DEFAULT_LETTERHEAD` value in the same `<p>` tags with the same inline styles and the same 12pt/16pt/10pt sizing already in the file. **Preserve the styles exactly** — this is print output, and the current layout is what these reports have always looked like.
+- `{head.contact}` is never empty — a blank org email keeps the default contact line — so render the `<p>` unconditionally.
 - Keep the `4pt` black `<hr>`, the `council` line, and the `ACCENT`-coloured campus line unchanged.
 - The logo `<img src="/bsu-tneu-logo.png">` stays as-is. Logos are per-organization and out of scope; note this in a comment so the next person does not assume it was forgotten.
 - Time: at line 118, replace the blank `<span style={{ borderBottom: "1pt solid #000", padding: "0 24pt" }}>&nbsp;</span>` with `{event.time || "\u00a0"}`, so an event with no time still reserves the underline instead of collapsing the line. That preserves the current appearance for every event that has not set a time.
@@ -739,7 +713,7 @@ The footer slogan at line 204 becomes `{head.motto}`.
 - [ ] **Step 4: Run the guard and the suite**
 
 Run: `npm test`
-Expected: PASS, 170 tests (168 existing plus the 9 from Task 1 and 2 from Task 2 — recount from the run output, do not hardcode).
+Expected: PASS — recount the file and test totals from the run output, do not hardcode them.
 
 - [ ] **Step 5: Commit**
 
@@ -778,7 +752,7 @@ git commit -m "feat(reports): print the event's organization on the report"
 
 - [ ] **Step 3: Replace the manual procedure's frontend caveats**
 
-`docs/testing.md` — the procedure added for the backend says of step 14 that the letterhead is hardcoded and the Time line blank, and marks that "expected, not a bug". That is now false. Rewrite step 14 to assert the opposite: the printed report shows the event's organization name and address, and the time appears in the Time field.
+`docs/testing.md` — the procedure added for the backend says of step 14 that the letterhead is hardcoded and the Time line blank, and marks that "expected, not a bug". That is now false. Rewrite step 14 to assert the opposite: the printed report shows the event's organization name and email, and the time appears in the Time field.
 
 Add steps for what only a human can check:
 
@@ -787,8 +761,7 @@ Add steps for what only a human can check:
 - An event with a blank `orgId` shows no org in its detail header, and the Edit dialog lets one be assigned.
 - Editing an organization's name and then printing an event's report shows the new name without a redeploy.
 - A time containing `12:00 pm - 5:00 pm` appears on the report exactly as typed, including the inner spaces.
-- Deleting an organization removes it from `/organizations` and from the create-event picker, but its events are untouched and each still prints **that organization's** letterhead rather than the default one. This is the check that proves a soft delete is not silently rewriting history — do it before anything else on this list.
-- Visiting a deleted organization by direct URL shows the deleted notice and a working **Restore**, and restoring returns it to the list.
+- Deleting an organization removes it from `/organizations` and from the create-event picker. Its former events keep their stored `orgId` but print the default letterhead — verify this with an event whose org you then delete, before anything else on this list, because it is the one irreversible consequence here.
 
 - [ ] **Step 4: Correct the suite counts**
 
@@ -819,7 +792,7 @@ Then, by hand, following `docs/testing.md`:
 
 1. `npm run dev`, sign in, open `/organizations`, create an organization.
 2. Open `/events`, create an event. Confirm the org picker is required.
-3. Open the event, print the report. Confirm the org name, address, and the
+3. Open the event, print the report. Confirm the org name, org email, and the
    time are on it.
 4. Open a pre-existing event with a blank `orgId`. Print its report and
    confirm the **original** letterhead is intact — this is the regression that
