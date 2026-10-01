@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getAttendanceCachedFor, getEventCachedFor } from "@/integration/cached"
 import { filterAttendance, parseAttendanceFilters } from "@/lib/attendance"
+import { requireAdminPage } from "@/lib/auth/dal"
 import { formatEventDate } from "@/lib/format"
 import { PrintButton } from "@/components/reports/PrintButton"
 
@@ -21,6 +22,11 @@ export default async function PrintReportPage({
   params: Promise<{ eventId: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  // The print view dumps every attendance row, so it is gated like any other
+  // read. It stays inside the `(app)` group because `@media print` targets
+  // `.app-shell` and `.app-chrome`; the gate is independent of the shell.
+  await requireAdminPage()
+
   const { eventId } = await params
   const raw = await searchParams
   const flat: Record<string, string> = {}

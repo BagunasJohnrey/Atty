@@ -3,6 +3,7 @@ import { recordAttendance } from "@/integration/attendance"
 import { getAttendanceCachedFor } from "@/integration/cached"
 import { expireAttendance } from "@/integration/invalidate"
 import { filterAttendance, parseAttendanceFilters } from "@/lib/attendance"
+import { requireAdmin } from "@/lib/auth/dal"
 import {
   cachedJson,
   parseJsonBody,
@@ -16,6 +17,7 @@ type AttendanceParams = { params: Promise<{ eventId: string }> }
 
 export async function GET(request: Request, context: AttendanceParams) {
   return respondWith(async () => {
+    await requireAdmin()
     const { eventId } = await context.params
     const filters = parseAttendanceFilters(
       new URL(request.url).searchParams
@@ -33,6 +35,7 @@ export async function GET(request: Request, context: AttendanceParams) {
 
 export async function POST(request: Request, context: AttendanceParams) {
   return respondWith(async () => {
+    await requireAdmin()
     const { eventId } = await context.params
     const body = await parseJsonBody(request)
     const srcode = requireString(body, "srcode", 20)

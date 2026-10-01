@@ -1,6 +1,7 @@
 import { getEventsCached } from "@/integration/cached"
 import { EventCard } from "@/components/events/EventCard"
 import { EventFormDialogLazy } from "@/components/events/EventFormDialogLazy"
+import { requireAdminPage } from "@/lib/auth/dal"
 
 /**
  * Request-time rendered for the same reason as the dashboard, and because
@@ -14,6 +15,8 @@ export default async function EventsPage({
 }: {
   searchParams: Promise<{ status?: string; q?: string }>
 }) {
+  await requireAdminPage()
+
   const params = await searchParams
   const status = params.status ?? "All"
   const q = (params.q ?? "").toLowerCase()

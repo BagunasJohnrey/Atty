@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { closeEvent, updateEvent } from "@/integration/events"
 import { getEventCachedFor } from "@/integration/cached"
 import { expireEvent } from "@/integration/invalidate"
+import { requireAdmin } from "@/lib/auth/dal"
 import type { UpdateEventInput } from "@/models/event"
 import { cachedJson, HttpError, respondWith } from "@/lib/api"
 
@@ -19,6 +20,7 @@ const UPDATABLE_FIELDS = [
 
 export async function GET(_request: Request, context: EventParams) {
   return respondWith(async () => {
+    await requireAdmin()
     const { eventId } = await context.params
     const event = await getEventCachedFor(eventId)
     return cachedJson({ success: true, event }, 30)
@@ -33,6 +35,7 @@ export async function GET(_request: Request, context: EventParams) {
  */
 export async function PATCH(request: Request, context: EventParams) {
   return respondWith(async () => {
+    await requireAdmin()
     const { eventId } = await context.params
     const raw = await request.text()
     if (!raw.trim()) {

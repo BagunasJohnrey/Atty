@@ -1,6 +1,7 @@
 import { getEventsCached } from "@/integration/cached"
 import { EventSection } from "@/components/dashboard/EventSection"
 import { StatCards } from "@/components/dashboard/StatCards"
+import { requireAdminPage } from "@/lib/auth/dal"
 
 /**
  * Rendered per request rather than prerendered at build time: the data
@@ -11,6 +12,8 @@ import { StatCards } from "@/components/dashboard/StatCards"
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
+  await requireAdminPage()
+
   let events: Awaited<ReturnType<typeof getEventsCached>> = []
   let error: string | null = null
   try {

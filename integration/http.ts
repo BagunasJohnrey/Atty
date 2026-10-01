@@ -1,6 +1,6 @@
 import { getAppsScriptConfig } from "./config"
 import { AppsScriptError } from "./errors"
-import type { ApiFailure, ApiResult, ApiSuccess } from "@/models/api"
+import type { ApiResult, ApiSuccess } from "@/models/api"
 
 const REQUEST_TIMEOUT_MS = 15_000
 const MAX_ATTEMPTS = 2
@@ -103,8 +103,13 @@ export async function requestAppsScript<TPayload extends object>(
   action: string,
   params: Record<string, unknown> = {}
 ): Promise<ApiSuccess<TPayload>> {
-  const { url, secret } = getAppsScriptConfig()
-  const body = JSON.stringify({ secret, action, ...params })
+  const { url, secret, adminKey } = getAppsScriptConfig()
+  // `adminKey` is the third credential Apps Script requires. It is a server
+  // service key rather than the caller's session token: every read here can
+  // be served from `unstable_cache`, which runs outside any request context,
+  // so the originating session is not available at this point. See
+  // `lib/auth/config.ts` for why a service key is the right trade-off.
+  const body = JSON.stringify({ secret, adminKey, action, ...params })
 
   if (!warmedUp) {
     await ensureWarmedUp(url)

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createEvent } from "@/integration/events"
 import { getEventsCached } from "@/integration/cached"
 import { expireEvents } from "@/integration/invalidate"
+import { requireAdmin } from "@/lib/auth/dal"
 import {
   cachedJson,
   optionalString,
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   return respondWith(async () => {
+    await requireAdmin()
     const events = await getEventsCached()
     return cachedJson({ success: true, events }, 30)
   })
@@ -21,6 +23,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   return respondWith(async () => {
+    await requireAdmin()
     const body = await parseJsonBody(request)
     const name = requireString(body, "name", 150)
     const date = requireString(body, "date")

@@ -13,6 +13,7 @@ import { RefreshButton } from "@/components/attendance/RefreshButton"
 import { ExportButton } from "@/components/attendance/ExportButton"
 import { ReportSummary } from "@/components/reports/ReportSummary"
 import { Skeleton } from "@/components/ui/skeleton"
+import { requireAdminPage } from "@/lib/auth/dal"
 import { formatEventDate } from "@/lib/format"
 import {
   distinctFilterOptions,
@@ -50,6 +51,8 @@ export default async function EventDetailPage({
   params: Promise<{ eventId: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
+  await requireAdminPage()
+
   const { eventId } = await params
   const raw = await searchParams
   const flat: Record<string, string> = {}

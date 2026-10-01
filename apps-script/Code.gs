@@ -2,7 +2,10 @@
  * Web App entry point.
  *
  * All requests from Next.js arrive as JSON POST bodies of the form
- * { secret, action, ...fields }. Each action maps to a handler below.
+ * { secret, adminKey, action, ...fields }. Each action maps to a handler below.
+ *
+ * Both credentials are verified before the action is even looked at, so an
+ * unauthenticated caller cannot probe which action names exist.
  */
 function doGet() {
   return Responses.json(
@@ -17,6 +20,7 @@ function doPost(event) {
   try {
     var body = Validators.parseBody(event && event.postData ? event.postData.contents : "")
     Auth.verify(body.secret)
+    Auth.verifyAdminKey(body.adminKey)
     var action = Validators.requireString(body, "action", "action")
     var handler = router()[action]
     if (!handler) {
