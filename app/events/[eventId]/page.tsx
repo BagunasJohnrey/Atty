@@ -9,6 +9,7 @@ import { EventActions } from "@/components/events/EventActions"
 import { EventStatusBadge } from "@/components/events/EventStatusBadge"
 import { AttendanceFilters } from "@/components/attendance/AttendanceFilters"
 import { AttendanceTable } from "@/components/attendance/AttendanceTable"
+import { RefreshButton } from "@/components/attendance/RefreshButton"
 import { ExportButton } from "@/components/attendance/ExportButton"
 import { ReportSummary } from "@/components/reports/ReportSummary"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -98,6 +99,7 @@ export default async function EventDetailPage({
               </Link>
             ) : null}
             <ExportButton eventId={event.id} filters={filters} />
+            <RefreshButton />
           </div>
         </CardContent>
       </Card>
