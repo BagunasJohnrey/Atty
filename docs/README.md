@@ -40,3 +40,10 @@ These predate this folder and remain the source of truth for their topics:
 | [`../DESIGN.md`](../DESIGN.md) | The claymorphic UI system, component specs, interaction states |
 | [`../requirements.md`](../requirements.md) | The original client specification |
 | [`../apps-script/README.md`](../apps-script/README.md) | Backend deployment and actions |
+
+Feature work in flight, newest first:
+
+| Document | Covers |
+|---|---|
+| [`specs/2026-10-01-organizations-backend-design.md`](specs/2026-10-01-organizations-backend-design.md) | Why organizations exist as an entity, the `Organizations` sheet, soft delete, and why the report letterhead falls back the way it does. Implemented, uncommitted. |
+| [`plans/2026-10-01-organizations-ui.md`](plans/2026-10-01-organizations-ui.md) | The task-by-task plan for the organizations UI: pages, dialogs, the org picker, and wiring the print letterhead. Not started. |

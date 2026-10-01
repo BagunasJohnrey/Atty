@@ -2,8 +2,15 @@
 
 Atty has one role — `admin` — and no user records. Staff prove who they are
 with an 8-digit PIN. There is no sign-up, no password reset, and no account
-recovery, by design: this is a single-tenant attendance tool for a school
-office, and the operational cost of real accounts would buy nothing.
+recovery, by design: one deployment is run by one school office, and the
+operational cost of real accounts would buy nothing.
+
+The **data** model is multi-organization — one spreadsheet can hold several
+organizations, and events reference the organization that owns them — but the
+**access** model is not. Every authenticated caller has the same admin
+authority over every organization. Sharing one deployment between two
+organizations is therefore not a supported security boundary; the organization
+field is a data grouping, not a tenant isolation boundary.
 
 ## Configuration
 

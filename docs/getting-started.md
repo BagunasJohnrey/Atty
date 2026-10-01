@@ -41,17 +41,38 @@ gitignored — never commit it.
 
 ## 2. Prepare the spreadsheet
 
-One spreadsheet, three kinds of sheet.
+One spreadsheet, four kinds of sheet.
 
 **`Masterlist`** — one row per student:
 
 | SRCODE | Full Name | College | Program | Year Level | Gender |
 |---|---|---|---|---|---|
 
+**`Organizations`** — the entities that use the tracker. One row each:
+
+| Org ID | Org Name | Email | Address | Phone | Website | Deleted |
+|---|---|---|---|---|---|---|
+
+Only `Org Name` is required. `Org ID` is assigned by the app as `ORG-001`,
+`ORG-002`, and so on. The contact fields are free text and print on the report
+exactly as typed.
+
+`Deleted` is a soft-delete stamp, left empty for an active organization. Do not
+edit it by hand — use the delete and restore endpoints. A deleted organization
+disappears from the app but its **row stays**, and looking it up by ID still
+works, so reports for its past events keep printing the correct letterhead.
+
 **`Events`** — created and maintained by the app:
 
-| Event ID | Event Name | Event Date | Status | Sheet Name | Location | Description |
-|---|---|---|---|---|---|---|
+| Event ID | Event Name | Event Date | Status | Sheet Name | Location | Description | Org ID | Time |
+|---|---|---|---|---|---|---|---|---|
+
+`Org ID` references a row in `Organizations` and may be left blank. `Time` is
+free text for the report — enter the range as it should appear, e.g.
+`12:00 pm - 5:00 pm`. It is stored and printed verbatim, never parsed.
+
+> `Org ID` and `Time` are appended to an existing `Events` sheet on the next
+> event creation. Events written before that read as blank for both.
 
 Leave the first two rows free: row 1 is the header, data starts at row 2.
 `Date` accepts `MM/DD/YYYY` or `YYYY-MM-DD`. `Status` is `Upcoming`, `Active`,

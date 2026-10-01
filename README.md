@@ -38,7 +38,7 @@ student data is duplicated into event sheets.
 | Path                | Purpose                                           |
 | ------------------- | ------------------------------------------------- |
 | `apps-script/`      | Apps Script backend, deployed as a Web App        |
-| `models/`           | Shared domain types (Student, Event, Attendance…) |
+| `models/`           | Shared domain types (Student, Event, Organization, Attendance…) |
 | `integration/`      | Server-side client for the Apps Script API        |
 | `app/api/`          | Next.js route handlers (BFF)                      |
 | `lib/api.ts`        | Route handler validation + error mapping          |
@@ -95,11 +95,17 @@ The Next.js app exposes these endpoints (all return JSON):
 
 | Method | Path                                    | Description                    |
 | ------ | --------------------------------------- | ------------------------------ |
+| GET    | `/api/organizations`                    | List active organizations      |
+| POST   | `/api/organizations`                    | Create an organization         |
+| GET    | `/api/organizations/[orgId]`            | Organization details (cached 30s) |
+| PATCH  | `/api/organizations/[orgId]`            | Update organization fields     |
+| DELETE | `/api/organizations/[orgId]`            | Soft delete (hides, keeps the row) |
+| POST   | `/api/organizations/[orgId]/restore`    | Undo a soft delete             |
 | GET    | `/api/events`                           | List events                    |
 | POST   | `/api/events`                           | Create an event                |
 | GET    | `/api/events/[eventId]`                 | Event details (cached 30s)     |
 | POST   | `/api/events/[eventId]/open`            | Open an event (mark Active)    |
-| PATCH  | `/api/events/[eventId]`                 | Close (empty body) or update fields (JSON body) |
+| PATCH  | `/api/events/[eventId]`                 | Close (empty body) or update fields (`name`, `date`, `location`, `description`, `status`, `orgId`, `time`) |
 | GET    | `/api/events/[eventId]/attendance`      | Attendance records (`?q=&college=&program=&yearLevel=&gender=`) |
 | POST   | `/api/events/[eventId]/attendance`      | Record attendance              |
 | POST   | `/api/events/[eventId]/attendance/check`| Verify a student's attendance  |

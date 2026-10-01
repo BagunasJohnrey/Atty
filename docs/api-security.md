@@ -80,7 +80,7 @@ Error codes are mapped to HTTP status by the BFF in `lib/api.ts`:
 | `INVALID_REQUEST` / `INVALID_FIELD` | 400 | Malformed input. |
 | `UNAUTHORIZED` | 401 | Credential rejected. |
 | `METHOD_NOT_ALLOWED` | 405 | `GET` on the web app. |
-| `EVENT_NOT_FOUND` / `SRCODE_NOT_FOUND` | 404 | |
+| `EVENT_NOT_FOUND` / `SRCODE_NOT_FOUND` / `ORG_NOT_FOUND` | 404 | |
 | `DUPLICATE_ATTENDANCE` / `EVENT_NOT_ACTIVE` | 409 | |
 | `CONFIGURATION_ERROR` | 503 | A Script Property or env var is missing. |
 | `UPSTREAM_UNAVAILABLE` | 502 | Network failure or non-JSON response. |
@@ -89,14 +89,20 @@ Error codes are mapped to HTTP status by the BFF in `lib/api.ts`:
 ## Action authorization
 
 There is one role, so every action requires a valid session and there is no
-per-action permission table. All eleven actions sit behind the same gate.
+per-action permission table. All seventeen actions sit behind the same gate.
 
 | Action | Method | Notes |
 |---|---|---|
+| `getOrganizations` | `POST` | Reads the Organizations sheet. Excludes soft-deleted rows. |
+| `getOrganization` | `POST` | Reads one organization, **including** a soft-deleted one, so report letterheads keep resolving. |
+| `createOrganization` | `POST` | **Write.** Appends an organization row. |
+| `updateOrganization` | `POST` | **Write.** |
+| `deleteOrganization` | `POST` | **Write.** Soft delete: stamps the row, keeps it. |
+| `restoreOrganization` | `POST` | **Write.** Clears the soft delete stamp. |
 | `getEvents` | `POST` | Reads the Events sheet. |
 | `getEvent` | `POST` | Reads one event. |
-| `createEvent` | `POST` | **Write.** Creates a new `EVT-XXX` sheet. |
-| `updateEvent` | `POST` | **Write.** |
+| `createEvent` | `POST` | **Write.** Creates a new `EVT-XXX` sheet. `orgId` is optional; a non-empty value must resolve. |
+| `updateEvent` | `POST` | **Write.** Accepts `orgId` and `time`. |
 | `openEvent` | `POST` | **Write.** Enables check-ins. |
 | `closeEvent` | `POST` | **Write.** |
 | `recordAttendance` | `POST` | **Write.** Appends an attendance row. |

@@ -107,6 +107,9 @@ Every route below requires a valid session except `/login` and
 |---|---|
 | `/api/auth/login` | `POST` — **public** |
 | `/api/auth/logout` | `POST` — **public** (only clears a cookie) |
+| `/api/organizations` | `GET`, `POST` |
+| `/api/organizations/[orgId]` | `GET`, `PATCH`, `DELETE` (soft delete) |
+| `/api/organizations/[orgId]/restore` | `POST` |
 | `/api/events` | `GET`, `POST` |
 | `/api/events/[eventId]` | `GET`, `PATCH` (empty body closes) |
 | `/api/events/[eventId]/open` | `POST` |
