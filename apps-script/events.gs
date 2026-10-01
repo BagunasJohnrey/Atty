@@ -314,7 +314,8 @@ var Events = {
     var allowed = ["name", "date", "location", "description", "status", "orgId", "time"]
     var patch = {}
     for (var key in body) {
-      if (key === "secret" || key === "action" || key === "eventId") continue
+      // secret/adminKey/action/eventId are envelope fields, not patch keys.
+      if (key === "secret" || key === "adminKey" || key === "action" || key === "eventId") continue
       if (allowed.indexOf(key) < 0) {
         throw new AppError(Responses.CODES.INVALID_REQUEST, "Unknown field: " + key)
       }
