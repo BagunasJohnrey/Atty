@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
-import { getAttendance, recordAttendance } from "@/integration/attendance"
+import { recordAttendance } from "@/integration/attendance"
+import { getAttendanceCachedFor } from "@/integration/cached"
+import { expireAttendance } from "@/integration/invalidate"
 import { filterAttendance, parseAttendanceFilters } from "@/lib/attendance"
 import {
   cachedJson,
@@ -18,7 +20,10 @@ export async function GET(request: Request, context: AttendanceParams) {
     const filters = parseAttendanceFilters(
       new URL(request.url).searchParams
     )
-    const attendance = filterAttendance(await getAttendance(eventId), filters)
+    const attendance = filterAttendance(
+      await getAttendanceCachedFor(eventId),
+      filters
+    )
     return cachedJson(
       { success: true, attendance, total: attendance.length },
       10
@@ -32,6 +37,7 @@ export async function POST(request: Request, context: AttendanceParams) {
     const body = await parseJsonBody(request)
     const srcode = requireString(body, "srcode", 20)
     const recorded = await recordAttendance(eventId, srcode)
+    expireAttendance(eventId)
     return NextResponse.json(
       {
         success: true,

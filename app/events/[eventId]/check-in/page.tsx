@@ -1,17 +1,17 @@
 import { notFound } from "next/navigation"
-import { getEvent } from "@/integration/events"
+import { getEventCachedFor } from "@/integration/cached"
 import { CheckInForm } from "@/components/attendance/CheckInForm"
 import { FullscreenToggle } from "@/components/attendance/FullscreenToggle"
 import { EventStatusBadge } from "@/components/events/EventStatusBadge"
 import { formatEventDate } from "@/lib/format"
 
-export const revalidate = 10
+export const dynamic = "force-dynamic"
 
 export default async function CheckInPage({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params
-  let event: Awaited<ReturnType<typeof getEvent>> | null = null
+  let event: Awaited<ReturnType<typeof getEventCachedFor>> | null = null
   try {
-    event = await getEvent(eventId)
+    event = await getEventCachedFor(eventId)
   } catch {
     notFound()
   }

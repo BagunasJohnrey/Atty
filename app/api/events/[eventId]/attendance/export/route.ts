@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getAttendance } from "@/integration/attendance"
+import { getAttendanceCachedFor } from "@/integration/cached"
 import {
   filterAttendance,
   parseAttendanceFilters,
@@ -21,7 +21,7 @@ export async function GET(request: Request, context: ExportParams) {
     const { eventId } = await context.params
     const filters = parseAttendanceFilters(new URL(request.url).searchParams)
     const csv = toAttendanceCsv(
-      filterAttendance(await getAttendance(eventId), filters)
+      filterAttendance(await getAttendanceCachedFor(eventId), filters)
     )
     return new NextResponse(csv, {
       headers: {

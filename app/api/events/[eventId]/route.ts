@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
-import { closeEvent, getEvent, updateEvent } from "@/integration/events"
+import { closeEvent, updateEvent } from "@/integration/events"
+import { getEventCachedFor } from "@/integration/cached"
+import { expireEvent } from "@/integration/invalidate"
 import type { UpdateEventInput } from "@/models/event"
 import { cachedJson, HttpError, respondWith } from "@/lib/api"
 
@@ -18,7 +20,7 @@ const UPDATABLE_FIELDS = [
 export async function GET(_request: Request, context: EventParams) {
   return respondWith(async () => {
     const { eventId } = await context.params
-    const event = await getEvent(eventId)
+    const event = await getEventCachedFor(eventId)
     return cachedJson({ success: true, event }, 30)
   })
 }
@@ -35,6 +37,7 @@ export async function PATCH(request: Request, context: EventParams) {
     const raw = await request.text()
     if (!raw.trim()) {
       const event = await closeEvent(eventId)
+      expireEvent(eventId)
       return NextResponse.json({
         success: true,
         message: "Event closed successfully.",
@@ -43,6 +46,7 @@ export async function PATCH(request: Request, context: EventParams) {
     }
     const input = parsePatchBody(raw)
     const event = await updateEvent(eventId, input)
+    expireEvent(eventId)
     return NextResponse.json({
       success: true,
       message: "Event updated successfully.",

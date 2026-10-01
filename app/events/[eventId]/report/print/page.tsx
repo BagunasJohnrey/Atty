@@ -1,12 +1,11 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { getEvent } from "@/integration/events"
-import { getAttendance } from "@/integration/attendance"
+import { getAttendanceCachedFor, getEventCachedFor } from "@/integration/cached"
 import { filterAttendance, parseAttendanceFilters } from "@/lib/attendance"
 import { formatEventDate } from "@/lib/format"
 import { PrintButton } from "@/components/reports/PrintButton"
 
-export const revalidate = 10
+export const dynamic = "force-dynamic"
 
 export const metadata = { title: "Attendance Report" }
 
@@ -31,8 +30,8 @@ export default async function PrintReportPage({
   const filters = parseAttendanceFilters(new URLSearchParams(flat))
 
   const [event, attendance] = await Promise.all([
-    getEvent(eventId).catch(() => null),
-    getAttendance(eventId).catch(() => []),
+    getEventCachedFor(eventId).catch(() => null),
+    getAttendanceCachedFor(eventId).catch(() => []),
   ])
   if (!event) notFound()
   const rows = filterAttendance(attendance, filters)

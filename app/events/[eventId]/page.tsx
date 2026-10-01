@@ -2,8 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import * as React from "react"
 import { ScanLine } from "lucide-react"
-import { getEvent } from "@/integration/events"
-import { getAttendance } from "@/integration/attendance"
+import { getAttendanceCachedFor, getEventCachedFor } from "@/integration/cached"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EventActions } from "@/components/events/EventActions"
@@ -20,7 +19,7 @@ import {
 } from "@/lib/attendance"
 import type { AttendanceRecord } from "@/models/attendance"
 
-export const revalidate = 10
+export const dynamic = "force-dynamic"
 
 /**
  * Streams in after the header: resolves the shared attendance promise
@@ -58,13 +57,14 @@ export default async function EventDetailPage({
   }
   const filters = parseAttendanceFilters(new URLSearchParams(flat))
 
-  // Both reads start concurrently. The header renders as soon as the event
-  // resolves; the filter facets stream in via Suspense below. The shared
-  // server read cache means repeat views cost zero upstream roundtrips.
-  const attendanceData = getAttendance(eventId)
-  let event: Awaited<ReturnType<typeof getEvent>> | null = null
+  // Both reads start concurrently and the promise is created once, so the
+  // header renders as soon as the event resolves while the filter facets
+  // stream in via Suspense below. Both go through the persistent read
+  // cache, so repeat views cost zero upstream roundtrips.
+  const attendanceData = getAttendanceCachedFor(eventId)
+  let event: Awaited<ReturnType<typeof getEventCachedFor>> | null = null
   try {
-    event = await getEvent(eventId)
+    event = await getEventCachedFor(eventId)
   } catch {
     notFound()
   }
