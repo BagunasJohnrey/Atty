@@ -73,19 +73,39 @@ var Events = {
    * A script lock serializes concurrent creations so two simultaneous
    * calls cannot claim the same Event ID.
    *
+   * orgId is optional: the event form does not collect one yet, so a blank
+   * reference is a legitimate "no organization". A non-empty one must resolve,
+   * or the create fails with ORG_NOT_FOUND rather than attaching the event to
+   * nothing. `time` is free text stored verbatim for the report.
+   *
    * @param {string} name
    * @param {string} date
    * @param {string} [location]
    * @param {string} [description]
+   * @param {string} [orgId]
+   * @param {string} [time]
    * @returns {SchoolEvent}
    */
-  create: function (name, date, location, description) {
+  create: function (name, date, location, description, orgId, time) {
+    // Validated before anything is written: the attendance sheet is created
+    // below, so rejecting afterwards would leave an orphan EVT-XXX tab behind.
+    var owner = Organizations.assertOptional(orgId)
     var lock = LockService.getScriptLock()
     lock.waitLock(10000)
     try {
       var id = Events.nextIdAfterEnsuringRegistry()
       Sheets.writeHeaders(id, Config.ATTENDANCE_HEADERS)
-      var row = [id, name, date, Config.DEFAULT_EVENT_STATUS, id, location || "", description || ""]
+      var row = [
+        id,
+        name,
+        date,
+        Config.DEFAULT_EVENT_STATUS,
+        id,
+        location || "",
+        description || "",
+        owner,
+        time || "",
+      ]
       Sheets.appendRow(Config.EVENTS_SHEET, row)
       return Models.eventFromRow(row)
     } finally {
@@ -111,7 +131,7 @@ var Events = {
    * reopening a closed event. The attendance sheet is never touched.
    *
    * @param {string} eventId
-   * @param {Object} patch - May contain name, date, location, description, status.
+   * @param {Object} patch - May contain name, date, location, description, status, orgId, time.
    * @returns {SchoolEvent}
    */
   update: function (eventId, patch) {
@@ -133,11 +153,19 @@ var Events = {
     if (patch.status !== undefined) {
       event.status = Events.normalizeStatus(patch.status)
     }
+    if (patch.orgId !== undefined) {
+      event.orgId = Organizations.assertOptional(patch.orgId)
+    }
+    if (patch.time !== undefined) {
+      event.time = Validators.optionalString(patch, "time", "Event time", Config.MAX_EVENT_TIME_LENGTH)
+    }
     Sheets.setCell(Config.EVENTS_SHEET, row, columns.NAME + 1, event.name)
     Sheets.setCell(Config.EVENTS_SHEET, row, columns.DATE + 1, event.date)
     Sheets.setCell(Config.EVENTS_SHEET, row, columns.STATUS + 1, event.status)
     Sheets.setCell(Config.EVENTS_SHEET, row, columns.LOCATION + 1, event.location)
     Sheets.setCell(Config.EVENTS_SHEET, row, columns.DESCRIPTION + 1, event.description)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.ORG_ID + 1, event.orgId)
+    Sheets.setCell(Config.EVENTS_SHEET, row, columns.TIME + 1, event.time)
     return event
   },
 
@@ -244,8 +272,10 @@ var Events = {
     var date = Validators.normalizeDate(body.date)
     var location = Validators.optionalString(body, "location", "Event location", Config.MAX_EVENT_LOCATION_LENGTH)
     var description = Validators.optionalString(body, "description", "Event description", Config.MAX_EVENT_DESCRIPTION_LENGTH)
+    var orgId = Validators.optionalString(body, "orgId", "Organization ID", Config.MAX_ORG_ID_LENGTH)
+    var time = Validators.optionalString(body, "time", "Event time", Config.MAX_EVENT_TIME_LENGTH)
     return Responses.ok("Event created successfully.", {
-      event: Events.create(name, date, location, description),
+      event: Events.create(name, date, location, description, orgId, time),
     })
   },
 
@@ -281,7 +311,7 @@ var Events = {
    */
   handleUpdate: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
-    var allowed = ["name", "date", "location", "description", "status"]
+    var allowed = ["name", "date", "location", "description", "status", "orgId", "time"]
     var patch = {}
     for (var key in body) {
       if (key === "secret" || key === "action" || key === "eventId") continue

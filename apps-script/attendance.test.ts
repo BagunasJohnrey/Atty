@@ -21,6 +21,7 @@ const LOAD_ORDER = [
   "models.gs",
   "sheets.gs",
   "students.gs",
+  "organizations.gs",
   "events.gs",
   "attendance.gs",
   "reports.gs",

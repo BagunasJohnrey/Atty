@@ -25,6 +25,7 @@ const FILES = [
   "models.gs",
   "sheets.gs",
   "students.gs",
+  "organizations.gs",
   "events.gs",
   "attendance.gs",
   "validators.gs",

@@ -17,6 +17,17 @@
  */
 
 /**
+ * @typedef {Object} Organization
+ * @property {string} id
+ * @property {string} name
+ * @property {string} email
+ * @property {string} address
+ * @property {string} phone
+ * @property {string} website
+ * @property {string} deletedAt - Soft delete stamp, or "" when active.
+ */
+
+/**
  * @typedef {Object} SchoolEvent
  * @property {string} id
  * @property {string} name
@@ -25,6 +36,8 @@
  * @property {string} sheetName
  * @property {string} location
  * @property {string} description
+ * @property {string} orgId
+ * @property {string} time
  */
 
 /**
@@ -51,6 +64,30 @@ var Models = {
     }
   },
 
+  /**
+   * Rows written before the soft delete column existed are shorter than the
+   * mapper expects, so it reads as "" — which means "active". Same tolerance
+   * as the event's orgId/time columns.
+   *
+   * @param {string[]} row
+   * @returns {Organization|null}
+   */
+  organizationFromRow: function (row) {
+    if (!row) return null
+    var columns = Config.COLUMNS.ORGANIZATIONS
+    var id = String(row[columns.ID] || "").trim()
+    if (!id) return null
+    return {
+      id: id,
+      name: String(row[columns.NAME] || ""),
+      email: String(row[columns.EMAIL] || ""),
+      address: String(row[columns.ADDRESS] || ""),
+      phone: String(row[columns.PHONE] || ""),
+      website: String(row[columns.WEBSITE] || ""),
+      deletedAt: Models.formatDateTime(row[columns.DELETED]),
+    }
+  },
+
   eventFromRow: function (row) {
     if (!row) return null
     var columns = Config.COLUMNS.EVENTS
@@ -64,6 +101,8 @@ var Models = {
       sheetName: String(row[columns.SHEET_NAME] || id),
       location: String(row[columns.LOCATION] || ""),
       description: String(row[columns.DESCRIPTION] || ""),
+      orgId: String(row[columns.ORG_ID] || ""),
+      time: String(row[columns.TIME] || ""),
     }
   },
 

@@ -46,6 +46,12 @@ function doPost(event) {
  */
 function router() {
   return {
+    getOrganizations: Organizations.handleList,
+    getOrganization: Organizations.handleGet,
+    createOrganization: Organizations.handleCreate,
+    updateOrganization: Organizations.handleUpdate,
+    deleteOrganization: Organizations.handleDelete,
+    restoreOrganization: Organizations.handleRestore,
     getEvents: Events.handleList,
     getEvent: Events.handleGet,
     createEvent: Events.handleCreate,
