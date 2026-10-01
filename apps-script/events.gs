@@ -20,14 +20,24 @@ var Events = {
   },
 
   /**
+   * Single bulk read, then an in-memory scan for the row.
+   *
+   * This previously called findRowByValue (a full getValues) and then
+   * getValues again, reading the whole registry twice per lookup. It runs
+   * on every check-in step, so the duplicate read doubled that cost.
+   *
    * @param {string} eventId
    * @returns {SchoolEvent|null}
    */
   getById: function (eventId) {
-    var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
-    if (row < 0) return null
     var data = Sheets.getValues(Config.EVENTS_SHEET)
-    return Models.eventFromRow(data[row - 1])
+    var target = String(eventId || "").trim()
+    for (var i = Config.ROW_START - 1; i < data.length; i++) {
+      if (String(data[i][Config.COLUMNS.EVENTS.ID] || "").trim() === target) {
+        return Models.eventFromRow(data[i])
+      }
+    }
+    return null
   },
 
   /**
