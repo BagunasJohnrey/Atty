@@ -21,10 +21,6 @@
  * @property {string} id
  * @property {string} name
  * @property {string} email
- * @property {string} address
- * @property {string} phone
- * @property {string} website
- * @property {string} deletedAt - Soft delete stamp, or "" when active.
  */
 
 /**
@@ -65,10 +61,6 @@ var Models = {
   },
 
   /**
-   * Rows written before the soft delete column existed are shorter than the
-   * mapper expects, so it reads as "" — which means "active". Same tolerance
-   * as the event's orgId/time columns.
-   *
    * @param {string[]} row
    * @returns {Organization|null}
    */
@@ -81,10 +73,6 @@ var Models = {
       id: id,
       name: String(row[columns.NAME] || ""),
       email: String(row[columns.EMAIL] || ""),
-      address: String(row[columns.ADDRESS] || ""),
-      phone: String(row[columns.PHONE] || ""),
-      website: String(row[columns.WEBSITE] || ""),
-      deletedAt: Models.formatDateTime(row[columns.DELETED]),
     }
   },
 

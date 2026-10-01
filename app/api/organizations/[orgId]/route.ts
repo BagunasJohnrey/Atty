@@ -13,13 +13,7 @@ export const dynamic = "force-dynamic"
 
 type OrgParams = { params: Promise<{ orgId: string }> }
 
-const UPDATABLE_FIELDS = [
-  "name",
-  "email",
-  "address",
-  "phone",
-  "website",
-] as const
+const UPDATABLE_FIELDS = ["name", "email"] as const
 
 export async function GET(_request: Request, context: OrgParams) {
   return respondWith(async () => {
@@ -46,9 +40,10 @@ export async function PATCH(request: Request, context: OrgParams) {
 }
 
 /**
- * Soft deletes: stamps the row and hides it from lists and pickers. The row
- * survives so its events keep resolving, which is why this is not a hard
- * delete and why no confirmation of lost data is needed.
+ * Hard deletes: the row is removed permanently. Only delete organizations
+ * with no events attached — an event's stored orgId stops resolving
+ * afterwards, so its letterhead falls back and it can no longer revalidate
+ * the reference.
  */
 export async function DELETE(_request: Request, context: OrgParams) {
   return respondWith(async () => {
@@ -65,9 +60,9 @@ export async function DELETE(_request: Request, context: OrgParams) {
 }
 
 /**
- * Accepts a subset of the editable contact fields. Mirrors the event PATCH
+ * Accepts a subset of the editable fields. Mirrors the event PATCH
  * body: unknown keys are dropped, an empty body is rejected, and each value
- * must be a non-empty string. A blank contact field is cleared upstream by
+ * must be a non-empty string. A blank email is cleared upstream by
  * sending "" rather than by omitting the key.
  */
 function parsePatchBody(raw: string): UpdateOrganizationInput {
@@ -94,7 +89,7 @@ function parsePatchBody(raw: string): UpdateOrganizationInput {
     throw new HttpError(
       400,
       "INVALID_FIELD",
-      "Provide at least one of: name, email, address, phone, website."
+      "Provide at least one of: name, email."
     )
   }
   return input

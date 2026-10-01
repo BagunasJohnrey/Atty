@@ -16,12 +16,11 @@ describe("organizations registry", () => {
     expect(all[0].name).toBe("Batangas State University")
   })
 
-  it("maps every contact column", () => {
+  it("maps id, name, and email", () => {
     const org = loadScripts().api.Organizations.getById("ORG-001")
+    expect(org.id).toBe("ORG-001")
+    expect(org.name).toBe("Batangas State University")
     expect(org.email).toBe("sscbalayan@g.batstate-u.edu.ph")
-    expect(org.address).toBe("Caloocan, Balayan, Batangas, Philippines 4213")
-    expect(org.phone).toBe("(+63 43) 980-0385 local 6101")
-    expect(org.website).toBe("http://www.batstate-u.edu.ph")
   })
 
   it("returns an empty list when the sheet does not exist yet", () => {
@@ -44,12 +43,9 @@ describe("organizations registry", () => {
     expect(h.rows("Organizations")).toHaveLength(4)
   })
 
-  it("defaults missing optional contact fields to empty strings", () => {
+  it("defaults a missing email to an empty string", () => {
     const org = createOrg(loadScripts(), "Bare Org")
     expect(org.email).toBe("")
-    expect(org.address).toBe("")
-    expect(org.phone).toBe("")
-    expect(org.website).toBe("")
   })
 
   it("pads the first organization ID to three digits", () => {
@@ -70,13 +66,26 @@ describe("organizations registry", () => {
     expect(org.email).toBe("new@example.edu")
     // Untouched fields keep their values.
     expect(org.name).toBe("Batangas State University")
-    expect(org.website).toBe("http://www.batstate-u.edu.ph")
+  })
+
+  it("ignores envelope fields on an organization update", () => {
+    // Every request carries secret/adminKey/action; the update loop must skip
+    // them instead of rejecting them as unknown fields.
+    const res = loadScripts().api.Organizations.handleUpdate({
+      orgId: "ORG-001",
+      secret: "test-secret",
+      adminKey: "test-key",
+      action: "updateOrganization",
+      email: "env@example.edu",
+    })
+    expect(res.success).toBe(true)
+    expect(res.organization.email).toBe("env@example.edu")
   })
 
   it("writes the update to the sheet, not just the returned object", () => {
     const h = loadScripts()
-    h.api.Organizations.update("ORG-001", { phone: "+63 43 555 0100" })
-    expect(h.rows("Organizations")[1][4]).toBe("+63 43 555 0100")
+    h.api.Organizations.update("ORG-001", { email: "new@example.edu" })
+    expect(h.rows("Organizations")[1][2]).toBe("new@example.edu")
   })
 
   it("throws ORG_NOT_FOUND for an unknown ID", () => {
@@ -181,94 +190,38 @@ describe("events carry an organization and a time range", () => {
       )
     ).toBe("INVALID_REQUEST")
   })
+
+  it("ignores envelope fields on an event update", () => {
+    const res = loadScripts().api.Events.handleUpdate({
+      eventId: "EVT-001",
+      secret: "test-secret",
+      adminKey: "test-key",
+      action: "updateEvent",
+      time: "2:00 pm - 3:00 pm",
+    })
+    expect(res.success).toBe(true)
+    expect(res.event.time).toBe("2:00 pm - 3:00 pm")
+  })
 })
 
-describe("organizations soft delete", () => {
-  /** Seeds a third organization that is already soft-deleted. */
-  function withDeleted(): ReturnType<typeof loadScripts> {
-    return loadScripts({
-      organizations: [
-        ORG_HEADERS,
-        ["ORG-001", "Batangas State University", "a@b.edu", "1 St", "+63 43", "https://b.edu", ""],
-        ["ORG-002", "Nueva Eatry", "", "", "", "", "10/01/2026 09:15:00"],
-        ["ORG-003", "Still Open", "", "", "", "", ""],
-      ],
-    })
-  }
-
-  it("excludes soft-deleted organizations from the list", () => {
-    const ids = withDeleted().api.Organizations.all().map((o: { id: string }) => o.id)
-    expect(ids).toEqual(["ORG-001", "ORG-003"])
-  })
-
-  it("treats any non-empty Deleted cell as deleted", () => {
-    // Sheets may coerce a timestamp to a number; truthiness is the test, not
-    // the type.
-    const h = loadScripts({
-      organizations: [
-        ORG_HEADERS,
-        ["ORG-001", "Coerced", "", "", "", "", 45123],
-      ],
-    })
-    expect(h.api.Organizations.all()).toEqual([])
-  })
-
-  it("still resolves a soft-deleted organization by id", () => {
-    // The report letterhead reads by id. If a deleted org stopped resolving,
-    // every past report for its events would silently fall back to the
-    // default letterhead, rewriting history.
-    const org = withDeleted().api.Organizations.getById("ORG-002")
+describe("organizations hard delete", () => {
+  it("removes the row permanently", () => {
+    const h = loadScripts()
+    const org = h.api.Organizations.delete("ORG-002")
     expect(org.id).toBe("ORG-002")
-    expect(org.deletedAt).toBe("10/01/2026 09:15:00")
-  })
-
-  it("stamps the deletion time and returns it", () => {
-    const h = withDeleted()
-    const org = h.api.Organizations.delete("ORG-003")
-    expect(org.deletedAt).not.toBe("")
-    expect(h.rows("Organizations")[3][6]).toBe(org.deletedAt)
-  })
-
-  it("removes the organization from the list once deleted", () => {
-    const h = withDeleted()
-    h.api.Organizations.delete("ORG-003")
+    expect(h.rows("Organizations")).toHaveLength(2)
     const ids = h.api.Organizations.all().map((o: { id: string }) => o.id)
     expect(ids).toEqual(["ORG-001"])
   })
 
-  it("keeps the original stamp when deleting twice", () => {
-    const h = withDeleted()
-    const first = h.api.Organizations.delete("ORG-002")
-    const second = h.api.Organizations.delete("ORG-002")
-    expect(second.deletedAt).toBe(first.deletedAt)
-  })
-
-  it("clears the stamp on restore", () => {
-    const h = withDeleted()
-    const org = h.api.Organizations.restore("ORG-002")
-    expect(org.deletedAt).toBe("")
-    expect(h.rows("Organizations")[2][6]).toBe("")
-  })
-
-  it("returns the organization to the list on restore", () => {
-    const h = withDeleted()
-    h.api.Organizations.restore("ORG-002")
-    const ids = h.api.Organizations.all().map((o: { id: string }) => o.id)
-    expect(ids).toEqual(["ORG-001", "ORG-002", "ORG-003"])
-  })
-
-  it("leaves an active organization untouched on restore", () => {
-    const org = withDeleted().api.Organizations.restore("ORG-001")
-    expect(org.deletedAt).toBe("")
-  })
-
-  it("keeps events attached to a deleted organization valid", () => {
-    // Otherwise an event whose org was deleted could never be edited again —
-    // not even to change its time — because every patch revalidates the ref.
-    const h = withDeleted()
-    const event = h.api.Events.update("EVT-001", { time: "1:00 pm - 4:00 pm" })
-    expect(event.orgId).toBe("ORG-001")
-    expect(h.api.Organizations.assertOptional("ORG-002")).toBe("ORG-002")
+  it("leaves the deleted id unresolvable afterwards", () => {
+    // Events keep their stored orgId string, but nothing resolves it, so an
+    // event attached to a deleted org can no longer revalidate the reference.
+    const h = loadScripts()
+    h.api.Organizations.delete("ORG-001")
+    expect(codeOf(() => h.api.Organizations.assertOptional("ORG-001"))).toBe(
+      "ORG_NOT_FOUND"
+    )
   })
 
   it("rejects deleting an unknown organization", () => {
@@ -277,33 +230,16 @@ describe("organizations soft delete", () => {
     )
   })
 
-  it("rejects restoring an unknown organization", () => {
-    expect(codeOf(() => loadScripts().api.Organizations.handleRestore({ orgId: "ORG-999" }))).toBe(
-      "ORG_NOT_FOUND"
-    )
-  })
-
-  it("wraps delete and restore in the standard success envelope", () => {
-    const h = withDeleted()
-    const removed = h.api.Organizations.handleDelete({ orgId: "ORG-003" })
+  it("wraps delete in the standard success envelope", () => {
+    const removed = loadScripts().api.Organizations.handleDelete({ orgId: "ORG-002" })
     expect(removed.success).toBe(true)
-    expect(removed.organization.id).toBe("ORG-003")
-
-    const restored = h.api.Organizations.handleRestore({ orgId: "ORG-003" })
-    expect(restored.success).toBe(true)
-    expect(restored.organization.deletedAt).toBe("")
+    expect(removed.organization.id).toBe("ORG-002")
   })
 })
 
 /** Creates an organization through the handler, unwrapping the envelope. */
 function createOrg(h: ReturnType<typeof loadScripts>, name: string, email = "") {
-  return h.api.Organizations.handleCreate({
-    name,
-    email,
-    address: "",
-    phone: "",
-    website: "",
-  }).organization
+  return h.api.Organizations.handleCreate({ name, email }).organization
 }
 
 /** Returns the AppError code a call throws, or "" when it does not throw. */

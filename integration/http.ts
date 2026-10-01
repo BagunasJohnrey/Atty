@@ -54,10 +54,9 @@ function invalidatedBy(action: string): string[] {
       return ["getOrganizations:"]
     case "updateOrganization":
       return ["getOrganizations:", "getOrganization:"]
-    // A soft delete must not leave the row resolvable from a cached read, or
+    // A delete must not leave the row resolvable from a cached read, or
     // a picker could keep offering an organization the operator just removed.
     case "deleteOrganization":
-    case "restoreOrganization":
       return ["getOrganizations:", "getOrganization:"]
     case "createEvent":
       return ["getEvents:"]

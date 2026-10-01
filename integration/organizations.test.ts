@@ -5,7 +5,6 @@ import {
   deleteOrganization,
   getOrganization,
   getOrganizations,
-  restoreOrganization,
   updateOrganization,
 } from "./organizations"
 import { requestAppsScript } from "./http"
@@ -20,10 +19,6 @@ const sampleOrg: Organization = {
   id: "ORG-001",
   name: "Batangas State University",
   email: "sscbalayan@g.batstate-u.edu.ph",
-  address: "Caloocan, Balayan, Batangas, Philippines 4213",
-  phone: "(+63 43) 980-0385 local 6101",
-  website: "http://www.batstate-u.edu.ph",
-  deletedAt: "",
 }
 
 beforeEach(() => {
@@ -49,27 +44,21 @@ describe("organizations integration", () => {
     })
   })
 
-  it("defaults missing contact fields to empty strings on create", async () => {
+  it("defaults a missing email to an empty string on create", async () => {
     mockSuccess({ organization: sampleOrg })
     await createOrganization({ name: sampleOrg.name })
     expect(requestMock).toHaveBeenCalledWith("createOrganization", {
       name: sampleOrg.name,
       email: "",
-      address: "",
-      phone: "",
-      website: "",
     })
   })
 
-  it("forwards every contact field supplied on create", async () => {
+  it("forwards name and email supplied on create", async () => {
     mockSuccess({ organization: sampleOrg })
     await createOrganization(sampleOrg)
     expect(requestMock).toHaveBeenCalledWith("createOrganization", {
       name: sampleOrg.name,
       email: sampleOrg.email,
-      address: sampleOrg.address,
-      phone: sampleOrg.phone,
-      website: sampleOrg.website,
     })
   })
 
@@ -89,22 +78,10 @@ describe("organizations integration", () => {
     await expect(getOrganization("ORG-999")).rejects.toThrow("ORG_NOT_FOUND")
   })
 
-  it("soft deletes via deleteOrganization", async () => {
-    mockSuccess({ organization: { ...sampleOrg, deletedAt: "10/01/2026 09:15:00" } })
-    await expect(deleteOrganization("ORG-001")).resolves.toMatchObject({
-      deletedAt: "10/01/2026 09:15:00",
-    })
-    expect(requestMock).toHaveBeenCalledWith("deleteOrganization", {
-      orgId: "ORG-001",
-    })
-  })
-
-  it("undoes a soft delete via restoreOrganization", async () => {
+  it("hard deletes via deleteOrganization", async () => {
     mockSuccess({ organization: sampleOrg })
-    await expect(restoreOrganization("ORG-001")).resolves.toMatchObject({
-      deletedAt: "",
-    })
-    expect(requestMock).toHaveBeenCalledWith("restoreOrganization", {
+    await expect(deleteOrganization("ORG-001")).resolves.toEqual(sampleOrg)
+    expect(requestMock).toHaveBeenCalledWith("deleteOrganization", {
       orgId: "ORG-001",
     })
   })

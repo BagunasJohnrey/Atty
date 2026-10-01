@@ -36,15 +36,7 @@ export const LOAD_ORDER = [
   "auth.gs",
 ]
 
-export const ORG_HEADERS = [
-  "Org ID",
-  "Org Name",
-  "Email",
-  "Address",
-  "Phone",
-  "Website",
-  "Deleted",
-]
+export const ORG_HEADERS = ["Org ID", "Org Name", "Email"]
 
 export const EVENT_HEADERS = [
   "Event ID",
@@ -84,15 +76,8 @@ export interface Harness {
 
 const DEFAULT_ORGANIZATIONS: SeedSheet = [
   ORG_HEADERS,
-  [
-    "ORG-001",
-    "Batangas State University",
-    "sscbalayan@g.batstate-u.edu.ph",
-    "Caloocan, Balayan, Batangas, Philippines 4213",
-    "(+63 43) 980-0385 local 6101",
-    "http://www.batstate-u.edu.ph",
-  ],
-  ["ORG-002", "Batangas State University TNEU", "", "", "", "", ""],
+  ["ORG-001", "Batangas State University", "sscbalayan@g.batstate-u.edu.ph"],
+  ["ORG-002", "Batangas State University TNEU", ""],
 ]
 
 const DEFAULT_EVENTS: SeedSheet = [
@@ -169,9 +154,12 @@ export function loadScripts(options: SeedOptions = {}): Harness {
           all[row - 1][column - 1] = value
         },
       }),
-      appendRow: (values: SeedRow) => {
-        store[keyFor(name)].push(values.slice())
-      },
+        appendRow: (values: SeedRow) => {
+          store[keyFor(name)].push(values.slice())
+        },
+        deleteRow: (row: number) => {
+          rows().splice(row - 1, 1)
+        },
     }
   }
 

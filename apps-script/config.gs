@@ -24,7 +24,7 @@ var Config = {
     "Org ID",
     "Time",
   ],
-  ORGANIZATIONS_HEADERS: ["Org ID", "Org Name", "Email", "Address", "Phone", "Website", "Deleted"],
+  ORGANIZATIONS_HEADERS: ["Org ID", "Org Name", "Email"],
   ATTENDANCE_HEADERS: ["Timestamp", "SRCODE"],
 
   STATUS_UPCOMING: "Upcoming",
@@ -51,9 +51,6 @@ var Config = {
   MAX_ORG_ID_LENGTH: 20,
   MAX_ORG_NAME_LENGTH: 150,
   MAX_ORG_EMAIL_LENGTH: 150,
-  MAX_ORG_ADDRESS_LENGTH: 200,
-  MAX_ORG_PHONE_LENGTH: 60,
-  MAX_ORG_WEBSITE_LENGTH: 200,
 
   SECRET_PROPERTY: "APPS_SCRIPT_SECRET",
   ADMIN_KEY_PROPERTY: "ADMIN_SERVICE_KEY",
@@ -83,12 +80,6 @@ var Config = {
       ID: 0,
       NAME: 1,
       EMAIL: 2,
-      ADDRESS: 3,
-      PHONE: 4,
-      WEBSITE: 5,
-      // Soft delete marker. Holds a timestamp string, or "" when active.
-      // Trailing, so `ensureHeaders` can add it to a live sheet.
-      DELETED: 6,
     },
     ATTENDANCE: {
       TIMESTAMP: 0,
