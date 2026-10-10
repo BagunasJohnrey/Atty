@@ -8,6 +8,7 @@ Next.js frontend/BFF and the Google Apps Script backend.
 | Document | Read it when |
 |---|---|
 | [getting-started.md](getting-started.md) | **New to the project.** Setup, spreadsheet layout, backend deployment, and how to use every page. |
+| [deployment.md](deployment.md) | **Shipping to Vercel.** Env vars, baseline check, moving traffic to Neon flag by flag, cron, rollback. |
 | [tech-stack.md](tech-stack.md) | You want to know what it is built with and why each choice was made. |
 | [architecture.md](architecture.md) | You need to know how a request travels to Google Sheets and where the trust boundaries are. |
 | [testing.md](testing.md) | You are writing tests, or verifying a change by hand. |
