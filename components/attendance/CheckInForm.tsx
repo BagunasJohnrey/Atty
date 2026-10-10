@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input, Label } from "@/components/ui/input"
 import { ApiError, checkAttendance, recordAttendance } from "@/lib/api-client"
 import {
+  formatSrcodeInput,
   formatTimestamp,
   isValidSrcodeFormat,
   normalizeSrcode,
@@ -178,14 +179,11 @@ export function CheckInForm({
               id="srcode"
               value={srcode}
               onChange={(e) => {
-                const next = e.target.value.toUpperCase()
-                setSrcode(next)
-                // Live gate: letters and symbols are never valid in an SR Code.
-                setError(
-                  next === "" || /^[0-9-]*$/.test(next)
-                    ? null
-                    : "Invalid SR Code format. Use 00-00000 (e.g. 26-12345)."
-                )
+                // Auto-dash: keystrokes regroup into 00-00000 as typed or
+                // pasted, so the dash never needs typing. Output is always
+                // digits-and-dash, which also retires the live gate below.
+                setSrcode(formatSrcodeInput(e.target.value))
+                setError(null)
               }}
               placeholder="26-12345"
               autoComplete="off"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  formatSrcodeInput,
   formatTimeInput,
   isValidSrcodeFormat,
   normalizeSrcode,
@@ -26,6 +27,26 @@ describe("isValidSrcodeFormat", () => {
   it("caps input length at the full code length", () => {
     expect(SRCODE_MAX_LENGTH).toBe("23-19300".length)
     expect(normalizeSrcode(" 23-19300 ")).toBe("23-19300")
+  })
+})
+
+describe("formatSrcodeInput", () => {
+  it("inserts the dash after the second digit while typing", () => {
+    expect(formatSrcodeInput("")).toBe("")
+    expect(formatSrcodeInput("2")).toBe("2")
+    expect(formatSrcodeInput("26")).toBe("26")
+    expect(formatSrcodeInput("261")).toBe("26-1")
+    expect(formatSrcodeInput("2612345")).toBe("26-12345")
+  })
+
+  it("leaves complete codes untouched and truncates overflow", () => {
+    expect(formatSrcodeInput("26-12345")).toBe("26-12345")
+    expect(formatSrcodeInput("26-12345678")).toBe("26-12345")
+  })
+
+  it("drops non-digits, keeping any digits typed", () => {
+    expect(formatSrcodeInput("ab26cd1")).toBe("26-1")
+    expect(formatSrcodeInput("2-6-1")).toBe("26-1")
   })
 })
 

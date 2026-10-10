@@ -67,6 +67,17 @@ export function normalizeSrcode(value: string): string {
   return value.trim().toUpperCase()
 }
 
+/**
+ * Live SR Code mask: keeps digits only (max 7) and inserts the dash after
+ * the second digit, so typing or pasting yields 00-00000 progressively.
+ * Idempotent on complete codes, so submit-time validation is unaffected.
+ */
+export function formatSrcodeInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 7)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}-${digits.slice(2)}`
+}
+
 /** Kiosk SR Code shape: two digits, hyphen, five digits (e.g. 23-19300). */
 export const SRCODE_PATTERN = /^\d{2}-\d{5}$/
 
