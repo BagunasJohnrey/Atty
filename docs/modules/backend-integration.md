@@ -1,8 +1,12 @@
 # Backend Integration
 
-The bridge between the Next.js frontend and Google Sheets. Next.js never
-touches Sheets directly: `integration/` forwards to the Apps Script Web App,
-which is the only writer/reader of the spreadsheet.
+The bridge between the Next.js frontend and Google Sheets. Where a cutover
+flag is off (the default), Next.js never touches Sheets directly:
+`integration/` forwards to the Apps Script Web App, which is the only
+writer/reader of the spreadsheet. Where a flag is on (`NEON_STUDENTS`,
+`NEON_EVENTS`, `NEON_ATTENDANCE`), that domain is served from Neon Postgres
+instead — see [neon.md](neon.md) for the flag table, contracts, and the
+Sheets backup mirror.
 
 ## Layers
 

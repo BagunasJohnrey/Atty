@@ -27,6 +27,7 @@ One guide per system module, in the order a staff member meets them:
 | [modules/organizers.md](modules/organizers.md) | Touching organizers or the letterhead. |
 | [modules/notifications.md](modules/notifications.md) | Adding or changing user-facing feedback. |
 | [modules/backend-integration.md](modules/backend-integration.md) | Touching the Apps Script bridge, caching, or invalidation. |
+| [modules/neon.md](modules/neon.md) | The Neon data layer: cutover flags, validation parity, Sheets backup mirror, operations. |
 
 ## Security
 
