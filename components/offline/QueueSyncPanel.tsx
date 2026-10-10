@@ -17,6 +17,7 @@ export function QueueSyncPanel({ eventId }: { eventId: string }) {
   // sides (QueueStatus returns null) and hydration matches.
   const [storageWarning, setStorageWarning] = React.useState(false)
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe sync: first render must match the server (false); real value applies after mount.
     setStorageWarning(isMemoryFallback())
   }, [])
 
