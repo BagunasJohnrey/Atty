@@ -61,5 +61,6 @@ Feature work in flight, newest first:
 
 | Document | Covers |
 |---|---|
+| [`plans/2026-10-10-changes.md`](plans/2026-10-10-changes.md) | Team changelog for the 2026-10-10 batch: hydration fixes, PDF download, Neon cutover, Sheets backup. Built and verified, pending deploy. |
 | [`specs/2026-10-01-organizations-backend-design.md`](specs/2026-10-01-organizations-backend-design.md) | Why organizations exist as an entity, the `Organizations` sheet, soft delete, and why the report letterhead falls back the way it does. Implemented, uncommitted. |
 | [`plans/2026-10-01-organizations-ui.md`](plans/2026-10-01-organizations-ui.md) | The task-by-task plan for the organizations UI: pages, dialogs, the org picker, and wiring the print letterhead. Not started. |
