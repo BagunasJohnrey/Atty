@@ -35,6 +35,7 @@ const LOAD_ORDER = [
   "reports.gs",
   "validators.gs",
   "auth.gs",
+  "backup.gs",
   "Code.gs",
 ]
 

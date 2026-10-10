@@ -62,5 +62,7 @@ function router() {
     getAttendance: Attendance.handleList,
     getAttendanceReport: Reports.handleReport,
     lookupStudent: Students.handleLookup,
+    backupEvents: Backup.handleBackupEvents,
+    backupAttendance: Backup.handleBackupAttendance,
   }
 }
