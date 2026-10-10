@@ -4,8 +4,23 @@ import type {
   UpdateEventInput,
 } from "@/models/event"
 import { requestAppsScript } from "./http"
+import {
+  closeEventNeon,
+  createEventNeon,
+  getEventNeon,
+  getEventsNeon,
+  openEventNeon,
+  updateEventNeon,
+} from "./neon"
+
+/** Cutover flag: `neon` serves events from Neon; anything else (or unset)
+ *  keeps the Apps Script path. Fail-safe defaults to the legacy backend. */
+function isNeonEventsEnabled(): boolean {
+  return process.env.NEON_EVENTS === "neon"
+}
 
 export async function getEvents(): Promise<SchoolEvent[]> {
+  if (isNeonEventsEnabled()) return getEventsNeon()
   const response = await requestAppsScript<{ events: SchoolEvent[] }>(
     "getEvents"
   )
@@ -13,6 +28,7 @@ export async function getEvents(): Promise<SchoolEvent[]> {
 }
 
 export async function getEvent(eventId: string): Promise<SchoolEvent> {
+  if (isNeonEventsEnabled()) return getEventNeon(eventId)
   const response = await requestAppsScript<{ event: SchoolEvent }>("getEvent", {
     eventId,
   })
@@ -22,23 +38,26 @@ export async function getEvent(eventId: string): Promise<SchoolEvent> {
 export async function createEvent(
   input: CreateEventInput
 ): Promise<SchoolEvent> {
+  // Optional today (the event form collects neither), but validated by
+  // the backend whenever it is present.
+  const normalized = {
+    name: input.name,
+    date: input.date,
+    location: input.location ?? "",
+    description: input.description ?? "",
+    orgId: input.orgId ?? "",
+    time: input.time ?? "",
+  }
+  if (isNeonEventsEnabled()) return createEventNeon(normalized)
   const response = await requestAppsScript<{ event: SchoolEvent }>(
     "createEvent",
-    {
-      name: input.name,
-      date: input.date,
-      location: input.location ?? "",
-      description: input.description ?? "",
-      // Optional today (the event form collects neither), but validated by
-      // the backend whenever it is present.
-      orgId: input.orgId ?? "",
-      time: input.time ?? "",
-    }
+    normalized
   )
   return response.event
 }
 
 export async function closeEvent(eventId: string): Promise<SchoolEvent> {
+  if (isNeonEventsEnabled()) return closeEventNeon(eventId)
   const response = await requestAppsScript<{ event: SchoolEvent }>(
     "closeEvent",
     { eventId }
@@ -47,6 +66,7 @@ export async function closeEvent(eventId: string): Promise<SchoolEvent> {
 }
 
 export async function openEvent(eventId: string): Promise<SchoolEvent> {
+  if (isNeonEventsEnabled()) return openEventNeon(eventId)
   const response = await requestAppsScript<{ event: SchoolEvent }>(
     "openEvent",
     { eventId }
@@ -58,6 +78,7 @@ export async function updateEvent(
   eventId: string,
   input: UpdateEventInput
 ): Promise<SchoolEvent> {
+  if (isNeonEventsEnabled()) return updateEventNeon(eventId, input)
   const response = await requestAppsScript<{ event: SchoolEvent }>(
     "updateEvent",
     { eventId, ...input }
