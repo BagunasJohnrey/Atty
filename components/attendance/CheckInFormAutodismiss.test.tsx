@@ -116,11 +116,13 @@ describe("CheckInForm auto-dismiss", () => {
     vi.mocked(checkAttendance).mockRejectedValue(new TypeError("offline"))
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
-    expect(screen.getByText(/queued/i).textContent).toContain("Queued")
+    expect(screen.getByText(/recorded successfully/i).textContent).toContain(
+      "It will sync automatically"
+    )
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5300)
     })
-    expect(screen.queryByText(/queued/i)).toBeNull()
+    expect(screen.queryByText(/recorded successfully/i)).toBeNull()
   })
 
   it("leaves the pre-confirm card up until the user acts", async () => {

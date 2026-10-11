@@ -350,7 +350,8 @@ export function CheckInForm({
                     aria-hidden
                   />
                   <span>
-                    Queued — will sync when reconnected.
+                    Attendance recorded successfully. It will sync
+                    automatically when an internet connection is restored.
                     <span className="block text-muted-foreground">
                       {outcome.srcode}
                     </span>
