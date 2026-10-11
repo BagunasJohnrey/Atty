@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { exportUrl, listAttendance } from "./api-client"
+import { exportUrl, listAttendance, printUrl } from "./api-client"
 
 describe("listAttendance", () => {
   afterEach(() => {
@@ -52,5 +52,17 @@ describe("exportUrl", () => {
 
   it("omits day when unset", () => {
     expect(exportUrl("EVT-1", {})).not.toContain("day=")
+  })
+})
+
+describe("printUrl", () => {
+  it("carries the day filter", () => {
+    expect(printUrl("EVT-1", { day: "2026-10-11" })).toContain(
+      "day=2026-10-11"
+    )
+  })
+
+  it("omits day when unset", () => {
+    expect(printUrl("EVT-1", {})).not.toContain("day=")
   })
 })

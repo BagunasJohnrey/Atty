@@ -109,6 +109,9 @@ const UPSTREAM_STATUS_BY_CODE: Record<string, number> = {
   SRCODE_NOT_FOUND: 404,
   DUPLICATE_ATTENDANCE: 409,
   EVENT_NOT_ACTIVE: 409,
+  // A scan landing outside the event's dates is refused like a closed
+  // event: the request is valid, but the event is not open that day.
+  EVENT_DATE_CLOSED: 409,
   // An event may name an organization that no longer exists; that is a
   // missing record, so 404 rather than the 409 used for state conflicts.
   ORG_NOT_FOUND: 404,

@@ -41,14 +41,35 @@ interface Harness {
   writes: number
 }
 
-/** Current Manila day as `MM/DD/YYYY` for seed timestamps. */
+/** Manila `MM/DD/YYYY` for seed timestamps. */
 function manilaToday(): string {
+  return manilaDay(0)
+}
+
+/** Manila `MM/DD/YYYY` for a day offset from today. */
+function manilaDay(offset: number): string {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Manila",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date())
+  }).format(new Date(Date.now() + offset * 86400000))
+}
+
+/** Default Events sheet rows; the open event always covers today so the
+ *  date gate passes without coupling the suite to the calendar date. */
+function eventRows(date: string): string[][] {
+  return [
+    ["Event ID", "Event Name", "Event Date", "Status", "Sheet Name", "Location", "Description"],
+    ["EVT-001", "Freshmen Orientation", date, "Active", "EVT-001", "Gym", "Welcome"],
+    ["EVT-002", "Closed One", "09/21/2026", "Closed", "EVT-002", "Hall", "Done"],
+  ]
+}
+
+/** Event dates covering yesterday through today, for tests that scan across
+ *  the Manila midnight boundary. */
+function twoDayRange(): string {
+  return `${manilaDay(-1)} - ${manilaDay(0)}`
 }
 
 /** Manila `MM/DD/YYYY HH:MM:SS` sheet timestamp on the given day offset. */
@@ -70,11 +91,7 @@ function loadScripts(options: FakeOptions = {}): Harness {
     ["26-12345", "Juan Dela Cruz", "CICS", "BSIT", "First Year", "Male"],
     ["26-12346", "Maria Santos", "CICS", "BSCS", "Second Year", "Female"],
   ]
-  const events = options.events ?? [
-    ["Event ID", "Event Name", "Event Date", "Status", "Sheet Name", "Location", "Description"],
-    ["EVT-001", "Freshmen Orientation", "09/20/2026", "Active", "EVT-001", "Gym", "Welcome"],
-    ["EVT-002", "Closed One", "09/21/2026", "Closed", "EVT-002", "Hall", "Done"],
-  ]
+  const events = options.events ?? eventRows(manilaToday())
   const attendance = options.attendance ?? [
     ["Timestamp", "SRCODE"],
     [`${manilaToday()} 08:01:23`, "26-12345"],
@@ -337,6 +354,7 @@ describe("per-day attendance", () => {
 
   it("accepts a scan on the day after a previous scan", () => {
     const h = loadScripts({
+      events: eventRows(twoDayRange()),
       attendance: [["Timestamp", "SRCODE"], [sheetStamp(-1), "26-12345"]],
     })
     const result = h.api.Attendance.record("EVT-001", "26-12345")
@@ -345,7 +363,10 @@ describe("per-day attendance", () => {
   })
 
   it("attributes an explicit replay timestamp to the scan day", () => {
-    const h = loadScripts({ attendance: [["Timestamp", "SRCODE"]] })
+    const h = loadScripts({
+      events: eventRows(twoDayRange()),
+      attendance: [["Timestamp", "SRCODE"]],
+    })
     const yesterday = Date.now() - 86400000
     const result = h.api.Attendance.record("EVT-001", "26-12345", yesterday)
     const expected = new Intl.DateTimeFormat("en-US", {
@@ -358,6 +379,7 @@ describe("per-day attendance", () => {
   })
 
   it("checks presence for today only", () => {    const h = loadScripts({
+      events: eventRows(twoDayRange()),
       attendance: [["Timestamp", "SRCODE"], [sheetStamp(-1), "26-12346"]],
     })
     expect(h.api.Attendance.check("EVT-001", "26-12346").present).toBe(false)
@@ -365,6 +387,61 @@ describe("per-day attendance", () => {
     const check = h.api.Attendance.check("EVT-001", "26-12346")
     expect(check.present).toBe(true)
     expect(check.timestamp).toBeTruthy()
+  })
+
+  it("refuses a scan outside the event's dates without writing", () => {
+    const h = loadScripts({ events: eventRows(manilaDay(-2)) })
+    const before = h.writes
+    let code = ""
+    let message = ""
+    try {
+      h.api.Attendance.record("EVT-001", "26-12346")
+    } catch (error) {
+      code = (error as { code?: string }).code ?? ""
+      message = (error as Error).message ?? ""
+    }
+    expect(code).toBe("EVENT_DATE_CLOSED")
+    expect(message).toContain("Freshmen Orientation")
+    expect(h.writes).toBe(before)
+  })
+
+  it("refuses validation outside the event's dates", () => {
+    const h = loadScripts({ events: eventRows(manilaDay(1)) })
+    let code = ""
+    try {
+      h.api.Attendance.check("EVT-001", "26-12346")
+    } catch (error) {
+      code = (error as { code?: string }).code ?? ""
+    }
+    expect(code).toBe("EVENT_DATE_CLOSED")
+  })
+
+  it("judges a replay by its scan day, not the sync day", () => {
+    const h = loadScripts({
+      events: eventRows(manilaDay(-1)),
+      attendance: [["Timestamp", "SRCODE"]],
+    })
+    // "Today" is outside the event, but the replay was taken on its day.
+    const result = h.api.Attendance.record(
+      "EVT-001",
+      "26-12346",
+      Date.now() - 86400000
+    )
+    expect(result.timestamp).toBeTruthy()
+    // A replay taken outside the event's dates is still refused.
+    let code = ""
+    try {
+      h.api.Attendance.record("EVT-001", "26-12345", Date.now())
+    } catch (error) {
+      code = (error as { code?: string }).code ?? ""
+    }
+    expect(code).toBe("EVENT_DATE_CLOSED")
+  })
+
+  it("fails open when the event date is unparseable", () => {
+    const h = loadScripts({ events: eventRows("someday") })
+    const result = h.api.Attendance.record("EVT-001", "26-12346")
+    expect(result.student.name).toBe("Maria Santos")
   })
 })
 

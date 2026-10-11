@@ -12,6 +12,13 @@ On-page summaries and the official print view for an event.
 
 ## How it works
 
+- **Day picker** (`DayFilter`, shared `?day=` param): options come from the
+  event's date range in its details (`eventDays`), never from existing
+  scans — a multi-day event offers its full range from day one; a one-day
+  event shows no picker. `ReportSummary` narrows its tiles, sections, and
+  charts to the picked day client-side from the URL; the table, filters,
+  and Export PDF link read the same param (see attendance-records.md), so
+  every consumer stays in sync.
 - `ReportSummary` fetches via `useReport` and renders chart breakdowns
   (donut, category bars) with skeleton fallbacks while loading.
 - The **print view** chunks rows into strict Legal-landscape sheets

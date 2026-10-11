@@ -14,6 +14,7 @@ import type {
 import type { AttendanceReport } from "@/models/report"
 import type { Student } from "@/models/student"
 import { manilaDayKey } from "@/lib/format"
+import { isDayWithinEvent, outsideEventDatesMessage } from "@/lib/events"
 import { AppsScriptError } from "./errors"
 import { getOrganization } from "./organizations"
 
@@ -457,6 +458,24 @@ function assertCanRecordNeon(event: SchoolEvent): void {
   )
 }
 
+/**
+ * Mirrors Events.assertDateOpen: the scan's Manila day must be one of the
+ * event's dates from its details. Replays are judged by the day they were
+ * taken, so `day` is the scan day, not necessarily today.
+ */
+function assertDateOpenNeon(
+  event: SchoolEvent,
+  day: string,
+  action: string
+): void {
+  if (isDayWithinEvent(event.date, day)) return
+  throw new AppsScriptError(
+    "EVENT_DATE_CLOSED",
+    outsideEventDatesMessage(event),
+    action
+  )
+}
+
 function requireSrcode(value: unknown, action: string): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new AppsScriptError("INVALID_REQUEST", "SRCODE is required.", action)
@@ -485,6 +504,7 @@ export async function recordAttendanceNeon(
   assertCanRecordNeon(event)
   const sql = getSql()
   const at = scannedAt === undefined ? new Date() : new Date(scannedAt)
+  assertDateOpenNeon(event, manilaDayKey(at), action)
   const rows = (await sql`
     insert into attendance (event_id, srcode, day, scanned_at)
     values (${eventId}, ${code}, ${manilaDayKey(at)}, ${at})
@@ -510,15 +530,16 @@ export async function checkAttendanceNeon(
   // Same parallelization as record: event and student are independent reads.
   // An unknown srcode resolves to null here instead of throwing (check, not
   // record, owns the not-found case).
-  // getEventNeon's return is unused beyond this point — its value is the
+  // getEventNeon's return feeds the date gate below — and its value is the
   // EVENT_NOT_FOUND throw for unknown events.
-  const [, student] = await Promise.all([
+  const [event, student] = await Promise.all([
     getEventNeon(eventId),
     lookupStudentNeon(code).catch((error) => {
       if ((error as AppsScriptError)?.code !== "SRCODE_NOT_FOUND") throw error
       return null
     }),
   ])
+  assertDateOpenNeon(event, manilaDayKey(new Date()), action)
   const sql = getSql()
   const rows = (await sql`
     select scanned_at from attendance

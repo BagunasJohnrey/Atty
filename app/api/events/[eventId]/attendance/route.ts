@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { recordAttendance } from "@/integration/attendance"
-import { getAttendanceCachedFor } from "@/integration/cached"
+import { getAttendanceCachedFor, getEventCachedFor } from "@/integration/cached"
 import { expireAttendance } from "@/integration/invalidate"
 import {
   filterAttendance,
@@ -17,6 +17,8 @@ import {
   requireString,
   respondWith,
 } from "@/lib/api"
+import { isDayWithinEvent, outsideEventDatesMessage } from "@/lib/events"
+import { manilaDayKey } from "@/lib/format"
 
 export const dynamic = "force-dynamic"
 
@@ -64,6 +66,18 @@ export async function POST(request: Request, context: AttendanceParams) {
     const body = await parseJsonBody(request)
     const srcode = requireString(body, "srcode", 20)
     const scannedAt = parseScannedAt(body)
+    // Check-ins land only on the event's dates from its details. Replays
+    // are judged by the day they were taken, so a queue synced late still
+    // records when the scan itself was on an event day.
+    const event = await getEventCachedFor(eventId)
+    const scanDay = manilaDayKey(scannedAt ?? Date.now())
+    if (!isDayWithinEvent(event.date, scanDay)) {
+      throw new HttpError(
+        409,
+        "EVENT_DATE_CLOSED",
+        outsideEventDatesMessage(event)
+      )
+    }
     const recorded = await recordAttendance(eventId, srcode, scannedAt)
     expireAttendance(eventId)
     return NextResponse.json(

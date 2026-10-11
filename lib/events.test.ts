@@ -3,6 +3,8 @@ import type { SchoolEvent } from "@/models/event"
 import {
   eventDays,
   eventStartTime,
+  isDayWithinEvent,
+  outsideEventDatesMessage,
   parseEventStatusParam,
   sortEventsForListing,
 } from "./events"
@@ -54,6 +56,34 @@ describe("eventDays", () => {
   it("returns nothing useful for junk", () => {
     expect(eventDays("")).toEqual([])
     expect(eventDays("someday")).toEqual([])
+  })
+})
+
+describe("isDayWithinEvent", () => {
+  it("accepts the single day of a one-day event", () => {
+    expect(isDayWithinEvent("10/11/2026", "2026-10-11")).toBe(true)
+    expect(isDayWithinEvent("10/11/2026", "2026-10-12")).toBe(false)
+  })
+
+  it("accepts every day of a stored range, edges included", () => {
+    const range = "10/11/2026 - 10/12/2026"
+    expect(isDayWithinEvent(range, "2026-10-11")).toBe(true)
+    expect(isDayWithinEvent(range, "2026-10-12")).toBe(true)
+    expect(isDayWithinEvent(range, "2026-10-10")).toBe(false)
+    expect(isDayWithinEvent(range, "2026-10-13")).toBe(false)
+  })
+
+  it("fails open for unparseable event dates", () => {
+    expect(isDayWithinEvent("", "2026-10-11")).toBe(true)
+    expect(isDayWithinEvent("someday", "2026-10-11")).toBe(true)
+  })
+
+  it("names the event and its dates in the refusal message", () => {
+    const message = outsideEventDatesMessage(
+      event({ id: "a", name: "Ascend", date: "10/11/2026 - 10/12/2026" })
+    )
+    expect(message).toContain("Ascend")
+    expect(message).toContain("10/11/2026 - 10/12/2026")
   })
 })
 

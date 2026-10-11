@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
+import { useSearchParams } from "next/navigation"
 import { formatDateOnly, formatTimeOnly } from "@/lib/format"
 import { useAttendance } from "@/hooks/useQueries"
 import type { AttendanceFilters as Filters } from "@/lib/attendance"
+import { parseAttendanceFilters } from "@/lib/attendance"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AttendanceTableSkeleton } from "@/components/attendance/AttendanceTableSkeleton"
@@ -14,11 +16,23 @@ const PAGE_SIZE = 50
 
 export function AttendanceTable({
   eventId,
-  filters,
 }: {
   eventId: string
+  /**
+   * SSR snapshot of the URL filters, kept so the server can keep passing
+   * what it parses. The live URL below wins on the client.
+   */
   filters: Filters
 }) {
+  const params = useSearchParams()
+  // The URL is the live source of truth: day picks call router.replace,
+  // which updates it instantly (ReportSummary already reads it), while the
+  // server prop only catches up after the RSC roundtrip. Deriving the fetch
+  // filters from the URL keeps the table in sync with the pickers instead
+  // of showing every day until the server re-renders.
+  const filters = parseAttendanceFilters(
+    new URLSearchParams(params.toString())
+  )
   // 1-indexed to match the API. Only the current page is ever fetched, so
   // a 5,000-row event costs one page of rows per turn, not the full list.
   const [page, setPage] = React.useState(1)

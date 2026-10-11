@@ -22,6 +22,7 @@ import { ReportSummary } from "@/components/reports/ReportSummary"
 import { FilterSkeleton } from "@/components/attendance/FilterSkeleton"
 import { requireAdminPage } from "@/lib/auth/dal"
 import { formatEventDate } from "@/lib/format"
+import { eventDays } from "@/lib/events"
 import { distinctFilterOptions, parseAttendanceFilters } from "@/lib/attendance"
 import type { AttendanceRecord } from "@/models/attendance"
 
@@ -38,15 +39,26 @@ export async function generateMetadata({
 }
 
 /**
+ * Day options come strictly from the event's date range in its details —
+ * never from whatever scans happen to exist. A multi-day event offers its
+ * full range from day one; a one-day event offers nothing (no picker).
+ */
+function dayOptions(eventDate: string): string[] {
+  return eventDays(eventDate)
+}
+
+/**
  * Streams in after the header: resolves the shared attendance promise
  * (started alongside the event fetch) into dropdown facet options.
  * Failure degrades to empty facets, never a broken page.
  */
 async function FilterSection({
   eventId,
+  eventDate,
   data,
 }: {
   eventId: string
+  eventDate: string
   data: Promise<AttendanceRecord[]>
 }) {
   let records: AttendanceRecord[] = []
@@ -55,36 +67,31 @@ async function FilterSection({
   } catch {
     records = []
   }
+  const options = distinctFilterOptions(records)
   return (
     <AttendanceFilters
       eventId={eventId}
-      options={distinctFilterOptions(records)}
+      options={{ ...options, days: dayOptions(eventDate) }}
     />
   )
 }
 
 /**
- * Streams in after the header: day options for the header-card picker,
- * resolved from the same shared attendance promise as the facets below.
- * Failure degrades to no picker, never a broken header.
+ * Header-card day picker. Synchronous — options come from the event's
+ * date range alone, so it renders with the header instead of streaming.
  */
-async function HeaderDayFilter({
+function HeaderDayFilter({
   eventId,
-  data,
+  eventDate,
 }: {
   eventId: string
-  data: Promise<AttendanceRecord[]>
+  eventDate: string
 }) {
-  let records: AttendanceRecord[] = []
-  try {
-    records = await data
-  } catch {
-    records = []
-  }
   return (
     <DayFilter
-      days={distinctFilterOptions(records).days}
+      days={dayOptions(eventDate)}
       basePath={`/events/${eventId}`}
+      layout="inline"
     />
   )
 }
@@ -129,26 +136,24 @@ export default async function EventDetailPage({
     <div className="flex flex-col gap-4">
       <Card className="clay-topglow">
         <CardContent className="gap-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-start gap-2">
             <EventStatusBadge status={event.status} />
-            <span className="clay-pressed inline-flex items-center gap-1 rounded-full border-2 px-2.5 py-0.5 font-mono text-xs font-semibold text-muted-foreground">
+            <span className="clay-pressed inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold text-muted-foreground">
               {event.id}
             </span>
             <span className="ml-auto">
-              <React.Suspense fallback={null}>
-                <HeaderDayFilter eventId={event.id} data={attendanceData} />
-              </React.Suspense>
+              <HeaderDayFilter eventId={event.id} eventDate={event.date} />
             </span>
           </div>
-          <div>
+          <div className="-mt-4">
             <CardTitle className="display">{event.name}</CardTitle>
             {event.description ? (
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
                 {event.description}
               </p>
             ) : null}
           </div>
-          <dl className="flex flex-col gap-3">
+          <dl className="flex flex-col gap-2">
             {org?.name ? (
               <div className="flex items-center gap-1.5 text-sm">
                 <Building2
@@ -205,7 +210,7 @@ export default async function EventDetailPage({
       </Card>
       <ReportSummary eventId={event.id} />
       <React.Suspense fallback={<FilterSkeleton />}>
-        <FilterSection eventId={event.id} data={attendanceData} />
+        <FilterSection eventId={event.id} eventDate={event.date} data={attendanceData} />
       </React.Suspense>
       <AttendanceTable eventId={event.id} filters={filters} />
     </div>

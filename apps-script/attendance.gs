@@ -124,6 +124,11 @@ var Attendance = {
     var event = Events.assertById(eventId)
     Events.assertCanRecord(event)
     var student = Students.assertExists(srcode)
+    var at =
+      scannedAt === undefined || scannedAt === null
+        ? new Date()
+        : new Date(scannedAt)
+    Events.assertDateOpen(event, Attendance.dayKey(at))
     if (Attendance.hasAttendance(event.sheetName, srcode)) {
       throw new AppError(
         Responses.CODES.DUPLICATE_ATTENDANCE,
@@ -151,6 +156,7 @@ var Attendance = {
    */
   check: function (eventId, srcode) {
     var event = Events.assertById(eventId)
+    Events.assertDateOpen(event, Attendance.todayKey())
     var student = Students.getBySrcode(srcode)
     var present = Attendance.hasAttendance(event.sheetName, srcode)
     var result = { present: present }

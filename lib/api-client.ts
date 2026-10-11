@@ -228,6 +228,7 @@ export function printUrl(eventId: string, filters?: AttendanceFilters): string {
   if (filters?.program) params.set("program", filters.program)
   if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel)
   if (filters?.gender) params.set("gender", filters.gender)
+  if (filters?.day) params.set("day", filters.day)
   const qs = params.toString()
   return `/events/${encodeURIComponent(eventId)}/report/print${qs ? `?${qs}` : ""}`
 }

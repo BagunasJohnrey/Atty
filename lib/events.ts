@@ -50,6 +50,29 @@ export function eventDays(date: string): string[] {
 }
 
 /**
+ * Whether a Manila day (`YYYY-MM-DD`) falls within the event's date range
+ * from its details. Powers the check-in gate: scans land only on event
+ * days, so a kiosk opened on the wrong day cannot record attendance.
+ *
+ * An unparseable event date yields no days and fails open (`true`), so a
+ * bad date string degrades to the old behavior instead of bricking
+ * check-ins for the whole event.
+ */
+export function isDayWithinEvent(eventDate: string, dayIso: string): boolean {
+  const days = eventDays(eventDate)
+  if (days.length === 0) return true
+  return days.includes(dayIso.trim())
+}
+
+/**
+ * Kiosk- and sync-report-facing message for a scan outside the event's
+ * dates. Names the event and its dates so staff know why it was refused.
+ */
+export function outsideEventDatesMessage(event: SchoolEvent): string {
+  return `Check-in is closed for this date. ${event.name} only accepts attendance on ${event.date}.`
+}
+
+/**
  * Start of an event as epoch millis. Handles both stored shapes: a single
  * ISO date and the pretty range "November 1, 2026 - November 3, 2026".
  * Unparseable dates sink (POSITIVE_INFINITY) so broken rows never lead.
