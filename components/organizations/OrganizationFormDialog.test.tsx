@@ -78,3 +78,28 @@ describe("OrganizationFormDialog", () => {
     expect(createOrganization).not.toHaveBeenCalled()
   })
 })
+
+describe("OrganizationFormDialog dismissal", () => {
+  it("closes from the X button", async () => {
+    open()
+    expect(screen.getByRole("heading", { name: "Add organizer" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: /close dialog/i }))
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Add organizer" })
+      ).toBeNull()
+    })
+  })
+
+  it("stays open on outside clicks", async () => {
+    open()
+    expect(screen.getByRole("heading", { name: "Add organizer" })).toBeTruthy()
+    // Base UI only treats presses on the dialog's own backdrop as
+    // outside-press; pressing anywhere else never reaches the dialog.
+    const backdrop = document.querySelector('[class*="bg-black"]')
+    expect(backdrop).toBeTruthy()
+    fireEvent.pointerDown(backdrop as Element)
+    fireEvent.click(backdrop as Element)
+    expect(screen.getByRole("heading", { name: "Add organizer" })).toBeTruthy()
+  })
+})

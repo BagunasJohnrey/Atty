@@ -4,10 +4,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { X } from "lucide-react"
 import { formatTimeOnly } from "@/lib/format"
 import type { SyncOutcome, SyncReport } from "@/lib/offline/sync"
 
@@ -29,11 +31,26 @@ export function SyncReportDialog({
   return (
     <Dialog
       open
-      onOpenChange={(next) => {
+      onOpenChange={(next, details) => {
+        // An unreviewed sync report must not be lost to a stray backdrop
+        // click; the X button and Dismiss still close it.
+        if (!next && details?.reason === "outside-press") return
         if (!next) onClose()
       }}
     >
       <DialogContent>
+        <DialogClose
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Close dialog"
+              className="absolute top-3 right-3"
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          }
+        />
         <DialogTitle>Sync report</DialogTitle>
         <DialogDescription>
           Reviewed failures stay queued or are discarded by the operator.

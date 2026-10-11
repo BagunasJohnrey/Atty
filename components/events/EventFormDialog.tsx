@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Pencil, Plus } from "lucide-react"
+import { Pencil, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
@@ -153,7 +154,10 @@ export function EventFormDialog({ event }: { event?: SchoolEvent }) {
   return (
     <Dialog
       open={open}
-      onOpenChange={(next) => {
+      onOpenChange={(next, details) => {
+        // Accidental backdrop clicks must never discard a half-filled form;
+        // the X button, Escape, and the submit flow still close it.
+        if (!next && details?.reason === "outside-press") return
         if (!next) {
           setOrgId(event?.orgId ?? "")
           setError(null)
@@ -174,6 +178,18 @@ export function EventFormDialog({ event }: { event?: SchoolEvent }) {
         }
       />
       <DialogContent>
+        <DialogClose
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Close dialog"
+              className="absolute top-3 right-3"
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          }
+        />
         <DialogTitle>{isEdit ? "Edit event" : "Create event"}</DialogTitle>
         <DialogDescription>
           {isEdit ? (

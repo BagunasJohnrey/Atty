@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Plus } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
@@ -52,7 +53,15 @@ export function OrganizationFormDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next, details) => {
+        // Same guard as the event dialog: backdrop clicks must never
+        // discard a half-filled form.
+        if (!next && details?.reason === "outside-press") return
+        setOpen(next)
+      }}
+    >
       <DialogTrigger
         render={
           <Button className="clay-btn clay-btn-primary">
@@ -61,6 +70,18 @@ export function OrganizationFormDialog() {
         }
       />
       <DialogContent>
+        <DialogClose
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Close dialog"
+              className="absolute top-3 right-3"
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          }
+        />
         <DialogTitle>Add organizer</DialogTitle>
         <DialogDescription>
           The name and email will appear on printed attendance reports.

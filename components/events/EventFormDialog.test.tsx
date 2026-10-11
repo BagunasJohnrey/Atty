@@ -375,8 +375,7 @@ describe("EventFormDialog edit mode", () => {
     ).toBe(true)
   })
 
-  it("omits blank location and time from updates instead of failing", async () => {
-    vi.mocked(updateEvent).mockResolvedValue({
+  it("omits blank location and time from updates instead of failing", async () => {    vi.mocked(updateEvent).mockResolvedValue({
       success: true,
       event: existingEvent,
     })
@@ -399,5 +398,38 @@ describe("EventFormDialog edit mode", () => {
     expect("location" in input).toBe(false)
     expect("time" in input).toBe(false)
     expect(createEvent).not.toHaveBeenCalled()
+  })
+})
+
+describe("EventFormDialog dismissal", () => {
+  it("closes from the X button and resets the form", async () => {
+    mockOrgs(orgs)
+    renderDialog()
+    fireEvent.click(screen.getByRole("button", { name: /new event/i }))
+    expect(
+      screen.getByRole("heading", { name: "Create event" })
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: /close dialog/i }))
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Create event" })).toBeNull()
+    })
+  })
+
+  it("stays open on outside clicks", async () => {
+    mockOrgs(orgs)
+    renderDialog()
+    fireEvent.click(screen.getByRole("button", { name: /new event/i }))
+    expect(
+      screen.getByRole("heading", { name: "Create event" })
+    ).toBeTruthy()
+    // Base UI only treats presses on the dialog's own backdrop as
+    // outside-press; pressing anywhere else never reaches the dialog.
+    const backdrop = document.querySelector('[class*="bg-black"]')
+    expect(backdrop).toBeTruthy()
+    fireEvent.pointerDown(backdrop as Element)
+    fireEvent.click(backdrop as Element)
+    expect(
+      screen.getByRole("heading", { name: "Create event" })
+    ).toBeTruthy()
   })
 })

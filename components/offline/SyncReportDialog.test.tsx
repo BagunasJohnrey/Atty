@@ -71,4 +71,28 @@ describe("SyncReportDialog", () => {
     )
     expect(screen.getByText(/sign in again/i)).toBeTruthy()
   })
+
+  it("closes from the X button", () => {
+    const onClose = vi.fn()
+    render(
+      <SyncReportDialog report={report} onClose={onClose} onDiscard={vi.fn()} />
+    )
+    fireEvent.click(screen.getByRole("button", { name: /close dialog/i }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("stays open on outside clicks", () => {
+    const onClose = vi.fn()
+    render(
+      <SyncReportDialog report={report} onClose={onClose} onDiscard={vi.fn()} />
+    )
+    // Base UI only treats presses on the dialog's own backdrop as
+    // outside-press; pressing anywhere else never reaches the dialog.
+    const backdrop = document.querySelector('[class*="bg-black"]')
+    expect(backdrop).toBeTruthy()
+    fireEvent.pointerDown(backdrop as Element)
+    fireEvent.click(backdrop as Element)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole("heading", { name: "Sync report" })).toBeTruthy()
+  })
 })
