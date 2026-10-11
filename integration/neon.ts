@@ -168,19 +168,56 @@ function optionalEventString(
 }
 
 /** Mirrors Validators.normalizeDate: YYYY-MM-DD or MM/DD/YYYY in,
- *  zero-padded MM/DD/YYYY out. */
+ *  zero-padded MM/DD/YYYY out. Ranges ("start - end", as the event form
+ *  serializes multi-day events) normalize each half and return the
+ *  canonical "MM/DD/YYYY - MM/DD/YYYY" span. */
 export function normalizeEventDateTS(value: unknown): string {
   if (typeof value !== "string" || value.trim() === "") {
     throw invalidRequest("Event date is required.", "createEvent")
   }
   const text = value.trim()
+  const halves = text.split(" - ")
+  if (halves.length === 1) return normalizeSingleEventDate(text)
+  if (halves.length !== 2) {
+    throw invalidRequest(
+      "Event date is invalid. Use MM/DD/YYYY, YYYY-MM-DD, or a range like MM/DD/YYYY - MM/DD/YYYY.",
+      "createEvent"
+    )
+  }
+  const start = normalizeSingleEventDate(halves[0].trim())
+  const end = normalizeSingleEventDate(halves[1].trim())
+  // Canonical halves are fixed-width, so lexicographic order is chronological.
+  if (start > end) {
+    throw invalidRequest(
+      "End date must be on or after the start date.",
+      "createEvent"
+    )
+  }
+  return `${start} - ${end}`
+}
+
+function normalizeSingleEventDate(text: string): string {
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
   const us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text)
-  const parts = iso
+  let parts = iso
     ? { y: Number(iso[1]), m: Number(iso[2]), d: Number(iso[3]) }
     : us
       ? { y: Number(us[3]), m: Number(us[1]), d: Number(us[2]) }
       : null
+  if (!parts) {
+    // Pretty halves ("November 15, 2026", as the form serializes ranges)
+    // parse as local midnight, so the local getters are timezone-safe.
+    // Impossible dates ("February 30, 2026") roll over and fail the probe
+    // check below.
+    const parsed = new Date(text)
+    if (!Number.isNaN(parsed.getTime())) {
+      parts = {
+        y: parsed.getFullYear(),
+        m: parsed.getMonth() + 1,
+        d: parsed.getDate(),
+      }
+    }
+  }
   const probe = parts
     ? new Date(parts.y, parts.m - 1, parts.d)
     : null
@@ -192,7 +229,7 @@ export function normalizeEventDateTS(value: unknown): string {
     probe.getDate() !== parts.d
   ) {
     throw invalidRequest(
-      "Event date is invalid. Use MM/DD/YYYY or YYYY-MM-DD.",
+      "Event date is invalid. Use MM/DD/YYYY, YYYY-MM-DD, or a range like MM/DD/YYYY - MM/DD/YYYY.",
       "createEvent"
     )
   }
@@ -270,7 +307,7 @@ export async function createEventNeon(
   const name = requiredEventString(input.name, "Event name", 150, action)
   const date = normalizeEventDateTS(input.date)
   const location = optionalEventString(input.location, "Event location", 150, action)
-  const description = optionalEventString(input.description, "Event description", 500, action)
+  const description = requiredEventString(input.description, "Event description", 500, action)
   const orgId = optionalEventString(input.orgId, "Organization ID", 20, action)
   const time = optionalEventString(input.time, "Event time", 100, action)
   const owner = await assertOrgNeon(orgId)

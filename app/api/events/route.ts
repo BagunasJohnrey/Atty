@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const name = requireString(body, "name", 150)
     const date = requireString(body, "date")
     const location = optionalString(body, "location", 150)
-    const description = optionalString(body, "description", 500)
+    const description = requireString(body, "description", 500)
     // Optional: the event form collects neither yet. The backend validates
     // orgId whenever it is present.
     const orgId = optionalString(body, "orgId", 20)

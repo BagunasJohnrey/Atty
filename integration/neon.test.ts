@@ -10,6 +10,7 @@ import {
   getEventNeon,
   listAttendanceNeon,
   lookupStudentNeon,
+  normalizeEventDateTS,
   openEventNeon,
   recordAttendanceNeon,
   updateEventNeon,
@@ -172,7 +173,11 @@ describe("neon events", () => {
       }
       throw new Error(`unexpected query: ${q}`)
     })
-    const event = await createEventNeon({ name: "New", date: "2026-10-20" })
+    const event = await createEventNeon({
+      name: "New",
+      date: "2026-10-20",
+      description: "Welcome.",
+    })
     expect(event).toMatchObject({ id: "EVT-008", status: "Upcoming" })
     expect(String(sql.mock.calls[1])).toContain("insert into events")
   })
@@ -181,13 +186,115 @@ describe("neon events", () => {
     const sql = mockSql(() => {
       throw new Error("must not query")
     })
-    await expect(createEventNeon({ name: "  ", date: "2026-10-20" })).rejects.toMatchObject({
+    await expect(
+      createEventNeon({
+        name: "  ",
+        date: "2026-10-20",
+        description: "Welcome.",
+      })
+    ).rejects.toMatchObject({
       code: "INVALID_REQUEST",
     })
-    await expect(createEventNeon({ name: "New", date: "not-a-date" })).rejects.toMatchObject({
+    await expect(
+      createEventNeon({ name: "New", date: "not-a-date", description: "W." })
+    ).rejects.toMatchObject({
       code: "INVALID_REQUEST",
     })
     expect(sql).not.toHaveBeenCalled()
+  })
+
+  it("rejects a missing description without querying", async () => {
+    const sql = mockSql(() => {
+      throw new Error("must not query")
+    })
+    await expect(
+      createEventNeon({ name: "New", date: "2026-10-20" })
+    ).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+    })
+    await expect(
+      createEventNeon({ name: "New", date: "2026-10-20", description: "  " })
+    ).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+    })
+    expect(sql).not.toHaveBeenCalled()
+  })
+
+  it("normalizes single dates to zero-padded MM/DD/YYYY", () => {
+    expect(normalizeEventDateTS("2026-11-01")).toBe("11/01/2026")
+    expect(normalizeEventDateTS("11/1/2026")).toBe("11/01/2026")
+  })
+
+  it("normalizes a pretty range to a canonical range", () => {
+    expect(normalizeEventDateTS("November 15, 2026 - November 16, 2026")).toBe(
+      "11/15/2026 - 11/16/2026"
+    )
+    expect(normalizeEventDateTS("2026-11-15 - 2026-11-16")).toBe(
+      "11/15/2026 - 11/16/2026"
+    )
+  })
+
+  it("rejects an end date before the start date without querying", async () => {
+    const sql = mockSql(() => {
+      throw new Error("must not query")
+    })
+    await expect(
+      createEventNeon({
+        name: "New",
+        date: "11/16/2026 - 11/15/2026",
+        description: "Welcome.",
+      })
+    ).rejects.toMatchObject({
+      code: "INVALID_REQUEST",
+    })
+    expect(sql).not.toHaveBeenCalled()
+  })
+
+  it("stores a ranged date in canonical form", async () => {
+    mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [{ id: "EVT-007" }]
+      if (q.includes("insert into events")) {
+        const v = values as string[]
+        return [
+          {
+            id: v[0],
+            name: v[1],
+            event_date: v[2],
+            status: "Upcoming",
+            sheet_name: v[3],
+            location: v[4],
+            description: v[5],
+            org_id: v[6],
+            time: v[7],
+          },
+        ]
+      }
+      throw new Error(`unexpected query: ${q}`)
+    })
+    const event = await createEventNeon({
+      name: "New",
+      date: "November 15, 2026 - November 16, 2026",
+      description: "Welcome.",
+    })
+    expect(event.date).toBe("11/15/2026 - 11/16/2026")
+  })
+
+  it("accepts a ranged date on update", async () => {
+    let params: unknown[] = []
+    mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [neonEventRow]
+      if (q.includes("update events")) {
+        params = values[0] as unknown[]
+        return [{ ...neonEventRow, event_date: params[0] }]
+      }
+      throw new Error(`unexpected query: ${q}`)
+    })
+    await expect(
+      updateEventNeon("EVT-001", { date: "11/15/2026 - 11/16/2026" })
+    ).resolves.toMatchObject({ date: "11/15/2026 - 11/16/2026" })
+    expect(params[0]).toBe("11/15/2026 - 11/16/2026")
   })
 
   it("rejects an unknown org without querying events", async () => {
@@ -198,7 +305,12 @@ describe("neon events", () => {
       throw new Error("must not query")
     })
     await expect(
-      createEventNeon({ name: "New", date: "2026-10-20", orgId: "ORG-404" })
+      createEventNeon({
+        name: "New",
+        date: "2026-10-20",
+        description: "Welcome.",
+        orgId: "ORG-404",
+      })
     ).rejects.toMatchObject({ code: "ORG_NOT_FOUND" })
     expect(sql).not.toHaveBeenCalled()
   })
