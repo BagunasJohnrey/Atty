@@ -1,5 +1,6 @@
 import type { EventStatus, SchoolEvent } from "@/models/event"
 import { EVENT_STATUSES } from "@/models/event"
+import { manilaDayKey, toDateInputValue } from "@/lib/format"
 
 /** Status tabs shown on the events listing, in display order. */
 export const EVENT_FILTER_TABS = [
@@ -21,6 +22,31 @@ export function parseEventStatusParam(
   return (EVENT_STATUSES as readonly string[]).includes(value ?? "")
     ? (value as EventStatus)
     : "All"
+}
+
+/**
+ * Every Manila day an event spans, as `YYYY-MM-DD` in order. Single dates
+ * yield one day; stored ranges (numeric or pretty) enumerate inclusively.
+ * Unparseable input yields nothing, so day pickers stay hidden instead of
+ * offering junk. Iteration rides UTC noon to stay DST-proof everywhere.
+ */
+export function eventDays(date: string): string[] {
+  const halves = date.split(" - ")
+  if (halves.length > 2) return []
+  const starts = halves.map((half) => toDateInputValue(half))
+  if (starts.some((iso) => !iso)) return []
+  const [y1, m1, d1] = starts[0].split("-").map(Number)
+  const last = starts.length > 1 ? starts[1] : starts[0]
+  const [y2, m2, d2] = last.split("-").map(Number)
+  let cursor = Date.UTC(y1, m1 - 1, d1, 12)
+  const end = Date.UTC(y2, m2 - 1, d2, 12)
+  if (end < cursor) return [manilaDayKey(new Date(cursor))]
+  const days: string[] = []
+  while (cursor <= end) {
+    days.push(manilaDayKey(new Date(cursor)))
+    cursor += 86400000
+  }
+  return days
 }
 
 /**

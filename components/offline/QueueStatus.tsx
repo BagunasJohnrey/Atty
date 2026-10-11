@@ -34,7 +34,7 @@ export function QueueStatus({
 }: {
   eventId: string
   queue: ScanQueue
-  record: (eventId: string, srcode: string) => Promise<unknown>
+  record: (eventId: string, srcode: string, scannedAt: number) => Promise<unknown>
   onReport: (report: SyncReport) => void
   storageWarning?: boolean
 }) {

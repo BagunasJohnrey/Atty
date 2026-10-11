@@ -12,6 +12,7 @@ import {
 import { requireAdmin } from "@/lib/auth/dal"
 import {
   cachedJson,
+  HttpError,
   parseJsonBody,
   requireString,
   respondWith,
@@ -62,7 +63,8 @@ export async function POST(request: Request, context: AttendanceParams) {
     const { eventId } = await context.params
     const body = await parseJsonBody(request)
     const srcode = requireString(body, "srcode", 20)
-    const recorded = await recordAttendance(eventId, srcode)
+    const scannedAt = parseScannedAt(body)
+    const recorded = await recordAttendance(eventId, srcode, scannedAt)
     expireAttendance(eventId)
     return NextResponse.json(
       {
@@ -73,4 +75,17 @@ export async function POST(request: Request, context: AttendanceParams) {
       { status: 201 }
     )
   })
+}
+
+/**
+ * Optional replay timestamp (device ms epoch). Absent for live kiosk
+ * scans; present for offline-queue replays so they land on the scan day.
+ */
+function parseScannedAt(body: Record<string, unknown>): number | undefined {
+  const value = body.scannedAt
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new HttpError(400, "INVALID_FIELD", "Invalid field: scannedAt.")
+  }
+  return value
 }

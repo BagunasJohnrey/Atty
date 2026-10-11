@@ -64,6 +64,16 @@ describe("parseAttendanceFilters", () => {
       program: undefined,
       yearLevel: undefined,
       gender: undefined,
+      day: undefined,
+    })
+  })
+
+  it("reads the day param and drops blanks", () => {
+    expect(parseAttendanceFilters(params("day=2026-09-20"))).toMatchObject({
+      day: "2026-09-20",
+    })
+    expect(parseAttendanceFilters(params("day=  "))).toMatchObject({
+      day: undefined,
     })
   })
 })
@@ -97,6 +107,22 @@ describe("filterAttendance", () => {
       filterAttendance(records, { college: "CICS", gender: "Male" })
     ).toHaveLength(1)
   })
+
+  it("filters rows to one Manila day and combines with facets", () => {
+    const twoDay: AttendanceRecord[] = [
+      { ...records[0], timestamp: "2026-09-20T08:01:23+08:00" },
+      { ...records[1], timestamp: "2026-09-21T08:01:23+08:00" },
+    ]
+    expect(
+      filterAttendance(twoDay, { day: "2026-09-20" }).map((r) => r.srcode)
+    ).toEqual(["26-12345"])
+    expect(
+      filterAttendance(twoDay, { day: "2026-09-21", college: "CICS" }).map(
+        (r) => r.srcode
+      )
+    ).toEqual(["26-12346"])
+    expect(filterAttendance(twoDay, { day: "2026-09-22" })).toHaveLength(0)
+  })
 })
 
 describe("distinctFilterOptions", () => {
@@ -106,6 +132,7 @@ describe("distinctFilterOptions", () => {
       programs: ["BSCS", "BSEE", "BSIT"],
       yearLevels: ["First Year", "Second Year"],
       genders: ["Female", "Male"],
+      days: ["2026-09-20"],
     })
   })
 
@@ -124,7 +151,17 @@ describe("distinctFilterOptions", () => {
       programs: [],
       yearLevels: [],
       genders: [],
+      days: [],
     })
+  })
+
+  it("collects distinct Manila days in order", () => {
+    const options = distinctFilterOptions([
+      { ...records[0], timestamp: "2026-09-21T08:01:23+08:00" },
+      { ...records[1], timestamp: "2026-09-20T08:01:23+08:00" },
+      { ...records[2], timestamp: "2026-09-21T09:01:23+08:00" },
+    ])
+    expect(options.days).toEqual(["2026-09-20", "2026-09-21"])
   })
 })
 

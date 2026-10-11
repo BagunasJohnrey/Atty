@@ -69,6 +69,20 @@ var Validators = {
   },
 
   /**
+   * Returns a device ms epoch for offline replay attribution, or throws.
+   * Only call when the field is present; absence means "stamp now".
+   *
+   * @param {*} value
+   * @returns {number}
+   */
+  requireScannedAt: function (value) {
+    if (typeof value !== "number" || !isFinite(value) || value < 0) {
+      throw new AppError(Responses.CODES.INVALID_REQUEST, "Invalid field: scannedAt.")
+    }
+    return value
+  },
+
+  /**
    * Accepts YYYY-MM-DD or MM/DD/YYYY and normalizes to the sheet date format.
    *
    * @param {*} value

@@ -306,6 +306,57 @@ describe("Backup.upsertAttendance", () => {
     // Sheet-only row intact.
     expect(rows[3]).toEqual(["09/20/2026 08:09:00", "26-99999"])
   })
+
+  it("keeps one row per srcode per day", () => {
+    const h = loadScripts({
+      sheets: {
+        "EVT-001": [
+          ["Timestamp", "SRCODE"],
+          ["09/20/2026 08:01:23", "26-12345"],
+        ],
+      },
+    })
+    const report = h.api.Backup.upsertAttendance("EVT-001", [
+      // Same day, same instant → untouched in place.
+      { srcode: "26-12345", scannedAt: "2026-09-20T08:01:23+08:00" },
+      // Same srcode, next day → appended as a second row.
+      { srcode: "26-12345", scannedAt: "2026-09-21T08:01:23+08:00" },
+    ])
+    expect(report).toEqual({
+      inserted: 1,
+      updated: 0,
+      untouched: 1,
+      sheetOnly: 0,
+      skipped: false,
+    })
+    expect(h.rows("EVT-001")).toHaveLength(3)
+    expect(h.rows("EVT-001")[2]).toEqual(["09/21/2026 08:01:23", "26-12345"])
+  })
+
+  it("re-backup of a two-day payload is all untouched", () => {
+    const h = loadScripts({
+      sheets: {
+        "EVT-001": [
+          ["Timestamp", "SRCODE"],
+          ["09/20/2026 08:01:23", "26-12345"],
+          ["09/21/2026 08:01:23", "26-12345"],
+        ],
+      },
+    })
+    const payload = [
+      { srcode: "26-12345", scannedAt: "2026-09-20T08:01:23+08:00" },
+      { srcode: "26-12345", scannedAt: "2026-09-21T08:01:23+08:00" },
+    ]
+    const report = h.api.Backup.upsertAttendance("EVT-001", payload)
+    expect(report).toEqual({
+      inserted: 0,
+      updated: 0,
+      untouched: 2,
+      sheetOnly: 0,
+      skipped: false,
+    })
+    expect(h.rows("EVT-001")).toHaveLength(3)
+  })
 })
 
 describe("Backup.sheetTimestamp", () => {

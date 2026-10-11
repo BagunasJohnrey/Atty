@@ -55,8 +55,38 @@ describe("CheckInForm offline", () => {
     expect(recordAttendance).not.toHaveBeenCalled()
   })
 
-  it("shows the confirm UI (not queued) when the network succeeds", async () => {
+  it("gives the confirm step big tap targets for phones", async () => {
     vi.mocked(checkAttendance).mockResolvedValue({
+      success: true,
+      check: {
+        present: false,
+        student: {
+          srcode: "26-00001",
+          name: "Juan Dela Cruz",
+          college: "Engineering",
+          program: "BS Computer Engineering",
+          yearLevel: "3rd Year",
+          gender: "Male",
+        },
+      },
+    })
+    render(
+      <CheckInForm eventId="EVT-TAP-1" eventName="E" eventActive={true} />
+    )
+    fireEvent.change(screen.getByLabelText("Enter SR Code"), {
+      target: { value: "26-00001" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
+    await waitFor(() => {
+      expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
+    })
+    // 56px targets clear the 44px minimum comfortably on phones.
+    for (const name of [/confirm attendance/i, /^back$/i]) {
+      expect(screen.getByRole("button", { name }).className).toMatch(/h-14/)
+    }
+  })
+
+  it("shows the confirm UI (not queued) when the network succeeds", async () => {    vi.mocked(checkAttendance).mockResolvedValue({
       success: true,
       check: {
         present: false,

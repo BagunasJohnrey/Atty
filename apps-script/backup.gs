@@ -138,8 +138,9 @@ var Backup = {
   },
 
   /**
-   * Upserts one event's scans into its EVT tab, matched by srcode (one row
-   * per srcode per event — duplicates cannot exist on either side).
+   * Upserts one event's scans into its EVT tab, matched by srcode and
+   * Manila day (one row per srcode per day — a student scans daily at
+   * multi-day events).
    *
    * @param {string} eventId
    * @param {{srcode:string,scannedAt:string}[]} rows - Neon attendance rows.
@@ -165,10 +166,12 @@ var Backup = {
     Sheets.ensureSheet(sheetName)
     Sheets.writeHeaders(sheetName, Config.ATTENDANCE_HEADERS)
     var data = Sheets.getValues(sheetName)
-    var rowBySrcode = {}
+    var rowByScan = {}
     for (var i = Config.ROW_START - 1; i < data.length; i++) {
       var code = String(data[i][Config.COLUMNS.ATTENDANCE.SRCODE] || "").trim()
-      if (code) rowBySrcode[code] = i + 1
+      if (!code) continue
+      var day = Backup.sheetTimestamp(data[i][Config.COLUMNS.ATTENDANCE.TIMESTAMP]).slice(0, 10)
+      rowByScan[code + "|" + day] = i + 1
     }
     var seen = {}
     var report = { inserted: 0, updated: 0, untouched: 0, sheetOnly: 0, skipped: false }
@@ -178,16 +181,17 @@ var Backup = {
       // Always stored sheet-formatted: this also heals rows a previous
       // backup wrote as raw ISO.
       var want = Backup.sheetTimestamp(scan.scannedAt)
-      seen[srcode] = true
-      var at = rowBySrcode[srcode]
+      var key = srcode + "|" + want.slice(0, 10)
+      seen[key] = true
+      var at = rowByScan[key]
       if (at === 0) {
-        // Duplicate srcode inside one payload; already written above.
+        // Duplicate scan inside one payload; already written above.
         report.untouched++
         continue
       }
       if (!at) {
         Sheets.appendRow(sheetName, [want, srcode])
-        rowBySrcode[srcode] = 0
+        rowByScan[key] = 0
         report.inserted++
         continue
       }
@@ -199,8 +203,8 @@ var Backup = {
         report.updated++
       }
     }
-    for (var key in rowBySrcode) {
-      if (!seen[key]) report.sheetOnly++
+    for (var seenKey in rowByScan) {
+      if (!seen[seenKey]) report.sheetOnly++
     }
     return report
   },

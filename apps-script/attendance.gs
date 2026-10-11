@@ -13,28 +13,70 @@ var Attendance = {
   },
 
   /**
-   * 1-based row of an existing attendance entry, or -1.
+   * Manila day key (`yyyy-MM-dd`) for a scan timestamp. Both sides of every
+   * same-day comparison go through this formatter, so the check holds
+   * however the sheet stored the timestamp.
+   *
+   * @param {*} value - A Date, timestamp string, or epoch millis.
+   * @returns {string}
+   */
+  dayKey: function (value) {
+    return Utilities.formatDate(new Date(value), Session.getScriptTimeZone(), "yyyy-MM-dd")
+  },
+
+  /**
+   * @returns {string} Today's Manila day key.
+   */
+  todayKey: function () {
+    return Attendance.dayKey(new Date())
+  },
+
+  /**
+   * 1-based row of today's attendance entry, or -1.
    *
    * Only used to fetch the original timestamp for a re-scan. Duplicate
-   * detection itself goes through hasAttendance, which reads a single
-   * column instead of the whole row.
+   * detection itself goes through hasAttendance, which reads the two
+   * columns in a single range instead of the whole row.
    *
    * @param {string} sheetName - The event's attendance sheet, not the ID.
    * @param {string} srcode
    * @returns {number}
    */
   findRow: function (sheetName, srcode) {
-    return Sheets.findRowByValue(sheetName, Config.COLUMNS.ATTENDANCE.SRCODE, srcode)
+    try {
+      var sheet = Sheets.sheetByName(sheetName)
+      if (!sheet) return -1
+      var lastRow = sheet.getLastRow()
+      if (lastRow < Config.ROW_START) return -1
+      var values = sheet
+        .getRange(Config.ROW_START, 1, lastRow - Config.ROW_START + 1, 2)
+        .getValues()
+      var target = String(srcode || "").trim()
+      var today = Attendance.todayKey()
+      for (var i = 0; i < values.length; i++) {
+        if (
+          String(values[i][Config.COLUMNS.ATTENDANCE.SRCODE] || "").trim() === target &&
+          values[i][Config.COLUMNS.ATTENDANCE.TIMESTAMP] &&
+          Attendance.dayKey(values[i][Config.COLUMNS.ATTENDANCE.TIMESTAMP]) === today
+        ) {
+          return Config.ROW_START + i
+        }
+      }
+      return -1
+    } catch (error) {
+      return -1
+    }
   },
 
   /**
-   * Whether an SRCODE already appears in the event's attendance sheet.
+   * Whether an SRCODE already appears in the event's attendance sheet
+   * *today* (Manila day).
    *
-   * Reads only the SRCODE column rather than the whole used range, which
-   * is the difference between one narrow column read and a full row read on
-   * every validate and every record. Returns true on any read failure so a
-   * transient error can never be mistaken for "not present" and silently
-   * allow a duplicate row.
+   * Reads the timestamp and SRCODE columns in one range rather than the
+   * whole used range, which is the difference between one narrow read
+   * and a full row read on every validate and every record. Returns true
+   * on any read failure so a transient error can never be mistaken for
+   * "not present" and silently allow a duplicate row.
    *
    * @param {string} sheetName
    * @param {string} srcode
@@ -46,13 +88,19 @@ var Attendance = {
       if (!sheet) return false
       var lastRow = sheet.getLastRow()
       if (lastRow < Config.ROW_START) return false
-      var column = Config.COLUMNS.ATTENDANCE.SRCODE + 1
       var values = sheet
-        .getRange(Config.ROW_START, column, lastRow - Config.ROW_START + 1, 1)
+        .getRange(Config.ROW_START, 1, lastRow - Config.ROW_START + 1, 2)
         .getValues()
       var target = String(srcode || "").trim()
+      var today = Attendance.todayKey()
       for (var i = 0; i < values.length; i++) {
-        if (String(values[i][0] || "").trim() === target) return true
+        if (
+          String(values[i][Config.COLUMNS.ATTENDANCE.SRCODE] || "").trim() === target &&
+          values[i][Config.COLUMNS.ATTENDANCE.TIMESTAMP] &&
+          Attendance.dayKey(values[i][Config.COLUMNS.ATTENDANCE.TIMESTAMP]) === today
+        ) {
+          return true
+        }
       }
       return false
     } catch (error) {
@@ -64,22 +112,32 @@ var Attendance = {
 
   /**
    * Records attendance for one student, enforcing status and integrity rules.
+   * An explicit scan instant attributes offline replays to the day they
+   * were taken; live scans omit it and stamp now.
    *
    * @param {string} eventId
    * @param {string} srcode
+   * @param {number} [scannedAt] - Device ms epoch for offline replays.
    * @returns {{ timestamp: string, student: Student }}
    */
-  record: function (eventId, srcode) {
+  record: function (eventId, srcode, scannedAt) {
     var event = Events.assertById(eventId)
     Events.assertCanRecord(event)
     var student = Students.assertExists(srcode)
     if (Attendance.hasAttendance(event.sheetName, srcode)) {
       throw new AppError(
         Responses.CODES.DUPLICATE_ATTENDANCE,
-        "Student has already attended this event."
+        "Already recorded today."
       )
     }
-    var timestamp = Attendance.now()
+    var timestamp =
+      scannedAt === undefined || scannedAt === null
+        ? Attendance.now()
+        : Utilities.formatDate(
+            new Date(scannedAt),
+            Session.getScriptTimeZone(),
+            Config.TIME_FORMAT
+          )
     Sheets.appendRow(event.sheetName, [timestamp, srcode])
     return { timestamp: timestamp, student: student }
   },
@@ -137,7 +195,10 @@ var Attendance = {
   handleRecord: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
     var srcode = Validators.requireString(body, "srcode", "SRCODE", Config.MAX_SRCODE_LENGTH)
-    var result = Attendance.record(eventId, srcode)
+    var scannedAt = body.scannedAt === undefined || body.scannedAt === null
+      ? undefined
+      : Validators.requireScannedAt(body.scannedAt)
+    var result = Attendance.record(eventId, srcode, scannedAt)
     return Responses.ok("Attendance recorded successfully.", result)
   },
 

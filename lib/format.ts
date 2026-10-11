@@ -137,3 +137,46 @@ export function attendanceRate(present: number, total: number): number {
   if (total <= 0) return 0
   return Math.round((present / total) * 1000) / 10
 }
+
+/**
+ * Manila calendar day key (`YYYY-MM-DD` in Asia/Manila) for per-day
+ * attendance. `en-CA` formats the date part as ISO order; the explicit
+ * time zone keeps the UTC-midnight day-shift trap out regardless of the
+ * server's locale.
+ */
+export function manilaDayKey(value: Date | string | number): string {
+  const date = value instanceof Date ? value : new Date(value)
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date)
+  return parts
+}
+
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const
+
+/**
+ * Picker label for one event day: `Day 1 · Oct 11`. Pure string mapping on
+ * the ISO day — no Date involved, so no timezone can shift it.
+ */
+export function formatDayLabel(dayIso: string, index: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayIso.trim())
+  if (!match) return dayIso
+  const month = SHORT_MONTHS[Number(match[2]) - 1] ?? match[2]
+  return `Day ${index + 1} · ${month} ${Number(match[3])}`
+}

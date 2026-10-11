@@ -41,6 +41,28 @@ interface Harness {
   writes: number
 }
 
+/** Current Manila day as `MM/DD/YYYY` for seed timestamps. */
+function manilaToday(): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+}
+
+/** Manila `MM/DD/YYYY HH:MM:SS` sheet timestamp on the given day offset. */
+function sheetStamp(dayOffset: number, time = "08:01:23"): string {
+  const at = new Date(Date.now() + dayOffset * 86400000)
+  const day = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(at)
+  return `${day} ${time}`
+}
+
 /** Evaluates the .gs sources with Google globals stubbed. */
 function loadScripts(options: FakeOptions = {}): Harness {
   const masterlist = options.masterlist ?? [
@@ -55,7 +77,7 @@ function loadScripts(options: FakeOptions = {}): Harness {
   ]
   const attendance = options.attendance ?? [
     ["Timestamp", "SRCODE"],
-    ["09/20/2026 08:01:23", "26-12345"],
+    [`${manilaToday()} 08:01:23`, "26-12345"],
   ]
 
   const reads = { masterlist: 0, events: 0, attendance: 0, total: 0 }
@@ -286,7 +308,7 @@ describe("check-in read amplification", () => {
   it("reports present with the original timestamp on re-check", () => {
     const result = h.api.Attendance.check("EVT-001", "26-12345")
     expect(result.present).toBe(true)
-    expect(result.timestamp).toBe("09/20/2026 08:01:23")
+    expect(result.timestamp).toBe(`${manilaToday()} 08:01:23`)
   })
 
   it("refuses to record into a closed event", () => {
@@ -297,6 +319,81 @@ describe("check-in read amplification", () => {
       code = (error as { code?: string }).code ?? ""
     }
     expect(code).toBe("EVENT_NOT_ACTIVE")
+  })
+})
+
+describe("per-day attendance", () => {
+  it("rejects a same-day rescan", () => {
+    const h = loadScripts()
+    let code = ""
+    try {
+      // 26-12345 already scanned today in the default seed.
+      h.api.Attendance.record("EVT-001", "26-12345")
+    } catch (error) {
+      code = (error as { code?: string }).code ?? ""
+    }
+    expect(code).toBe("DUPLICATE_ATTENDANCE")
+  })
+
+  it("accepts a scan on the day after a previous scan", () => {
+    const h = loadScripts({
+      attendance: [["Timestamp", "SRCODE"], [sheetStamp(-1), "26-12345"]],
+    })
+    const result = h.api.Attendance.record("EVT-001", "26-12345")
+    expect(result.timestamp).toBeTruthy()
+    expect(h.api.Sheets.getValues("EVT-001")).toHaveLength(3)
+  })
+
+  it("attributes an explicit replay timestamp to the scan day", () => {
+    const h = loadScripts({ attendance: [["Timestamp", "SRCODE"]] })
+    const yesterday = Date.now() - 86400000
+    const result = h.api.Attendance.record("EVT-001", "26-12345", yesterday)
+    const expected = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(yesterday))
+    expect(result.timestamp).toBe(expected)
+  })
+
+  it("checks presence for today only", () => {    const h = loadScripts({
+      attendance: [["Timestamp", "SRCODE"], [sheetStamp(-1), "26-12346"]],
+    })
+    expect(h.api.Attendance.check("EVT-001", "26-12346").present).toBe(false)
+    h.api.Attendance.record("EVT-001", "26-12346")
+    const check = h.api.Attendance.check("EVT-001", "26-12346")
+    expect(check.present).toBe(true)
+    expect(check.timestamp).toBeTruthy()
+  })
+})
+
+describe("per-day report", () => {
+  it("breaks the report down by day with distinct-student totals", () => {
+    const h = loadScripts({
+      masterlist: [
+        ["SRCODE", "Full Name", "College", "Program", "Year Level", "Gender"],
+        ["26-12345", "Juan Dela Cruz", "CICS", "BSIT", "First Year", "Male"],
+        ["26-12346", "Maria Santos", "CICS", "BSCS", "Second Year", "Female"],
+        ["26-12347", "Jose Rizal", "CICS", "BSIT", "Third Year", "Male"],
+      ],
+      attendance: [
+        ["Timestamp", "SRCODE"],
+        [sheetStamp(-1), "26-12345"],
+        [sheetStamp(-1), "26-12346"],
+        [sheetStamp(0), "26-12345"],
+      ],
+    })
+    const report = h.api.Reports.get("EVT-001")
+    expect(report.totalScans).toBe(3)
+    expect(report.totalPresent).toBe(2)
+    expect(report.totalAbsent).toBe(1)
+    expect(report.attendanceRate).toBeLessThanOrEqual(100)
+    expect(report.days).toHaveLength(2)
+    expect(report.days[0].present).toBe(2)
+    expect(report.days[1].present).toBe(1)
+    // Overall groups dedupe by student: 26-12345 scanned twice, counts once.
+    expect(report.byCollege).toEqual({ CICS: 2 })
   })
 })
 

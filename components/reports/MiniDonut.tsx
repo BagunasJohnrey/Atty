@@ -98,7 +98,7 @@ export function MiniDonut({
                 style={{ backgroundColor: a.color }}
                 aria-hidden
               />
-              <span className="truncate font-medium" title={a.label}>
+              <span className="min-w-0 truncate font-medium" title={a.label}>
                 {a.label}
               </span>
               <span className="ml-auto pl-2 text-muted-foreground tabular-nums">

@@ -20,15 +20,24 @@ function isNeonAttendanceEnabled(): boolean {
 
 export async function recordAttendance(
   eventId: string,
-  srcode: string
+  srcode: string,
+  /** Device ms epoch for offline replays; omitted by the live kiosk. */
+  scannedAt?: number
 ): Promise<RecordedAttendance> {
-  if (isNeonAttendanceEnabled()) return recordAttendanceNeon(eventId, srcode)
+  if (isNeonAttendanceEnabled())
+    return recordAttendanceNeon(eventId, srcode, scannedAt)
   const response = await requestAppsScript<RecordedAttendance>(
     "recordAttendance",
-    {
-      eventId,
-      srcode,
-    }
+    scannedAt === undefined
+      ? {
+          eventId,
+          srcode,
+        }
+      : {
+          eventId,
+          srcode,
+          scannedAt,
+        }
   )
   return response
 }

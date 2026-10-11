@@ -92,4 +92,14 @@ describe("syncQueue", () => {
     expect(report.results).toEqual([])
     expect(record).toHaveBeenCalledTimes(2)
   })
+
+  it("forwards each scan's timestamp so replays land on the scan day", async () => {
+    const queue = setup()
+    await queue.enqueue("EVT-1", "26-00001", 1000)
+    await queue.enqueue("EVT-1", "26-00002", 2000)
+    const record = vi.fn().mockResolvedValue({ ok: true })
+    await syncQueue({ queue, eventId: "EVT-1", record })
+    expect(record).toHaveBeenCalledWith("EVT-1", "26-00001", 1000)
+    expect(record).toHaveBeenCalledWith("EVT-1", "26-00002", 2000)
+  })
 })

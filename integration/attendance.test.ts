@@ -60,8 +60,25 @@ describe("attendance cutover", () => {
     await expect(
       recordAttendance("EVT-001", "26-12345")
     ).resolves.toEqual(recorded)
-    expect(neonMocks.record).toHaveBeenCalledWith("EVT-001", "26-12345")
+    expect(neonMocks.record).toHaveBeenCalledWith(
+      "EVT-001",
+      "26-12345",
+      undefined
+    )
     expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("forwards a replay timestamp on both backends", async () => {
+    delete process.env.NEON_ATTENDANCE
+    await recordAttendance("EVT-001", "26-12345", 1000)
+    expect(requestMock).toHaveBeenCalledWith("recordAttendance", {
+      eventId: "EVT-001",
+      srcode: "26-12345",
+      scannedAt: 1000,
+    })
+    process.env.NEON_ATTENDANCE = "neon"
+    await recordAttendance("EVT-001", "26-12345", 1000)
+    expect(neonMocks.record).toHaveBeenCalledWith("EVT-001", "26-12345", 1000)
   })
 
   it("checks via Neon when flagged", async () => {

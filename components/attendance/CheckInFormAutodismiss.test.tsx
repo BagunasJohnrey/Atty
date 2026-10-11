@@ -102,13 +102,13 @@ describe("CheckInForm auto-dismiss", () => {
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
     expect(
-      screen.getByText("Attendance already recorded for this event.")
+      screen.getByText("Attendance already recorded today.")
     ).toBeTruthy()
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5300)
     })
     expect(
-      screen.queryByText("Attendance already recorded for this event.")
+      screen.queryByText("Attendance already recorded today.")
     ).toBeNull()
   })
 

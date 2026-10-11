@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { SchoolEvent } from "@/models/event"
 import {
+  eventDays,
   eventStartTime,
   parseEventStatusParam,
   sortEventsForListing,
@@ -33,8 +34,30 @@ describe("parseEventStatusParam", () => {
   })
 })
 
-describe("eventStartTime", () => {
-  it("reads a single ISO date", () => {
+describe("eventDays", () => {
+  it("lists the single day of a one-day event", () => {
+    expect(eventDays("2026-11-01")).toEqual(["2026-11-01"])
+    expect(eventDays("11/01/2026")).toEqual(["2026-11-01"])
+  })
+
+  it("enumerates every day of a stored range", () => {
+    expect(eventDays("11/15/2026 - 11/17/2026")).toEqual([
+      "2026-11-15",
+      "2026-11-16",
+      "2026-11-17",
+    ])
+    expect(
+      eventDays("November 15, 2026 - November 16, 2026")
+    ).toEqual(["2026-11-15", "2026-11-16"])
+  })
+
+  it("returns nothing useful for junk", () => {
+    expect(eventDays("")).toEqual([])
+    expect(eventDays("someday")).toEqual([])
+  })
+})
+
+describe("eventStartTime", () => {  it("reads a single ISO date", () => {
     expect(eventStartTime(event({ id: "a", date: "2026-11-01" }))).toBe(
       new Date("2026-11-01").getTime()
     )

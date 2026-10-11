@@ -13,6 +13,7 @@ import type {
 } from "@/models/event"
 import type { AttendanceReport } from "@/models/report"
 import type { Student } from "@/models/student"
+import { manilaDayKey } from "@/lib/format"
 import { AppsScriptError } from "./errors"
 import { getOrganization } from "./organizations"
 
@@ -469,7 +470,9 @@ function requireSrcode(value: unknown, action: string): string {
 
 export async function recordAttendanceNeon(
   eventId: string,
-  srcode: string
+  srcode: string,
+  /** Device ms epoch for offline replays; defaults to now. */
+  scannedAt?: number
 ): Promise<RecordedAttendance> {
   const action = "recordAttendance"
   const code = requireSrcode(srcode, action)
@@ -481,16 +484,17 @@ export async function recordAttendanceNeon(
   ])
   assertCanRecordNeon(event)
   const sql = getSql()
+  const at = scannedAt === undefined ? new Date() : new Date(scannedAt)
   const rows = (await sql`
-    insert into attendance (event_id, srcode, scanned_at)
-    values (${eventId}, ${code}, ${new Date()})
-    on conflict (event_id, srcode) do nothing
+    insert into attendance (event_id, srcode, day, scanned_at)
+    values (${eventId}, ${code}, ${manilaDayKey(at)}, ${at})
+    on conflict (event_id, srcode, day) do nothing
     returning scanned_at
   `) as { scanned_at: unknown }[]
   if (rows.length === 0) {
     throw new AppsScriptError(
       "DUPLICATE_ATTENDANCE",
-      "Student has already attended this event.",
+      "Already recorded today.",
       action
     )
   }
@@ -518,7 +522,8 @@ export async function checkAttendanceNeon(
   const sql = getSql()
   const rows = (await sql`
     select scanned_at from attendance
-    where event_id = ${eventId} and srcode = ${code}
+    where event_id = ${eventId} and srcode = ${code} and day = ${manilaDayKey(new Date())}
+    order by scanned_at desc
     limit 1
   `) as { scanned_at: unknown }[]
   const result: AttendanceCheck = { present: rows.length > 0 }
@@ -579,8 +584,44 @@ export async function getAttendanceReportNeon(
     select count(*)::int as n from students
   `) as { n: number }[]
   const totalStudents = counted[0]?.n ?? 0
-  const totalPresent = attendance.length
+  const totalScans = attendance.length
+  const presentSrcodes = new Set(attendance.map((record) => record.srcode))
+  const totalPresent = presentSrcodes.size
   const totalAbsent = Math.max(0, totalStudents - totalPresent)
+  // Overall groups count distinct students (first scan wins), so shares
+  // never exceed 100% on multi-day events.
+  const seenSrcodes = new Set<string>()
+  const distinct = attendance.filter((record) => {
+    if (seenSrcodes.has(record.srcode)) return false
+    seenSrcodes.add(record.srcode)
+    return true
+  })
+  const byDay = new Map<string, AttendanceRecord[]>()
+  for (const record of attendance) {
+    const day = manilaDayKey(record.timestamp)
+    const group = byDay.get(day)
+    if (group) group.push(record)
+    else byDay.set(day, [record])
+  }
+  const days = [...byDay.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([day, records]) => {
+      const present = new Set(records.map((record) => record.srcode)).size
+      const absent = Math.max(0, totalStudents - present)
+      return {
+        day,
+        present,
+        absent,
+        rate:
+          totalStudents <= 0
+            ? 0
+            : Math.round((present / totalStudents) * 10000) / 100,
+        byCollege: groupAttendanceBy(records, "college"),
+        byProgram: groupAttendanceBy(records, "program"),
+        byYearLevel: groupAttendanceBy(records, "yearLevel"),
+        byGender: groupAttendanceBy(records, "gender"),
+      }
+    })
   return {
     event,
     totalStudents,
@@ -590,9 +631,11 @@ export async function getAttendanceReportNeon(
       totalStudents <= 0
         ? 0
         : Math.round((totalPresent / totalStudents) * 10000) / 100,
-    byCollege: groupAttendanceBy(attendance, "college"),
-    byProgram: groupAttendanceBy(attendance, "program"),
-    byYearLevel: groupAttendanceBy(attendance, "yearLevel"),
-    byGender: groupAttendanceBy(attendance, "gender"),
+    totalScans,
+    byCollege: groupAttendanceBy(distinct, "college"),
+    byProgram: groupAttendanceBy(distinct, "program"),
+    byYearLevel: groupAttendanceBy(distinct, "yearLevel"),
+    byGender: groupAttendanceBy(distinct, "gender"),
+    days,
   }
 }
