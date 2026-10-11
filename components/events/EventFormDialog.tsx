@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input, Label } from "@/components/ui/input"
+import { Input, Label, Textarea } from "@/components/ui/input"
 import Link from "next/link"
 import { ApiError, createEvent, updateEvent } from "@/lib/api-client"
 import {
@@ -296,13 +296,15 @@ export function EventFormDialog({ event }: { event?: SchoolEvent }) {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="description">Description</Label>
-            <Input
+            <Textarea
               id="description"
               name="description"
               required
+              rows={4}
               maxLength={500}
               placeholder="What is this event about?"
               defaultValue={event?.description}
+              className="clay-scroll min-h-28 resize-y md:min-h-36"
             />
           </div>
           {error ? (

@@ -241,8 +241,17 @@ describe("EventFormDialog", () => {
     expect(createEvent).not.toHaveBeenCalled()
   })
 
-  it("marks the end date optional and links it to the field", async () => {
+  it("renders description as a roomy multiline field", async () => {
     mockOrgs(orgs)
+    renderDialog()
+    fireEvent.click(screen.getByRole("button", { name: /new event/i }))
+    const field = screen.getByLabelText("Description") as HTMLTextAreaElement
+    expect(field.tagName).toBe("TEXTAREA")
+    expect(field.required).toBe(true)
+    expect(field.className).toContain("clay-scroll")
+  })
+
+  it("marks the end date optional and links it to the field", async () => {    mockOrgs(orgs)
     renderDialog()
     fireEvent.click(screen.getByRole("button", { name: /new event/i }))
     const hint = screen.getByText(/leave blank for one-day events/i)
