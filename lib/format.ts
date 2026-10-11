@@ -25,6 +25,52 @@ export function formatTimeInput(value: string): string {
   return `${hour}:${match[2]} ${suffix}`
 }
 
+/**
+ * Reverse of the event-date storage: maps a stored date back to a
+ * date-picker value ("YYYY-MM-DD"). Handles ISO storage, zero-padded
+ * MM/DD/YYYY storage, and pretty ranges (takes the start half). Anything
+ * unparseable yields "" so the picker stays blank instead of lying.
+ * Manual parsing only — never `new Date` on ISO strings, which parses as
+ * UTC midnight and shifts a day under negative-offset timezones.
+ */
+export function toDateInputValue(value: string): string {
+  return dateHalfToInput(value.split(" - ")[0])
+}
+
+function dateHalfToInput(half: string | undefined): string {
+  const text = (half ?? "").trim()
+  if (!text) return ""
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+  if (iso) return text
+  const mdy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text)
+  if (mdy) {
+    return `${mdy[3]}-${mdy[1].padStart(2, "0")}-${mdy[2].padStart(2, "0")}`
+  }
+  // Pretty storage ("November 1, 2026") parses as local midnight, so the
+  // local getters below are timezone-safe.
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return ""
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
+/**
+ * Reverse of formatTimeInput for a single stored time ("8:00 AM" back to
+ * "08:00"). Case-insensitive for verbatim storage ("12:00 pm"). Anything
+ * that is not a 12-hour time yields "" so the picker stays blank.
+ */
+export function toTimeInputValue(value: string): string {
+  const match = /^(\d{1,2}):(\d{2})\s*([AP])M$/i.exec(value.trim())
+  if (!match) return ""
+  const hour12 = Number(match[1])
+  const minute = Number(match[2])
+  if (hour12 < 1 || hour12 > 12 || minute > 59) return ""
+  let hour = hour12 % 12
+  if (match[3].toUpperCase() === "P") hour += 12
+  return `${String(hour).padStart(2, "0")}:${match[2]}`
+}
+
 export function formatTimestamp(value: string): string {
   const date = new Date(value)
   if (!Number.isNaN(date.getTime())) {

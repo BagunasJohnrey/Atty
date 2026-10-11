@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Plus } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,14 +13,27 @@ import {
 } from "@/components/ui/dialog"
 import { Input, Label } from "@/components/ui/input"
 import Link from "next/link"
-import { ApiError, createEvent } from "@/lib/api-client"
-import { formatEventDate, formatTimeInput } from "@/lib/format"
+import { ApiError, createEvent, updateEvent } from "@/lib/api-client"
+import {
+  formatEventDate,
+  formatTimeInput,
+  toDateInputValue,
+  toTimeInputValue,
+} from "@/lib/format"
 import { useOrganizations } from "@/hooks/useQueries"
 import { useToast } from "@/components/ui/toast"
 import { ClaySelect } from "@/components/ui/select"
 import { invalidatePrefix } from "@/hooks/useCached"
+import type { SchoolEvent } from "@/models/event"
 
-export function EventFormDialog() {
+/**
+ * Create dialog by default; pass `event` for edit mode, which prefills
+ * every field from stored values and saves through updateEvent. Status is
+ * intentionally not editable here — open/close stays on EventActions so
+ * the dialog can never violate the closed-can't-reopen rule.
+ */
+export function EventFormDialog({ event }: { event?: SchoolEvent }) {
+  const isEdit = event != null
   const router = useRouter()
   const toast = useToast()
   const [open, setOpen] = React.useState(false)
@@ -34,11 +47,26 @@ export function EventFormDialog() {
     refresh: refreshOrgs,
   } = useOrganizations()
   const orgs = orgData?.organizations ?? []
-  const [orgId, setOrgId] = React.useState("")
+  const [orgId, setOrgId] = React.useState(event?.orgId ?? "")
   const loadFailed = !orgsLoading && orgsError != null
 
+  // Stored halves back into picker values. Content unmounts on close, so
+  // these defaults are fresh on every open.
+  const dateParts = (event?.date ?? "").split(" - ")
+  const initialDateStart = isEdit ? toDateInputValue(dateParts[0]) : undefined
+  const initialDateEnd =
+    isEdit && dateParts.length > 1
+      ? toDateInputValue(dateParts.slice(1).join(" - "))
+      : undefined
+  const timeParts = (event?.time ?? "").split(" - ")
+  const initialTimeStart = isEdit ? toTimeInputValue(timeParts[0]) : undefined
+  const initialTimeEnd =
+    isEdit && timeParts.length > 1
+      ? toTimeInputValue(timeParts.slice(1).join(" - "))
+      : undefined
+
   function close() {
-    setOrgId("")
+    setOrgId(event?.orgId ?? "")
     setError(null)
     setOpen(false)
   }
@@ -80,21 +108,43 @@ export function EventFormDialog() {
     setSaving(true)
     setError(null)
     try {
-      await createEvent({
-        name: String(form.get("name") ?? ""),
-        date,
-        location: String(form.get("location") ?? ""),
-        description: String(form.get("description") ?? ""),
-        orgId,
-        time,
-      })
+      if (isEdit) {
+        // PATCH rejects blank strings, so blank optionals are omitted
+        // (server keeps its values) rather than sent as "". Description is
+        // required by the form, so it is always present here.
+        const location = String(form.get("location") ?? "").trim()
+        const description = String(form.get("description") ?? "").trim()
+        await updateEvent(event.id, {
+          name: String(form.get("name") ?? ""),
+          date,
+          ...(location ? { location } : null),
+          ...(description ? { description } : null),
+          orgId,
+          ...(time ? { time } : null),
+        })
+      } else {
+        await createEvent({
+          name: String(form.get("name") ?? ""),
+          date,
+          location: String(form.get("location") ?? ""),
+          description: String(form.get("description") ?? ""),
+          orgId,
+          time,
+        })
+      }
       invalidatePrefix("events:")
       invalidatePrefix("dashboard:")
       close()
-      toast.success("Event created.")
+      toast.success(isEdit ? "Event updated." : "Event created.")
       router.refresh()
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not create event.")
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : isEdit
+            ? "Could not update event."
+            : "Could not create event."
+      )
     } finally {
       setSaving(false)
     }
@@ -105,7 +155,7 @@ export function EventFormDialog() {
       open={open}
       onOpenChange={(next) => {
         if (!next) {
-          setOrgId("")
+          setOrgId(event?.orgId ?? "")
           setError(null)
         }
         setOpen(next)
@@ -113,15 +163,24 @@ export function EventFormDialog() {
     >
       <DialogTrigger
         render={
-          <Button className="clay-btn clay-btn-primary">
-            <Plus className="size-4" aria-hidden /> New Event
+          <Button className={isEdit ? "clay-btn" : "clay-btn clay-btn-primary"}>
+            {isEdit ? (
+              <Pencil className="size-4" aria-hidden />
+            ) : (
+              <Plus className="size-4" aria-hidden />
+            )}{" "}
+            {isEdit ? "Edit" : "New Event"}
           </Button>
         }
       />
       <DialogContent>
-        <DialogTitle>Create event</DialogTitle>
+        <DialogTitle>{isEdit ? "Edit event" : "Create event"}</DialogTitle>
         <DialogDescription>
-          Sheet tab is auto-created as the Event ID (e.g. EVT-001).
+          {isEdit ? (
+            <>Updating {event.id}. Status changes stay on the event page.</>
+          ) : (
+            <>Sheet tab is auto-created as the Event ID (e.g. EVT-001).</>
+          )}
         </DialogDescription>
         <form
           className="mt-4 flex flex-col gap-3"
@@ -135,12 +194,19 @@ export function EventFormDialog() {
               required
               maxLength={150}
               placeholder="Freshmen Orientation"
+              defaultValue={event?.name}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="dateStart">Start date</Label>
-              <Input id="dateStart" name="dateStart" type="date" required />
+              <Input
+                id="dateStart"
+                name="dateStart"
+                type="date"
+                required
+                defaultValue={initialDateStart}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="dateEnd">End date</Label>
@@ -149,6 +215,7 @@ export function EventFormDialog() {
                 name="dateEnd"
                 type="date"
                 aria-describedby="dateEnd-hint"
+                defaultValue={initialDateEnd}
               />
               <p id="dateEnd-hint" className="text-xs text-muted-foreground">
                 Optional — leave blank for one-day events.
@@ -162,6 +229,7 @@ export function EventFormDialog() {
               name="location"
               maxLength={150}
               placeholder="Gym"
+              defaultValue={event?.location}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -193,11 +261,21 @@ export function EventFormDialog() {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="timeStart">Start time</Label>
-              <Input id="timeStart" name="timeStart" type="time" />
+              <Input
+                id="timeStart"
+                name="timeStart"
+                type="time"
+                defaultValue={initialTimeStart}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="timeEnd">End time</Label>
-              <Input id="timeEnd" name="timeEnd" type="time" />
+              <Input
+                id="timeEnd"
+                name="timeEnd"
+                type="time"
+                defaultValue={initialTimeEnd}
+              />
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -205,8 +283,10 @@ export function EventFormDialog() {
             <Input
               id="description"
               name="description"
+              required
               maxLength={500}
-              placeholder="Optional notes"
+              placeholder="What is this event about?"
+              defaultValue={event?.description}
             />
           </div>
           {error ? (
@@ -219,7 +299,13 @@ export function EventFormDialog() {
             disabled={saving || (!orgsLoading && orgs.length === 0)}
             className="clay-btn mt-1"
           >
-            {saving ? "Creating…" : "Create event"}
+            {saving
+              ? isEdit
+                ? "Saving…"
+                : "Creating…"
+              : isEdit
+                ? "Save changes"
+                : "Create event"}
           </Button>
         </form>
       </DialogContent>
