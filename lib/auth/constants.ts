@@ -21,6 +21,13 @@ export const SESSION_COOKIE = "atty_admin"
  */
 export const SESSION_TTL_SECONDS = 43_200
 
+/**
+ * Idle auto-lock: minutes without interaction before the client ends the
+ * session and returns to login. The walk-away guard for shared kiosks —
+ * the session cookie only covers full browser exits.
+ */
+export const IDLE_TIMEOUT_MINUTES = 60
+
 /** The staff PIN is exactly this many characters. */
 export const PIN_LENGTH = 8
 

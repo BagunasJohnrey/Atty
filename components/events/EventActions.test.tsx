@@ -60,13 +60,16 @@ describe("EventActions delete", () => {
   })
   afterEach(cleanup)
 
-  it("requires a confirm click, then deletes and leaves for the list", async () => {
+  it("asks in a modal, then deletes and leaves for the list", async () => {
     vi.mocked(deleteEvent).mockResolvedValue({ success: true } as never)
     render(<EventActions event={event} />)
     fireEvent.click(screen.getByRole("button", { name: /^delete event$/i }))
-    // First click only arms the confirm step — nothing is deleted yet.
+    // The trigger only opens the modal — nothing is deleted yet.
     expect(deleteEvent).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }))
+    expect(
+      screen.getByRole("heading", { name: "Delete event?" })
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
     await waitFor(() => {
       expect(deleteEvent).toHaveBeenCalledWith("EVT-001")
     })
@@ -77,11 +80,23 @@ describe("EventActions delete", () => {
     expect(closeEvent).not.toHaveBeenCalled()
   })
 
+  it("cancels the modal without deleting", async () => {
+    render(<EventActions event={event} />)
+    fireEvent.click(screen.getByRole("button", { name: /^delete event$/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Keep" }))
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Delete event?" })
+      ).toBeNull()
+    })
+    expect(deleteEvent).not.toHaveBeenCalled()
+  })
+
   it("surfaces a delete failure without leaving the page", async () => {
     vi.mocked(deleteEvent).mockRejectedValue(new Error("nope"))
     render(<EventActions event={event} />)
     fireEvent.click(screen.getByRole("button", { name: /^delete event$/i }))
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }))
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
     await waitFor(() => {
       expect(errorMock).toHaveBeenCalledTimes(1)
     })

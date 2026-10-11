@@ -15,12 +15,14 @@
 import * as React from "react"
 import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { logout } from "@/lib/api-client"
 
 export function LockButton() {
   const [busy, setBusy] = React.useState(false)
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
 
-  async function onClick() {
+  async function onConfirm() {
     if (busy) return
     setBusy(true)
     try {
@@ -39,13 +41,25 @@ export function LockButton() {
   }
 
   return (
-    <Button
-      variant="outline"
-      onClick={() => void onClick()}
-      disabled={busy}
-      className="clay-btn rounded-full"
-    >
-      <LogOut className="size-4" aria-hidden /> Log out
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        onClick={() => setConfirmOpen(true)}
+        disabled={busy}
+        className="clay-btn rounded-full"
+      >
+        <LogOut className="size-4" aria-hidden /> Log out
+      </Button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Log out?"
+        message="This ends the admin session on this device. You will need the staff PIN to sign back in."
+        confirmLabel="Yes, log out"
+        cancelLabel="Stay"
+        onConfirm={() => void onConfirm()}
+        busy={busy}
+      />
+    </>
   )
 }
