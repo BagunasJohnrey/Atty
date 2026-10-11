@@ -64,6 +64,10 @@ function invalidatedBy(action: string): string[] {
     case "closeEvent":
     case "updateEvent":
       return ["getEvents:", "getEvent:"]
+    // Like deleteOrganization: a delete must not leave the row resolvable
+    // from a cached read after the event is gone.
+    case "deleteEvent":
+      return ["getEvents:", "getEvent:"]
     case "recordAttendance":
       return ["getAttendance:", "getAttendanceReport:"]
     default:

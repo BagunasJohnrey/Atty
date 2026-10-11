@@ -4,6 +4,7 @@ import {
   checkAttendanceNeon,
   closeEventNeon,
   createEventNeon,
+  deleteEventNeon,
   fetchAttendanceNeon,
   fetchEventsNeon,
   getAttendanceReportNeon,
@@ -350,6 +351,32 @@ describe("neon events", () => {
     await expect(
       updateEventNeon("EVT-001", { location: "Hall" })
     ).resolves.toMatchObject({ location: "Hall" })
+  })
+
+  it("deletes an event and returns it", async () => {
+    const sql = mockSql((strings) => {
+      const q = queryText(strings)
+      // "delete from events" also contains "from events" — check delete first.
+      if (q.includes("delete from events")) return [neonEventRow]
+      if (q.includes("from events")) return [neonEventRow]
+      throw new Error(`unexpected query: ${q}`)
+    })
+    await expect(deleteEventNeon("EVT-001")).resolves.toMatchObject({
+      id: "EVT-001",
+    })
+    expect(
+      sql.mock.calls.some((call) => String(call).includes("delete from events"))
+    ).toBe(true)
+  })
+
+  it("throws EVENT_NOT_FOUND when deleting a missing event", async () => {
+    const sql = mockSql(() => [])
+    await expect(deleteEventNeon("EVT-999")).rejects.toMatchObject({
+      code: "EVENT_NOT_FOUND",
+    })
+    expect(
+      sql.mock.calls.some((call) => String(call).includes("delete from events"))
+    ).toBe(false)
   })
 
   it("opens an Upcoming event and no-ops an Active one", async () => {

@@ -412,6 +412,17 @@ export async function closeEventNeon(eventId: string): Promise<SchoolEvent> {
   return rows[0] ? mapEventRow(rows[0]) : { ...event, status: "Closed" }
 }
 
+export async function deleteEventNeon(eventId: string): Promise<SchoolEvent> {
+  // Read first so a missing id reports EVENT_NOT_FOUND instead of a silent
+  // no-op. Attendance rows cascade from the foreign key.
+  const event = await getEventNeon(eventId)
+  const sql = getSql()
+  const rows = (await sql`
+    delete from events where id = ${eventId} returning *
+  `) as Record<string, unknown>[]
+  return rows[0] ? mapEventRow(rows[0]) : event
+}
+
 function toISO(value: unknown): string {
   if (value instanceof Date) return value.toISOString()
   return String(value ?? "")

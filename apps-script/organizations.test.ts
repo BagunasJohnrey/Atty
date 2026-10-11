@@ -237,6 +237,36 @@ describe("organizations hard delete", () => {
   })
 })
 
+describe("events hard delete", () => {
+  it("removes the registry row and the attendance tab", () => {
+    const h = loadScripts()
+    const removed = h.api.Events.delete("EVT-001")
+    expect(removed.id).toBe("EVT-001")
+    expect(h.api.Events.all()).toHaveLength(0)
+    expect(h.api.Sheets.sheetByName("EVT-001")).toBeNull()
+  })
+
+  it("leaves the deleted id unresolvable afterwards", () => {
+    const h = loadScripts()
+    h.api.Events.delete("EVT-001")
+    expect(codeOf(() => h.api.Events.assertById("EVT-001"))).toBe(
+      "EVENT_NOT_FOUND"
+    )
+  })
+
+  it("rejects deleting an unknown event", () => {
+    expect(
+      codeOf(() => loadScripts().api.Events.handleDelete({ eventId: "EVT-999" }))
+    ).toBe("EVENT_NOT_FOUND")
+  })
+
+  it("wraps delete in the standard success envelope", () => {
+    const removed = loadScripts().api.Events.handleDelete({ eventId: "EVT-001" })
+    expect(removed.success).toBe(true)
+    expect(removed.event.id).toBe("EVT-001")
+  })
+})
+
 /** Creates an organization through the handler, unwrapping the envelope. */
 function createOrg(h: ReturnType<typeof loadScripts>, name: string, email = "") {
   return h.api.Organizations.handleCreate({ name, email }).organization

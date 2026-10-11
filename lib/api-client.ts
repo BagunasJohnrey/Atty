@@ -131,6 +131,12 @@ export function updateEvent(
   })
 }
 
+export function deleteEvent(eventId: string): Promise<EventResponse> {
+  return request<EventResponse>(`/api/events/${encodeURIComponent(eventId)}`, {
+    method: "DELETE",
+  })
+}
+
 export function listAttendance(
   eventId: string,
   filters?: AttendanceFilters,

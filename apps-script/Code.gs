@@ -57,6 +57,7 @@ function router() {
     updateEvent: Events.handleUpdate,
     closeEvent: Events.handleClose,
     openEvent: Events.handleOpen,
+    deleteEvent: Events.handleDelete,
     recordAttendance: Attendance.handleRecord,
     checkAttendance: Attendance.handleCheck,
     getAttendance: Attendance.handleList,

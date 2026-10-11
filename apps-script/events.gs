@@ -242,6 +242,23 @@ var Events = {
   },
 
   /**
+   * Hard deletes an event: the registry row is removed permanently and its
+   * attendance tab goes with it, so no orphan scans survive. There is no
+   * undo — the Sheets backup mirror keeps its copies, but the live data
+   * is gone.
+   *
+   * @param {string} eventId
+   * @returns {SchoolEvent} Snapshot of the removed event.
+   */
+  delete: function (eventId) {
+    var event = Events.assertById(eventId)
+    var row = Sheets.findRowByValue(Config.EVENTS_SHEET, Config.COLUMNS.EVENTS.ID, eventId)
+    Sheets.deleteRow(Config.EVENTS_SHEET, row)
+    Sheets.deleteSheet(event.sheetName || eventId)
+    return event
+  },
+
+  /**
    * API handler for "getEvents".
    *
    * @returns {Object}
@@ -299,6 +316,19 @@ var Events = {
   handleOpen: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
     return Responses.ok("Event opened successfully.", { event: Events.open(eventId) })
+  },
+
+  /**
+   * API handler for "deleteEvent".
+   *
+   * @param {Object} body
+   * @returns {Object}
+   */
+  handleDelete: function (body) {
+    var eventId = Validators.requireString(body, "eventId", "Event ID")
+    return Responses.ok("Event deleted successfully.", {
+      event: Events.delete(eventId),
+    })
   },
 
   /**

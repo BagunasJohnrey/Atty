@@ -62,6 +62,16 @@ describe("upstream read cache", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(4)
   })
 
+  it("invalidates event reads after a delete", async () => {
+    const fetchSpy = mockFetch(() => ok({ event: { id: "EVT-001" } }))
+    const { requestAppsScript } = await import("./http")
+    await requestAppsScript("getEvent", { eventId: "EVT-001" })
+    await requestAppsScript("deleteEvent", { eventId: "EVT-001" })
+    await requestAppsScript("getEvent", { eventId: "EVT-001" })
+    // warm-up + read POST + mutation POST + re-fetch POST (cache was cleared).
+    expect(fetchSpy).toHaveBeenCalledTimes(4)
+  })
+
   it("retries a transient non-JSON response instead of failing", async () => {
     let posts = 0
     const fetchSpy = vi.fn(async (url: string, init?: RequestInit) => {

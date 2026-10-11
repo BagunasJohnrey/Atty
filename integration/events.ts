@@ -7,6 +7,7 @@ import { requestAppsScript } from "./http"
 import {
   closeEventNeon,
   createEventNeon,
+  deleteEventNeon,
   getEventNeon,
   getEventsNeon,
   openEventNeon,
@@ -82,6 +83,15 @@ export async function updateEvent(
   const response = await requestAppsScript<{ event: SchoolEvent }>(
     "updateEvent",
     { eventId, ...input }
+  )
+  return response.event
+}
+
+export async function deleteEvent(eventId: string): Promise<SchoolEvent> {
+  if (isNeonEventsEnabled()) return deleteEventNeon(eventId)
+  const response = await requestAppsScript<{ event: SchoolEvent }>(
+    "deleteEvent",
+    { eventId }
   )
   return response.event
 }

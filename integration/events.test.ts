@@ -3,6 +3,7 @@ import type { SchoolEvent } from "@/models/event"
 import {
   closeEvent,
   createEvent,
+  deleteEvent,
   getEvent,
   getEvents,
   openEvent,
@@ -12,6 +13,7 @@ import { requestAppsScript } from "./http"
 import {
   closeEventNeon,
   createEventNeon,
+  deleteEventNeon,
   getEventNeon,
   getEventsNeon,
   openEventNeon,
@@ -24,6 +26,7 @@ vi.mock("./http", () => ({
 vi.mock("./neon", () => ({
   closeEventNeon: vi.fn(),
   createEventNeon: vi.fn(),
+  deleteEventNeon: vi.fn(),
   getEventNeon: vi.fn(),
   getEventsNeon: vi.fn(),
   openEventNeon: vi.fn(),
@@ -38,6 +41,7 @@ const neonMocks = {
   close: vi.mocked(closeEventNeon),
   open: vi.mocked(openEventNeon),
   update: vi.mocked(updateEventNeon),
+  remove: vi.mocked(deleteEventNeon),
 }
 
 const sampleEvent: SchoolEvent = {
@@ -168,6 +172,14 @@ describe("events integration", () => {
       status: "Active",
     })
   })
+
+  it("deletes an event via deleteEvent", async () => {
+    mockSuccess({ event: sampleEvent })
+    await expect(deleteEvent("EVT-001")).resolves.toEqual(sampleEvent)
+    expect(requestMock).toHaveBeenCalledWith("deleteEvent", {
+      eventId: "EVT-001",
+    })
+  })
 })
 
 describe("events cutover", () => {
@@ -219,6 +231,13 @@ describe("events cutover", () => {
     expect(neonMocks.update).toHaveBeenCalledWith("EVT-001", {
       location: "Hall",
     })
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("deletes via Neon when flagged", async () => {
+    neonMocks.remove.mockResolvedValue(sampleEvent)
+    await expect(deleteEvent("EVT-001")).resolves.toEqual(sampleEvent)
+    expect(neonMocks.remove).toHaveBeenCalledWith("EVT-001")
     expect(requestMock).not.toHaveBeenCalled()
   })
 })
