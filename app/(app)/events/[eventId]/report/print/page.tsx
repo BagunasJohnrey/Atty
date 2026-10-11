@@ -92,7 +92,6 @@ export default async function PrintReportPage({
         <div className="flex items-center gap-2">
           <PrintButton />
           <DownloadPdfButton
-            eventId={event.id}
             eventMeta={{
               name: event.name,
               date: event.date,

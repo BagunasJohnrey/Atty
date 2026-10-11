@@ -56,7 +56,6 @@ describe("DownloadPdfButton", () => {
 
     render(
       <DownloadPdfButton
-        eventId="EVT-001"
         eventMeta={meta}
         orgName="Org"
         orgEmail="org@example.edu"
@@ -76,7 +75,9 @@ describe("DownloadPdfButton", () => {
     await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1))
     expect(click).toHaveBeenCalledTimes(1)
-    expect(created[0]?.download).toBe("EVT-001-attendance-report.pdf")
+    expect(created[0]?.download).toBe(
+      "2026-10-02_AttendanceReport_Phase2-Verify.pdf"
+    )
     expect(revoke).toHaveBeenCalledTimes(1)
   })
 
@@ -91,7 +92,6 @@ describe("DownloadPdfButton", () => {
 
     render(
       <DownloadPdfButton
-        eventId="EVT-001"
         eventMeta={meta}
         orgName="Org"
         orgEmail="org@example.edu"

@@ -23,12 +23,28 @@ const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 
 describe("reportPdfFilename", () => {
-  it("builds a safe filename from the event id", () => {
-    expect(reportPdfFilename("EVT-001")).toBe("EVT-001-attendance-report.pdf")
+  it("builds YYYY-MM-DD_AttendanceReport_EventName", () => {
+    expect(
+      reportPdfFilename({ name: "Phase2 Verify", date: "2026-10-02" })
+    ).toBe("2026-10-02_AttendanceReport_Phase2-Verify.pdf")
   })
 
-  it("falls back when the event id is blank", () => {
-    expect(reportPdfFilename("  ")).toBe("attendance-report.pdf")
+  it("normalizes stored dates and sanitizes the name", () => {
+    expect(
+      reportPdfFilename({ name: "Science Fair!", date: "11/15/2026" })
+    ).toBe("2026-11-15_AttendanceReport_Science-Fair.pdf")
+    expect(
+      reportPdfFilename({
+        name: "Fair",
+        date: "November 15, 2026 - November 16, 2026",
+      })
+    ).toBe("2026-11-15_AttendanceReport_Fair.pdf")
+  })
+
+  it("falls back for blank meta", () => {
+    expect(reportPdfFilename({ name: "  ", date: "" })).toBe(
+      "undated_AttendanceReport_event.pdf"
+    )
   })
 })
 
@@ -140,5 +156,32 @@ describe("buildAttendanceReportPdf", () => {
     const text = Buffer.from(bytes).toString("latin1")
     expect(text.startsWith("%PDF")).toBe(true)
     expect(text).toContain("No attendance records.")
+  })
+
+  it("repeats the header and footer on every page", () => {
+    const rows = Array.from({ length: 120 }, (_, i) => ({
+      key: String(i),
+      srcode: `26-${String(i).padStart(5, "0")}`,
+      name: `Student ${i}`,
+      yearLevel: "FIRST YEAR",
+      program: "BSIT",
+    }))
+    const text = Buffer.from(
+      buildAttendanceReportPdf({
+        eventMeta: meta,
+        orgName: "Org",
+        orgEmail: "org@example.edu",
+        rows,
+      })
+    ).toString("latin1")
+    const pages = (text.match(/\/Type \/Page(?!s)/g) ?? []).length
+    expect(pages).toBeGreaterThan(1)
+    const headerHits = text.split("BATANGAS STATE UNIVERSITY").length - 1
+    expect(headerHits).toBe(pages)
+    const footerHits =
+      text.split(
+        "Leading Innovations, Transforming Lives, Building the Nation"
+      ).length - 1
+    expect(footerHits).toBe(pages)
   })
 })

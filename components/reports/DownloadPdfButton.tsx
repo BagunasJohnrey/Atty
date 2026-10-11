@@ -11,15 +11,14 @@ import type {
 
 /** One-click PDF download: builds the attendance report client-side
     (legal landscape, same content as the print preview) and saves it as
-    `{eventId}-attendance-report.pdf` without opening the print dialog. */
+    `YYYY-MM-DD_AttendanceReport_EventName.pdf` without opening the print
+    dialog. */
 export function DownloadPdfButton({
-  eventId,
   eventMeta,
   orgName,
   orgEmail,
   rows,
 }: {
-  eventId: string
   eventMeta: ReportEventMeta
   orgName: string
   orgEmail: string
@@ -53,7 +52,7 @@ export function DownloadPdfButton({
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = reportPdfFilename(eventId)
+      a.download = reportPdfFilename(eventMeta)
       document.body.appendChild(a)
       a.click()
       a.remove()

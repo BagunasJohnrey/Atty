@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
-import { formatEventDate } from "@/lib/format"
+import { formatEventDate, toDateInputValue } from "@/lib/format"
 import type { ReportEventMeta, ReportRow } from "@/components/reports/PaginatedReport"
 
 const FOOTER_TEXT =
@@ -26,6 +26,14 @@ export const REPORT_TABLE_BODY_CELL_PADDING_PT = {
 
 /** `@page` narrow margin (1.27cm = 0.5in = 36pt) on each side. */
 const PAGE_MARGIN_PT = 36
+
+/**
+ * Vertical space the repeated header occupies. Continuation pages reserve
+ * this via the table's top margin so rows never print over the header.
+ * Matches the header block drawn below (letterhead + rule + org/event
+ * lines ending near y=225).
+ */
+const HEADER_RESERVED_PT = 232
 
 /** Gap between the seal and the letterhead text, mirroring the preview. */
 export const LETTERHEAD_LOGO_GAP_PT = 14
@@ -70,10 +78,22 @@ export function letterheadLayout(
   }
 }
 
-export function reportPdfFilename(eventId: string): string {
-  const id = eventId.trim().replace(/[^\w\-.]+/g, "-")
-  if (!id) return "attendance-report.pdf"
-  return `${id}-attendance-report.pdf`
+/**
+ * Download filename in `YYYY-MM-DD_AttendanceReport_EventName` form. The
+ * date takes the start of the stored value (ranges file under day one);
+ * the name is dasherized and stripped of filesystem-unsafe characters.
+ */
+export function reportPdfFilename(eventMeta: {
+  name: string
+  date: string
+}): string {
+  const day = toDateInputValue(eventMeta.date) || "undated"
+  const name =
+    eventMeta.name
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\-.]+/g, "") || "event"
+  return `${day}_AttendanceReport_${name}.pdf`
 }
 
 /** Blob → `data:` URL (for embedding the letterhead seal into the PDF). */
@@ -84,6 +104,114 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error("Read failed."))
     reader.readAsDataURL(blob)
   })
+}
+
+interface ReportHeaderArgs {
+  doc: jsPDF
+  pageWidth: number
+  eventMeta: ReportEventMeta
+  orgName: string
+  logoDataUrl?: string
+  logoWidth: number | null
+  logoX: number | null
+  textCenterX: number
+  letterheadLines: {
+    text: string
+    size: number
+    bold: boolean
+    accent?: boolean
+  }[]
+}
+
+/**
+ * Draws the letterhead, rule, and org/event lines from the top of the
+ * page. Returns the y below the block for the table to start at. Used
+ * once for page 1 and again for every continuation page so the header
+ * (like the footer) is present on all of them.
+ */
+function drawReportHeader(args: ReportHeaderArgs): number {
+  const {
+    doc,
+    pageWidth,
+    eventMeta,
+    orgName,
+    logoDataUrl,
+    logoWidth,
+    logoX,
+    textCenterX,
+    letterheadLines,
+  } = args
+  let y = 48
+  const letterheadTop = y
+  for (const line of letterheadLines) {
+    doc.setFont("times", line.bold ? "bold" : "normal")
+    doc.setFontSize(line.size)
+    if (line.accent) doc.setTextColor(210, 54, 59)
+    else doc.setTextColor(0, 0, 0)
+    doc.text(line.text, textCenterX, y, { align: "center" })
+    y += line.size * 1.25
+  }
+  doc.setTextColor(0, 0, 0)
+  const letterheadBottom = y
+
+  // A bad asset must never break the download, so failures fall back to
+  // the text-only letterhead drawn above.
+  if (logoDataUrl && logoWidth != null && logoX != null) {
+    try {
+      doc.addImage(
+        logoDataUrl,
+        "PNG",
+        logoX,
+        letterheadLogoY(
+          letterheadTop,
+          letterheadBottom,
+          LETTERHEAD_LOGO_HEIGHT_PT
+        ),
+        logoWidth,
+        LETTERHEAD_LOGO_HEIGHT_PT
+      )
+    } catch {
+      // Keep the text-only letterhead.
+    }
+  }
+
+  y += 2
+  // Preview `hr`: 4pt solid black.
+  doc.setLineWidth(4)
+  doc.line(48, y, pageWidth - 48, y)
+  y += 14
+
+  doc.setFont("times", "bold")
+  doc.setFontSize(12)
+  doc.text(orgName, 48, y)
+  y += 18
+
+  doc.setFont("times", "normal")
+  doc.setFontSize(11)
+  doc.text(`Event: ${eventMeta.name}`, pageWidth / 2, y, { align: "center" })
+  y += 16
+  doc.text(
+    `Date: ${formatEventDate(eventMeta.date)}  |  Time: ${eventMeta.time || " "}  |  Venue: ${eventMeta.location || " "}`,
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  )
+  y += 16
+  y += 8
+  return y
+}
+
+function drawReportFooter(doc: jsPDF, pageWidth: number): void {
+  doc.setFont("helvetica", "bolditalic")
+  doc.setFontSize(12)
+  doc.setTextColor(210, 54, 59)
+  doc.text(
+    FOOTER_TEXT,
+    pageWidth / 2,
+    doc.internal.pageSize.getHeight() - 30,
+    { align: "center" }
+  )
+  doc.setTextColor(0, 0, 0)
 }
 
 export function buildAttendanceReportPdf(args: {
@@ -152,66 +280,25 @@ export function buildAttendanceReportPdf(args: {
     logoWidth
   )
 
-  let y = 48
-  const letterheadTop = y
-  for (const line of letterheadLines) {
-    doc.setFont("times", line.bold ? "bold" : "normal")
-    doc.setFontSize(line.size)
-    if (line.accent) doc.setTextColor(210, 54, 59)
-    else doc.setTextColor(0, 0, 0)
-    doc.text(line.text, textCenterX, y, { align: "center" })
-    y += line.size * 1.25
-  }
-  doc.setTextColor(0, 0, 0)
-  const letterheadBottom = y
-
-  // A bad asset must never break the download, so failures fall back to
-  // the text-only letterhead drawn above.
-  if (logoDataUrl && logoWidth != null && logoX != null) {
-    try {
-      doc.addImage(
-        logoDataUrl,
-        "PNG",
-        logoX,
-        letterheadLogoY(
-          letterheadTop,
-          letterheadBottom,
-          LETTERHEAD_LOGO_HEIGHT_PT
-        ),
-        logoWidth,
-        LETTERHEAD_LOGO_HEIGHT_PT
-      )
-    } catch {
-      // Keep the text-only letterhead.
-    }
-  }
-
-  y += 2
-  // Preview `hr`: 4pt solid black.
-  doc.setLineWidth(4)
-  doc.line(48, y, pageWidth - 48, y)
-  y += 14
-
-  doc.setFont("times", "bold")
-  doc.setFontSize(12)
-  doc.text(orgName, 48, y)
-  y += 18
-
-  doc.setFont("times", "normal")
-  doc.setFontSize(11)
-  doc.text(`Event: ${eventMeta.name}`, pageWidth / 2, y, { align: "center" })
-  y += 16
-  doc.text(
-    `Date: ${formatEventDate(eventMeta.date)}  |  Time: ${eventMeta.time || " "}  |  Venue: ${eventMeta.location || " "}`,
-    pageWidth / 2,
-    y,
-    { align: "center" }
-  )
-  y += 8
+  const y = drawReportHeader({
+    doc,
+    pageWidth,
+    eventMeta,
+    orgName,
+    logoDataUrl,
+    logoWidth,
+    logoX,
+    textCenterX,
+    letterheadLines,
+  })
 
   autoTable(doc, {
     startY: y,
-    margin: { left: PAGE_MARGIN_PT, right: PAGE_MARGIN_PT },
+    margin: {
+      top: HEADER_RESERVED_PT,
+      left: PAGE_MARGIN_PT,
+      right: PAGE_MARGIN_PT,
+    },
     theme: "grid",
     head: [["SR-CODE", "FULL NAME", "YEAR", "PROGRAM"]],
     body:
@@ -250,17 +337,21 @@ export function buildAttendanceReportPdf(args: {
         },
       ])
     ),
-    didDrawPage: () => {
-      doc.setFont("helvetica", "bolditalic")
-      doc.setFontSize(12)
-      doc.setTextColor(210, 54, 59)
-      doc.text(
-        FOOTER_TEXT,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 30,
-        { align: "center" }
-      )
-      doc.setTextColor(0, 0, 0)
+    didDrawPage: (data: { pageNumber: number }) => {
+      if (data.pageNumber > 1) {
+        drawReportHeader({
+          doc,
+          pageWidth,
+          eventMeta,
+          orgName,
+          logoDataUrl,
+          logoWidth,
+          logoX,
+          textCenterX,
+          letterheadLines,
+        })
+      }
+      drawReportFooter(doc, pageWidth)
     },
   })
 
