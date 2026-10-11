@@ -24,6 +24,11 @@ type Outcome =
   | { kind: "done"; student: Student; timestamp: string }
   | { kind: "queued"; srcode: string }
 
+/** Result cards fade out this long after appearing, then clear. */
+const RESULT_DISMISS_MS = 5000
+/** Fade transition length before the cleared card unmounts. */
+const DISMISS_FADE_MS = 300
+
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -48,11 +53,39 @@ export function CheckInForm({
   const busy = validating || recording
   const [outcome, setOutcome] = React.useState<Outcome>({ kind: "idle" })
   const [error, setError] = React.useState<string | null>(null)
+  const [dismissing, setDismissing] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     inputRef.current?.focus()
   }, [])
+
+  /** Auto-dismiss: result cards fade out 5s after appearing so the kiosk
+      returns to a clean state for the next scan. The pre-confirm card is
+      excluded — it waits on the user. A new scan replaces the outcome,
+      which restarts both timers via cleanup. */
+  React.useEffect(() => {
+    // Always reset first: a new scan landing on confirm/idle must render
+    // fully visible even if the previous result was mid-fade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional cascading reset: each new outcome must render fully visible before its own timers arm; converges immediately (same-value bail-out, no loop).
+    setDismissing(false)
+    if (
+      outcome.kind !== "done" &&
+      outcome.kind !== "duplicate" &&
+      outcome.kind !== "queued"
+    ) {
+      return
+    }
+    const fadeTimer = setTimeout(() => setDismissing(true), RESULT_DISMISS_MS)
+    const clearTimer = setTimeout(
+      () => setOutcome({ kind: "idle" }),
+      RESULT_DISMISS_MS + DISMISS_FADE_MS
+    )
+    return () => {
+      clearTimeout(fadeTimer)
+      clearTimeout(clearTimer)
+    }
+  }, [outcome])
 
   /** Step 1 (FR-04/FR-05): validate the SR Code and show verified info below. */
   async function onLookup(e: React.FormEvent) {
@@ -217,7 +250,10 @@ export function CheckInForm({
         </CardContent>
       </Card>
 
-      <div aria-live="polite" className="flex flex-col gap-4">
+      <div
+        aria-live="polite"
+        className={`flex flex-col gap-4 transition-opacity duration-300 motion-reduce:transition-none ${dismissing ? "opacity-0" : "opacity-100"}`}
+      >
         {outcome.kind === "confirm" ? (
           <Card>
             <CardContent>
