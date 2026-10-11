@@ -224,7 +224,14 @@
     }
   html {
     @apply font-sans;
+    /* App-wide hidden scrollbars (page still scrolls; bars invisible). */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* legacy Edge */
     }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, modern Edge */
+  }
   body {
     color: var(--clay-body);
     font-weight: 500;

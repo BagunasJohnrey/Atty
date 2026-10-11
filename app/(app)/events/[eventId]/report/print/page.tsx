@@ -91,7 +91,23 @@ export default async function PrintReportPage({
         </Link>
         <div className="flex items-center gap-2">
           <PrintButton />
-          <DownloadPdfButton />
+          <DownloadPdfButton
+            eventMeta={{
+              name: event.name,
+              date: event.date,
+              time: event.time,
+              location: event.location,
+            }}
+            orgName={orgName}
+            orgEmail={orgEmail}
+            rows={rows.map((r) => ({
+              key: `${r.srcode}-${r.timestamp}`,
+              srcode: r.srcode,
+              name: r.name,
+              yearLevel: r.yearLevel,
+              program: r.program,
+            }))}
+          />
         </div>
       </div>
 

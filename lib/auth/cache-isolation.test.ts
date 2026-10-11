@@ -58,7 +58,9 @@ describe("cache isolation", () => {
 
   it("every API route handler calls the auth gate", () => {
     // Layer 2 is the authoritative check, and it is easy to forget on a new
-    // route. Each handler body must contain a `requireAdmin()` call.
+    // route. Each handler body must contain a `requireAdmin()` call — except
+    // cron handlers, which have no session by design and instead call the
+    // shared-secret `checkCronSecret()` guard (see app/api/admin/backup).
     const offenders: string[] = []
     for (const file of walk(path.join(root, "app", "api"))) {
       if (!file.endsWith("route.ts")) continue
@@ -68,8 +70,9 @@ describe("cache isolation", () => {
       const source = readFileSync(file, "utf8")
       const handlers = source.match(/export async function (GET|POST|PATCH|PUT|DELETE)\b/g) ?? []
       const calls = source.match(/await requireAdmin\(\)/g) ?? []
-      if (handlers.length > calls.length) {
-        offenders.push(`${relative}: ${handlers.length} handler(s), ${calls.length} guard(s)`)
+      const cronGuards = source.match(/checkCronSecret\(request\)/g) ?? []
+      if (handlers.length > calls.length + cronGuards.length) {
+        offenders.push(`${relative}: ${handlers.length} handler(s), ${calls.length + cronGuards.length} guard(s)`)
       }
     }
     expect(offenders).toEqual([])

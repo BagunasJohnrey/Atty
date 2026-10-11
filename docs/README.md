@@ -8,6 +8,7 @@ Next.js frontend/BFF and the Google Apps Script backend.
 | Document | Read it when |
 |---|---|
 | [getting-started.md](getting-started.md) | **New to the project.** Setup, spreadsheet layout, backend deployment, and how to use every page. |
+| [deployment.md](deployment.md) | **Shipping to Vercel.** Env vars, baseline check, moving traffic to Neon flag by flag, cron, rollback. |
 | [tech-stack.md](tech-stack.md) | You want to know what it is built with and why each choice was made. |
 | [architecture.md](architecture.md) | You need to know how a request travels to Google Sheets and where the trust boundaries are. |
 | [testing.md](testing.md) | You are writing tests, or verifying a change by hand. |
@@ -27,6 +28,7 @@ One guide per system module, in the order a staff member meets them:
 | [modules/organizers.md](modules/organizers.md) | Touching organizers or the letterhead. |
 | [modules/notifications.md](modules/notifications.md) | Adding or changing user-facing feedback. |
 | [modules/backend-integration.md](modules/backend-integration.md) | Touching the Apps Script bridge, caching, or invalidation. |
+| [modules/neon.md](modules/neon.md) | The Neon data layer: cutover flags, validation parity, Sheets backup mirror, operations. |
 
 ## Security
 
@@ -61,5 +63,6 @@ Feature work in flight, newest first:
 
 | Document | Covers |
 |---|---|
+| [`plans/2026-10-10-changes.md`](plans/2026-10-10-changes.md) | Team changelog for the 2026-10-10 batch: hydration fixes, PDF download, Neon cutover, Sheets backup. Built and verified, pending deploy. |
 | [`specs/2026-10-01-organizations-backend-design.md`](specs/2026-10-01-organizations-backend-design.md) | Why organizations exist as an entity, the `Organizations` sheet, soft delete, and why the report letterhead falls back the way it does. Implemented, uncommitted. |
 | [`plans/2026-10-01-organizations-ui.md`](plans/2026-10-01-organizations-ui.md) | The task-by-task plan for the organizations UI: pages, dialogs, the org picker, and wiring the print letterhead. Not started. |

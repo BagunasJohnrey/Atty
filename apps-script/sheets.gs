@@ -82,6 +82,18 @@ var Sheets = {
   },
 
   /**
+   * Permanently removes a whole tab. Missing tabs are a no-op so deletes
+   * of legacy events (created before per-event tabs) never fail.
+   *
+   * @param {string} sheetName
+   */
+  deleteSheet: function (sheetName) {
+    var sheet = Sheets.sheetByName(sheetName)
+    if (!sheet) return
+    Sheets.getSpreadsheet().deleteSheet(sheet)
+  },
+
+  /**
    * Appends a row to the given sheet, creating the sheet if needed.
    *
    * @param {string} sheetName

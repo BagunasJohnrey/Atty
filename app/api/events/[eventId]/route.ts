@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { closeEvent, updateEvent } from "@/integration/events"
+import { closeEvent, deleteEvent, updateEvent } from "@/integration/events"
 import { getEventCachedFor } from "@/integration/cached"
 import { expireEvent } from "@/integration/invalidate"
 import { requireAdmin } from "@/lib/auth/dal"
@@ -60,8 +60,27 @@ export async function PATCH(request: Request, context: EventParams) {
   })
 }
 
-function parsePatchBody(raw: string): UpdateEventInput {
-  let body: unknown
+/**
+ * DELETE removes the event permanently, including its attendance scans.
+ * Mirrors the organization DELETE: admin gate, cache expiry, deleted row
+ * in the response. The Sheets mirror keeps its rows (backup never
+ * deletes), so the sheet tabs linger as orphans.
+ */
+export async function DELETE(_request: Request, context: EventParams) {
+  return respondWith(async () => {
+    await requireAdmin()
+    const { eventId } = await context.params
+    const event = await deleteEvent(eventId)
+    expireEvent(eventId)
+    return NextResponse.json({
+      success: true,
+      message: "Event deleted successfully.",
+      event,
+    })
+  })
+}
+
+function parsePatchBody(raw: string): UpdateEventInput {  let body: unknown
   try {
     body = JSON.parse(raw)
   } catch {

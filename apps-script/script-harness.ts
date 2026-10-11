@@ -169,6 +169,9 @@ export function loadScripts(options: SeedOptions = {}): Harness {
       store[keyFor(n)] = [["Timestamp", "SRCODE"]]
       return makeSheet(n)
     },
+    deleteSheet: (s: { getName: () => string }) => {
+      delete store[keyFor(s.getName())]
+    },
   })
 
   const sandbox: Record<string, any> = {

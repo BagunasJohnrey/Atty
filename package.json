@@ -9,14 +9,18 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:load": "vitest run integration/attendance-load.test.ts",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
+    "@neondatabase/serverless": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "jose": "^6.2.12",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.47.0",
     "next": "16.3.4",
     "next-themes": "^0.4.6",

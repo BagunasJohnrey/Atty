@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input, Label } from "@/components/ui/input"
 import { ApiError, checkAttendance, recordAttendance } from "@/lib/api-client"
 import {
+  formatSrcodeInput,
   formatTimestamp,
   isValidSrcodeFormat,
   normalizeSrcode,
@@ -22,6 +23,11 @@ type Outcome =
   | { kind: "duplicate"; message: string; timestamp?: string }
   | { kind: "done"; student: Student; timestamp: string }
   | { kind: "queued"; srcode: string }
+
+/** Result cards fade out this long after appearing, then clear. */
+const RESULT_DISMISS_MS = 5000
+/** Fade transition length before the cleared card unmounts. */
+const DISMISS_FADE_MS = 300
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
@@ -47,11 +53,39 @@ export function CheckInForm({
   const busy = validating || recording
   const [outcome, setOutcome] = React.useState<Outcome>({ kind: "idle" })
   const [error, setError] = React.useState<string | null>(null)
+  const [dismissing, setDismissing] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     inputRef.current?.focus()
   }, [])
+
+  /** Auto-dismiss: result cards fade out 5s after appearing so the kiosk
+      returns to a clean state for the next scan. The pre-confirm card is
+      excluded — it waits on the user. A new scan replaces the outcome,
+      which restarts both timers via cleanup. */
+  React.useEffect(() => {
+    // Always reset first: a new scan landing on confirm/idle must render
+    // fully visible even if the previous result was mid-fade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional cascading reset: each new outcome must render fully visible before its own timers arm; converges immediately (same-value bail-out, no loop).
+    setDismissing(false)
+    if (
+      outcome.kind !== "done" &&
+      outcome.kind !== "duplicate" &&
+      outcome.kind !== "queued"
+    ) {
+      return
+    }
+    const fadeTimer = setTimeout(() => setDismissing(true), RESULT_DISMISS_MS)
+    const clearTimer = setTimeout(
+      () => setOutcome({ kind: "idle" }),
+      RESULT_DISMISS_MS + DISMISS_FADE_MS
+    )
+    return () => {
+      clearTimeout(fadeTimer)
+      clearTimeout(clearTimer)
+    }
+  }, [outcome])
 
   /** Step 1 (FR-04/FR-05): validate the SR Code and show verified info below. */
   async function onLookup(e: React.FormEvent) {
@@ -178,14 +212,11 @@ export function CheckInForm({
               id="srcode"
               value={srcode}
               onChange={(e) => {
-                const next = e.target.value.toUpperCase()
-                setSrcode(next)
-                // Live gate: letters and symbols are never valid in an SR Code.
-                setError(
-                  next === "" || /^[0-9-]*$/.test(next)
-                    ? null
-                    : "Invalid SR Code format. Use 00-00000 (e.g. 26-12345)."
-                )
+                // Auto-dash: keystrokes regroup into 00-00000 as typed or
+                // pasted, so the dash never needs typing. Output is always
+                // digits-and-dash, which also retires the live gate below.
+                setSrcode(formatSrcodeInput(e.target.value))
+                setError(null)
               }}
               placeholder="26-12345"
               autoComplete="off"
@@ -219,7 +250,10 @@ export function CheckInForm({
         </CardContent>
       </Card>
 
-      <div aria-live="polite" className="flex flex-col gap-4">
+      <div
+        aria-live="polite"
+        className={`flex flex-col gap-4 transition-opacity duration-300 motion-reduce:transition-none ${dismissing ? "opacity-0" : "opacity-100"}`}
+      >
         {outcome.kind === "confirm" ? (
           <Card>
             <CardContent>
@@ -316,7 +350,8 @@ export function CheckInForm({
                     aria-hidden
                   />
                   <span>
-                    Queued — will sync when reconnected.
+                    Attendance recorded successfully. It will sync
+                    automatically when an internet connection is restored.
                     <span className="block text-muted-foreground">
                       {outcome.srcode}
                     </span>

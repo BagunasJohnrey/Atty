@@ -47,7 +47,9 @@ describe("CheckInForm offline", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
     await waitFor(() => {
-      expect(screen.getByText(/queued/i).textContent).toContain("Queued")
+      expect(screen.getByText(/recorded successfully/i).textContent).toContain(
+        "It will sync automatically"
+      )
     })
     expect(checkAttendance).toHaveBeenCalledTimes(1)
     expect(recordAttendance).not.toHaveBeenCalled()
@@ -130,7 +132,9 @@ describe("CheckInForm offline", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: /confirm attendance/i }))
     await waitFor(() => {
-      expect(screen.getByText(/queued/i).textContent).toContain("Queued")
+      expect(screen.getByText(/recorded successfully/i).textContent).toContain(
+        "It will sync automatically"
+      )
     })
     // The server call was attempted once and failed; the scan is queued.
     expect(recordAttendance).toHaveBeenCalledTimes(1)

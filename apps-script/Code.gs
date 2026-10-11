@@ -57,10 +57,13 @@ function router() {
     updateEvent: Events.handleUpdate,
     closeEvent: Events.handleClose,
     openEvent: Events.handleOpen,
+    deleteEvent: Events.handleDelete,
     recordAttendance: Attendance.handleRecord,
     checkAttendance: Attendance.handleCheck,
     getAttendance: Attendance.handleList,
     getAttendanceReport: Reports.handleReport,
     lookupStudent: Students.handleLookup,
+    backupEvents: Backup.handleBackupEvents,
+    backupAttendance: Backup.handleBackupAttendance,
   }
 }

@@ -1,6 +1,7 @@
 import { getEventsCached, getOrganizationsCached } from "@/integration/cached"
 import { EventSection } from "@/components/dashboard/EventSection"
 import { StatCards } from "@/components/dashboard/StatCards"
+import { SheetsBackupButton } from "@/components/admin/SheetsBackupButton"
 import { requireAdminPage } from "@/lib/auth/dal"
 
 export const metadata = { title: "Dashboard" }
@@ -36,8 +37,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="display mt-1">Dashboard</h1>
+        <SheetsBackupButton />
       </div>
       {error ? (
         <p role="alert" className="clay p-4 text-sm text-destructive">

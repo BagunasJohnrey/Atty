@@ -12,11 +12,22 @@ export function QueueSyncPanel({ eventId }: { eventId: string }) {
   const toast = useToast()
   const [report, setReport] = React.useState<SyncReport | null>(null)
   const queue = React.useMemo(() => getSharedQueue(), [])
+  // `isMemoryFallback()` differs between server prerender (no IndexedDB) and
+  // the browser. Read it in an effect so the first render is `false` on both
+  // sides (QueueStatus returns null) and hydration matches.
+  const [storageWarning, setStorageWarning] = React.useState(false)
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe sync: first render must match the server (false); real value applies after mount.
+    setStorageWarning(isMemoryFallback())
+  }, [])
 
   function handleReport(next: SyncReport) {
+    // Auto-sync fires on mount / event change / reconnect even when there is
+    // nothing queued. An empty, non-auth report means "nothing to do" — stay
+    // silent instead of popping the dialog with only the description text.
+    if (!next.pausedAuth && next.results.length === 0) return
     if (
       !next.pausedAuth &&
-      next.results.length > 0 &&
       next.results.every(
         (r) => r.outcome === "recorded" || r.outcome === "already-present"
       )
@@ -34,7 +45,7 @@ export function QueueSyncPanel({ eventId }: { eventId: string }) {
         queue={queue}
         record={recordAttendance}
         onReport={handleReport}
-        storageWarning={isMemoryFallback()}
+        storageWarning={storageWarning}
       />
       {report ? (
         <SyncReportDialog

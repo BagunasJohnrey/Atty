@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { EventActions } from "@/components/events/EventActions"
+import { EventFormDialog } from "@/components/events/EventFormDialog"
 import { EventStatusBadge } from "@/components/events/EventStatusBadge"
 import { AttendanceFilters } from "@/components/attendance/AttendanceFilters"
 import { AttendanceTable } from "@/components/attendance/AttendanceTable"
@@ -163,6 +164,7 @@ export default async function EventDetailPage({
             <ExportButton eventId={event.id} filters={filters} />
             <RefreshButton />
             <QueueSyncPanel eventId={event.id} />
+            <EventFormDialog event={event} />
             <span className="sm:ml-auto">
               <EventActions event={event} />
             </span>

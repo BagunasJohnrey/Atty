@@ -12,6 +12,10 @@ export function DialogTrigger(props: DialogPrimitive.Trigger.Props) {
   return <DialogPrimitive.Trigger {...props} />
 }
 
+export function DialogClose(props: DialogPrimitive.Close.Props) {
+  return <DialogPrimitive.Close {...props} />
+}
+
 export function DialogContent({
   className,
   children,

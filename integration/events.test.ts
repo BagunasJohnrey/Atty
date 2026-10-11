@@ -1,20 +1,48 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { SchoolEvent } from "@/models/event"
 import {
   closeEvent,
   createEvent,
+  deleteEvent,
   getEvent,
   getEvents,
   openEvent,
   updateEvent,
 } from "./events"
 import { requestAppsScript } from "./http"
+import {
+  closeEventNeon,
+  createEventNeon,
+  deleteEventNeon,
+  getEventNeon,
+  getEventsNeon,
+  openEventNeon,
+  updateEventNeon,
+} from "./neon"
 
 vi.mock("./http", () => ({
   requestAppsScript: vi.fn(),
 }))
+vi.mock("./neon", () => ({
+  closeEventNeon: vi.fn(),
+  createEventNeon: vi.fn(),
+  deleteEventNeon: vi.fn(),
+  getEventNeon: vi.fn(),
+  getEventsNeon: vi.fn(),
+  openEventNeon: vi.fn(),
+  updateEventNeon: vi.fn(),
+}))
 
 const requestMock = vi.mocked(requestAppsScript)
+const neonMocks = {
+  getEvents: vi.mocked(getEventsNeon),
+  getEvent: vi.mocked(getEventNeon),
+  create: vi.mocked(createEventNeon),
+  close: vi.mocked(closeEventNeon),
+  open: vi.mocked(openEventNeon),
+  update: vi.mocked(updateEventNeon),
+  remove: vi.mocked(deleteEventNeon),
+}
 
 const sampleEvent: SchoolEvent = {
   id: "EVT-001",
@@ -30,6 +58,8 @@ const sampleEvent: SchoolEvent = {
 
 beforeEach(() => {
   requestMock.mockReset()
+  Object.values(neonMocks).forEach((m) => m.mockReset())
+  delete process.env.NEON_EVENTS
 })
 
 function mockSuccess(payload: object): void {
@@ -141,5 +171,73 @@ describe("events integration", () => {
       location: "Auditorium",
       status: "Active",
     })
+  })
+
+  it("deletes an event via deleteEvent", async () => {
+    mockSuccess({ event: sampleEvent })
+    await expect(deleteEvent("EVT-001")).resolves.toEqual(sampleEvent)
+    expect(requestMock).toHaveBeenCalledWith("deleteEvent", {
+      eventId: "EVT-001",
+    })
+  })
+})
+
+describe("events cutover", () => {
+  beforeEach(() => {
+    process.env.NEON_EVENTS = "neon"
+    neonMocks.getEvents.mockResolvedValue([sampleEvent])
+    neonMocks.getEvent.mockResolvedValue(sampleEvent)
+    neonMocks.create.mockResolvedValue(sampleEvent)
+    neonMocks.close.mockResolvedValue(sampleEvent)
+    neonMocks.open.mockResolvedValue(sampleEvent)
+    neonMocks.update.mockResolvedValue(sampleEvent)
+  })
+
+  afterEach(() => {
+    delete process.env.NEON_EVENTS
+  })
+
+  it("reads the event list from Neon when flagged", async () => {
+    await expect(getEvents()).resolves.toEqual([sampleEvent])
+    expect(neonMocks.getEvents).toHaveBeenCalledTimes(1)
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("reads one event from Neon when flagged", async () => {
+    await expect(getEvent("EVT-001")).resolves.toEqual(sampleEvent)
+    expect(neonMocks.getEvent).toHaveBeenCalledWith("EVT-001")
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("creates via Neon with script-path defaults when flagged", async () => {
+    await createEvent({ name: "X", date: "2026-09-20" })
+    expect(neonMocks.create).toHaveBeenCalledWith({
+      name: "X",
+      date: "2026-09-20",
+      location: "",
+      description: "",
+      orgId: "",
+      time: "",
+    })
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("closes, opens, and updates via Neon when flagged", async () => {
+    await closeEvent("EVT-001")
+    expect(neonMocks.close).toHaveBeenCalledWith("EVT-001")
+    await openEvent("EVT-001")
+    expect(neonMocks.open).toHaveBeenCalledWith("EVT-001")
+    await updateEvent("EVT-001", { location: "Hall" })
+    expect(neonMocks.update).toHaveBeenCalledWith("EVT-001", {
+      location: "Hall",
+    })
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("deletes via Neon when flagged", async () => {
+    neonMocks.remove.mockResolvedValue(sampleEvent)
+    await expect(deleteEvent("EVT-001")).resolves.toEqual(sampleEvent)
+    expect(neonMocks.remove).toHaveBeenCalledWith("EVT-001")
+    expect(requestMock).not.toHaveBeenCalled()
   })
 })
