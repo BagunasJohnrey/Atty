@@ -22,4 +22,16 @@ describe("BreakdownBar overflow", () => {
     // engage and the count is pushed out of the card on narrow screens.
     expect(label.className).toContain("min-w-0")
   })
+
+  it("keeps the count on one line next to long labels", () => {
+    render(
+      <div style={{ width: 200 }}>
+        <BreakdownBar label={LONG_LABEL} count={17} total={20} tone="indigo" />
+      </div>
+    )
+    // The "17 · 85%" readout must not wrap under the label on phones.
+    expect(screen.getByText("17 · 85%").className).toContain(
+      "whitespace-nowrap"
+    )
+  })
 })

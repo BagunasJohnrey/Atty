@@ -60,6 +60,24 @@ describe("DayFilter", () => {
     ).toBe(true)
   })
 
+  it("stays compact on narrow screens when inline", () => {
+    const { container } = render(
+      <DayFilter days={days} basePath="/events/EVT-1" layout="inline" />
+    )
+    const row = container.querySelector(".flex-row")
+    // A forced min width (~176px) plus the label crowds the header badges
+    // on a 360px phone; the inline picker must shrink to fit.
+    expect(row?.className ?? "").not.toContain("min-w-44")
+    // Pill parity with the Active badge and event-ID chip (~24px tall):
+    // the inline trigger is pill-sized, not the h-9/h-11 input.
+    const trigger = screen.getByRole("combobox", { name: "Day" })
+    expect(trigger.className).toMatch(/(?:^|\s)h-6(?:\s|$)/)
+    expect(trigger.className).toContain("rounded-full")
+    expect(trigger.className).toContain("text-xs")
+    expect(trigger.className).not.toContain("h-9")
+    expect(trigger.className).not.toContain("h-11")
+  })
+
   it("matches button styling in the button variant", () => {
     render(
       <DayFilter days={days} basePath="/events/EVT-1" variant="button" />

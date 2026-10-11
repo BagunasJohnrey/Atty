@@ -45,11 +45,16 @@ export function DayFilter({
     <div
       className={
         layout === "inline"
-          ? "flex min-w-44 flex-row items-center gap-2"
+          ? // Pill parity with the Active badge and event-ID chip (~24px):
+            // no forced min width (it crowds the badges on a 360px phone)
+            // and an h-6 trigger instead of the h-9/h-11 inputs.
+            "flex min-w-0 flex-row items-center gap-1.5"
           : "flex min-w-44 flex-col gap-1.5"
       }
     >
-      <Label htmlFor="day-filter">Day</Label>
+      <Label htmlFor="day-filter" className="shrink-0">
+        Day
+      </Label>
       <ClaySelect
         id="day-filter"
         value={labeled.find((l) => l.value === current)?.label ?? ""}
@@ -60,7 +65,16 @@ export function DayFilter({
         options={labeled.map((l) => l.label)}
         allLabel="All days"
         className={
-          variant === "button" ? "clay-btn h-9 rounded-full font-semibold" : undefined
+          layout === "inline"
+            ? // Same metrics as the pills: h-6 height, px-2.5, text-xs.
+              // tailwind-merge drops the base h-11/px-4/text-sm/gap-2.
+              // The label doubles as the touch affordance: the trigger is
+              // ~24px tall (below the 44px WCAG minimum), so the nearby
+              // "Day" text plus the popup options carry the tapping load.
+              "h-6 gap-1 rounded-full px-2.5 text-xs font-semibold"
+            : variant === "button"
+              ? "clay-btn h-9 rounded-full font-semibold"
+              : undefined
         }
       />
     </div>

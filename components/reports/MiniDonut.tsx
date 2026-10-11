@@ -36,10 +36,12 @@ export function MiniDonut({
   const [hot, setHot] = React.useState<number | null>(null)
 
   return (
-    <div className="clay-pressed flex flex-col gap-3 p-4 sm:p-5">
+    // Same min-w-0 contract as CategoryChart: the card must shrink inside
+    // its grid cell on phones instead of overlapping its neighbour.
+    <div className="clay-pressed flex min-w-0 flex-col gap-3 p-4 sm:p-5">
       <h4 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{title}</h4>
       <div
-        className="flex items-center gap-4"
+        className="flex min-w-0 flex-wrap items-center gap-4"
         role="img"
         aria-label={`${title}: ${arcs.map((a) => `${a.label} ${a.value}`).join(", ")}`}
       >

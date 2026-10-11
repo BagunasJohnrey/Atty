@@ -27,7 +27,9 @@ export function BreakdownBar({
         <span className="min-w-0 truncate font-medium" title={label}>
           {label}
         </span>
-        <span className="shrink-0 text-muted-foreground tabular-nums">
+        {/* One line always: without this the "17 · 85%" readout wraps
+            under long department names on phones. */}
+        <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums">
           {count} · {pct}%
         </span>
       </div>

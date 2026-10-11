@@ -145,7 +145,7 @@ export default async function EventDetailPage({
               <HeaderDayFilter eventId={event.id} eventDate={event.date} />
             </span>
           </div>
-          <div className="-mt-4">
+          <div className="mt-1 sm:-mt-4">
             <CardTitle className="display">{event.name}</CardTitle>
             {event.description ? (
               <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
