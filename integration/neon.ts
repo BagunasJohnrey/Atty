@@ -17,6 +17,7 @@ import { manilaDayKey } from "@/lib/format"
 import { isDayWithinEvent, outsideEventDatesMessage } from "@/lib/events"
 import { AppsScriptError } from "./errors"
 import { getOrganization } from "./organizations"
+import { getOrganizationNeon } from "./neon-organizations"
 
 /**
  * Minimal Neon read layer.
@@ -282,11 +283,15 @@ function mapEventRow(row: Record<string, unknown>): SchoolEvent {
   }
 }
 
-/** Non-empty org ids must resolve; blank stays blank ("no organization").
- *  Organizations still live in Sheets, so this consults the script path. */
+/** Non-empty org ids must resolve against whichever backend owns
+ *  organizers (NEON_ORGANIZATIONS); blank stays blank ("no organization"). */
 async function assertOrgNeon(orgId: string): Promise<string> {
   if (!orgId) return ""
-  await getOrganization(orgId)
+  if (process.env.NEON_ORGANIZATIONS === "neon") {
+    await getOrganizationNeon(orgId)
+  } else {
+    await getOrganization(orgId)
+  }
   return orgId
 }
 

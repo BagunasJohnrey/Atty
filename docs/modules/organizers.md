@@ -22,6 +22,9 @@ on its printed report letterhead.
   organizer fall back to the default council letterhead on print.
 - Frontend-only naming rule: user-facing text says "Organizers"; URLs,
   component names, `orgId`, and the API keep "organizations".
+- Data store: Neon when `NEON_ORGANIZATIONS=neon`, else Apps Script —
+  see [neon.md](neon.md) for the cutover, import, and rollback replay.
+  Emails are always stored lowercase on both backends.
 
 ## Key files
 
@@ -29,8 +32,11 @@ on its printed report letterhead.
 |---|---|
 | `app/(app)/organizations/page.tsx` | Listing page |
 | `components/organizations/OrganizationCard.tsx` | Organizer card |
-| `components/organizations/OrganizationFormDialog.tsx` (+ `Lazy`) | Create dialog |
+| `components/organizations/OrganizationList.tsx` | Instant list (applies mutation responses locally) |
+| `components/organizations/OrganizationFormDialog.tsx` | Create/edit dialog |
 | `app/api/organizations/**` | CRUD + restore endpoints |
+| `integration/neon-organizations.ts` | Neon CRUD behind `NEON_ORGANIZATIONS` |
+| `db/migrations/20261012_organizations_*.sql` | Table + rollback |
 
 ## Related docs
 

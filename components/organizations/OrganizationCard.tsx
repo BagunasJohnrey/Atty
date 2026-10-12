@@ -14,8 +14,17 @@ import type { Organization } from "@/models/organization"
 
 export function OrganizationCard({
   organization: org,
+  onDeleted,
+  onUpdated,
 }: {
   organization: Organization
+  /**
+   * Instant list updates: the owner removes/replaces the card from the
+   * mutation response instead of waiting for the post-save re-read
+   * (organizers live in Apps Script, where a roundtrip takes seconds).
+   */
+  onDeleted?: (orgId: string) => void
+  onUpdated?: (organization: Organization) => void
 }) {
   const router = useRouter()
   const toast = useToast()
@@ -29,6 +38,7 @@ export function OrganizationCard({
     try {
       await deleteOrganization(org.id)
       invalidatePrefix("organizations:")
+      onDeleted?.(org.id)
       setDeleteOpen(false)
       toast.success("Organizer deleted.")
       router.refresh()
@@ -58,7 +68,7 @@ export function OrganizationCard({
           </p>
         ) : null}
         <div className="mt-auto flex flex-wrap gap-2 pt-2">
-          <OrganizationFormDialog organization={org} />
+          <OrganizationFormDialog organization={org} onSaved={onUpdated} />
           <Button
             size="sm"
             variant="destructive"

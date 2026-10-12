@@ -30,11 +30,17 @@ import type {
  * Create dialog by default; pass `organization` for edit mode, which
  * prefills name + email from stored values and saves through
  * updateOrganization. Mirrors EventFormDialog's create/edit split.
+ *
+ * `onSaved` fires with the server's record on success so the list can
+ * apply it instantly instead of waiting for the post-save re-read
+ * (organizers live in Apps Script, where a roundtrip takes seconds).
  */
 export function OrganizationFormDialog({
   organization,
+  onSaved,
 }: {
   organization?: Organization
+  onSaved?: (organization: Organization) => void
 }) {
   const isEdit = organization != null
   const router = useRouter()
@@ -52,7 +58,13 @@ export function OrganizationFormDialog({
     setOpen(false)
   }
 
-  async function onSubmit(form: FormData) {
+  async function onSubmit(submitEvent: React.FormEvent<HTMLFormElement>) {
+    // Plain onSubmit (not the `action` prop): React resets a form's
+    // uncontrolled inputs once an action function settles, which wiped
+    // typed values on a failed save. preventDefault keeps them intact so
+    // the operator can retry.
+    submitEvent.preventDefault()
+    const form = new FormData(submitEvent.currentTarget)
     const name = String(form.get("name") ?? "").trim()
     if (!name) {
       setError("Enter an organizer name.")
@@ -65,14 +77,16 @@ export function OrganizationFormDialog({
       // email is sent as "" so the server clears it rather than keeping
       // the old value. Emails are always stored lowercase.
       const email = String(form.get("email") ?? "").trim().toLowerCase()
+      let saved: Organization
       if (isEdit && organization) {
         const input: UpdateOrganizationInput = { name, email }
-        await updateOrganization(organization.id, input)
+        saved = (await updateOrganization(organization.id, input)).organization
       } else {
         const input: CreateOrganizationInput = { name, email }
-        await createOrganization(input)
+        saved = (await createOrganization(input)).organization
       }
       invalidatePrefix("organizations:")
+      onSaved?.(saved)
       close()
       toast.success(isEdit ? "Organizer updated." : "Organizer added.")
       router.refresh()
@@ -136,7 +150,7 @@ export function OrganizationFormDialog({
         </DialogDescription>
         <form
           className="mt-4 flex flex-col gap-3"
-          action={(form) => void onSubmit(form)}
+          onSubmit={(e) => void onSubmit(e)}
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`org-name-${idSuffix}`}>Organizer name</Label>

@@ -12,7 +12,7 @@ import * as React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { EventFormDialog } from "./EventFormDialog"
 import { ToastProvider } from "@/components/ui/toast"
-import { createEvent, updateEvent } from "@/lib/api-client"
+import { ApiError, createEvent, updateEvent } from "@/lib/api-client"
 import { formatEventDate } from "@/lib/format"
 import { useOrganizations } from "@/hooks/useQueries"
 import type { SchoolEvent } from "@/models/event"
@@ -20,6 +20,16 @@ import type { SchoolEvent } from "@/models/event"
 vi.mock("@/lib/api-client", () => ({
   createEvent: vi.fn(),
   updateEvent: vi.fn(),
+  ApiError: class ApiError extends Error {
+    code: string
+    status: number
+    constructor(code: string, message: string, status: number) {
+      super(message)
+      this.name = "ApiError"
+      this.code = code
+      this.status = status
+    }
+  },
 }))
 vi.mock("@/hooks/useQueries", () => ({ useOrganizations: vi.fn() }))
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
@@ -270,6 +280,26 @@ describe("EventFormDialog", () => {
     const alert = await screen.findByRole("alert")
     expect(alert.textContent).toContain("organizer")
     expect(createEvent).not.toHaveBeenCalled()
+  })
+
+  it("keeps typed values when save fails so the operator can retry", async () => {
+    vi.mocked(createEvent).mockRejectedValue(
+      new ApiError("INTERNAL_ERROR", "Could not create event.", 500)
+    )
+    mockOrgs(orgs)
+    renderDialog()
+    fireEvent.click(screen.getByRole("button", { name: /new event/i }))
+    fillBasics()
+    await chooseOrg("Batangas State University")
+    fireEvent.click(screen.getByRole("button", { name: /^create event$/i }))
+    const alert = await screen.findByRole("alert")
+    expect(alert.textContent).toContain("Could not create event.")
+    expect(
+      (screen.getByLabelText("Event name") as HTMLInputElement).value
+    ).toBe("Freshmen Orientation")
+    expect(
+      (screen.getByLabelText("Description") as HTMLTextAreaElement).value
+    ).toBe("Welcome the freshmen.")
   })
 
   it("shows the empty-state prompt and disables submit with zero organizations", async () => {    vi.mocked(useOrganizations).mockReturnValue({

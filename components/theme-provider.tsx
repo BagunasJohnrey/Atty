@@ -47,7 +47,9 @@ function ThemeHotkey() {
         return
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      // Some keydown sources (IME composition, autofill, synthetic
+      // dispatches) carry no `key`; bail out instead of throwing.
+      if (typeof event.key !== "string" || event.key.toLowerCase() !== "d") {
         return
       }
 

@@ -4,8 +4,22 @@ import type {
   UpdateOrganizationInput,
 } from "@/models/organization"
 import { requestAppsScript } from "./http"
+import {
+  createOrganizationNeon,
+  deleteOrganizationNeon,
+  getOrganizationNeon,
+  getOrganizationsNeon,
+  updateOrganizationNeon,
+} from "./neon-organizations"
+
+/** Cutover flag: `neon` serves organizers from Neon; anything else (or unset)
+ *  keeps the Apps Script path. Fail-safe defaults to the legacy backend. */
+function isNeonOrganizationsEnabled(): boolean {
+  return process.env.NEON_ORGANIZATIONS === "neon"
+}
 
 export async function getOrganizations(): Promise<Organization[]> {
+  if (isNeonOrganizationsEnabled()) return getOrganizationsNeon()
   const response = await requestAppsScript<{ organizations: Organization[] }>(
     "getOrganizations"
   )
@@ -15,6 +29,7 @@ export async function getOrganizations(): Promise<Organization[]> {
 export async function getOrganization(
   orgId: string
 ): Promise<Organization> {
+  if (isNeonOrganizationsEnabled()) return getOrganizationNeon(orgId)
   const response = await requestAppsScript<{ organization: Organization }>(
     "getOrganization",
     { orgId }
@@ -25,6 +40,12 @@ export async function getOrganization(
 export async function createOrganization(
   input: CreateOrganizationInput
 ): Promise<Organization> {
+  if (isNeonOrganizationsEnabled()) {
+    return createOrganizationNeon({
+      name: input.name,
+      email: input.email ?? "",
+    })
+  }
   const response = await requestAppsScript<{ organization: Organization }>(
     "createOrganization",
     {
@@ -41,6 +62,7 @@ export async function updateOrganization(
   orgId: string,
   input: UpdateOrganizationInput
 ): Promise<Organization> {
+  if (isNeonOrganizationsEnabled()) return updateOrganizationNeon(orgId, input)
   const response = await requestAppsScript<{ organization: Organization }>(
     "updateOrganization",
     { orgId, ...input }
@@ -56,6 +78,7 @@ export async function updateOrganization(
 export async function deleteOrganization(
   orgId: string
 ): Promise<Organization> {
+  if (isNeonOrganizationsEnabled()) return deleteOrganizationNeon(orgId)
   const response = await requestAppsScript<{ organization: Organization }>(
     "deleteOrganization",
     { orgId }

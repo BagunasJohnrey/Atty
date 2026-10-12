@@ -26,6 +26,7 @@ unless marked otherwise:
 | `NEON_STUDENTS` | — | Leave out on first deploy (see §5) |
 | `NEON_EVENTS` | — | Leave out on first deploy |
 | `NEON_ATTENDANCE` | — | Leave out on first deploy |
+| `NEON_ORGANIZATIONS` | — | Leave out on first deploy |
 
 Generate secrets with:
 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -66,6 +67,10 @@ variable, redeploy — back on Sheets in minutes, no code involved.
 3. **`NEON_ATTENDANCE=neon`** — full check-in cycle on a live or test
    event: record → duplicate scan rejected → attendance list and report
    counts correct.
+4. **`NEON_ORGANIZATIONS=neon`** — Organizers page loads fast; create →
+   edit → delete a throwaway organizer (deletes only stick for organizers
+   with no events), and confirm an event report still prints the
+   organizer letterhead.
 
 ## 6. Confirm the nightly backup
 
@@ -80,7 +85,8 @@ dashboard button remains available for on-demand runs.
   → freeze the sheet. See `modules/neon.md`.
 - **Sheets stays the mirror:** the backup never deletes sheet rows; it only
   adds and updates. A flag flip back to Sheets always has fresh data to
-  fall back to.
+  fall back to — except organizers, which the backup does not cover (see
+  the replay query in `modules/neon.md` before rolling that flag back).
 - **Dev branch:** localhost points at it; it expires and gets recreated —
   never treat its data as durable.
 

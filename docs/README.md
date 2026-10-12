@@ -63,6 +63,15 @@ Feature work in flight, newest first:
 
 | Document | Covers |
 |---|---|
+| [`plans/2026-10-12-organizations-neon-migration.md`](plans/2026-10-12-organizations-neon-migration.md) | Organizers Neon cutover: schema, import ritual, `NEON_ORGANIZATIONS` flag, rollback replay. Implemented, pending dev verification. |
 | [`plans/2026-10-10-changes.md`](plans/2026-10-10-changes.md) | Team changelog for the 2026-10-10 batch: hydration fixes, PDF download, Neon cutover, Sheets backup. Built and verified, pending deploy. |
 | [`specs/2026-10-01-organizations-backend-design.md`](specs/2026-10-01-organizations-backend-design.md) | Why organizations exist as an entity, the `Organizations` sheet, soft delete, and why the report letterhead falls back the way it does. Implemented, uncommitted. |
 | [`plans/2026-10-01-organizations-ui.md`](plans/2026-10-01-organizations-ui.md) | The task-by-task plan for the organizations UI: pages, dialogs, the org picker, and wiring the print letterhead. Not started. |
+
+Future enhancements (not started):
+
+- **Organizer event history** — clicking an event's organizer (on event
+  cards and the event detail page) shows all events that organizer has
+  conducted. Likely a deep-linkable filter (e.g. `/events?org=<orgId>`)
+  reusing the existing status/search filters; the events page already
+  resolves each event's org name, so the data is in hand.

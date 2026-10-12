@@ -72,7 +72,16 @@ export function EventFormDialog({ event }: { event?: SchoolEvent }) {
     setOpen(false)
   }
 
-  async function onSubmit(form: FormData) {
+  // Named `submitEvent`: the `event` binding is the SchoolEvent prop, and
+  // shadowing it with the form event would send updates to
+  // `/api/events/undefined`.
+  async function onSubmit(submitEvent: React.FormEvent<HTMLFormElement>) {
+    // Plain onSubmit (not the `action` prop): React resets a form's
+    // uncontrolled inputs once an action function settles, which wiped
+    // typed values on a failed save. preventDefault keeps them intact so
+    // the operator can retry.
+    submitEvent.preventDefault()
+    const form = new FormData(submitEvent.currentTarget)
     if (!orgId) {
       setError("Select an organizer.")
       return
@@ -200,7 +209,7 @@ export function EventFormDialog({ event }: { event?: SchoolEvent }) {
         </DialogDescription>
         <form
           className="mt-4 flex flex-col gap-3"
-          action={(form) => void onSubmit(form)}
+          onSubmit={(e) => void onSubmit(e)}
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Event name</Label>

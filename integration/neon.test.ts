@@ -18,13 +18,16 @@ import {
   updateEventNeon,
 } from "./neon"
 import { getOrganization } from "./organizations"
+import { getOrganizationNeon } from "./neon-organizations"
 import { neon } from "@neondatabase/serverless"
 
 vi.mock("@neondatabase/serverless", () => ({ neon: vi.fn() }))
 vi.mock("./organizations", () => ({ getOrganization: vi.fn() }))
+vi.mock("./neon-organizations", () => ({ getOrganizationNeon: vi.fn() }))
 
 const neonMock = vi.mocked(neon)
 const orgMock = vi.mocked(getOrganization)
+const neonOrgMock = vi.mocked(getOrganizationNeon)
 const OLD_URL = process.env.NEON_DATABASE_URL
 
 function queryText(strings: TemplateStringsArray | string): string {
@@ -51,6 +54,9 @@ beforeEach(() => {
   neonMock.mockReset()
   orgMock.mockReset()
   orgMock.mockResolvedValue({ id: "ORG-001", name: "Org", email: "" })
+  neonOrgMock.mockReset()
+  neonOrgMock.mockResolvedValue({ id: "ORG-001", name: "Org", email: "" })
+  delete process.env.NEON_ORGANIZATIONS
   process.env.NEON_DATABASE_URL = "postgresql://test/test"
 })
 
@@ -421,6 +427,61 @@ describe("neon events", () => {
     await expect(closeEventNeon("EVT-001")).resolves.toMatchObject({
       status: "Closed",
     })
+  })
+})
+
+describe("neon organization resolution", () => {
+  function mockEventInsert() {
+    return mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("insert into events")) {
+        const v = values as string[]
+        return [
+          {
+            id: v[0],
+            name: v[1],
+            event_date: v[2],
+            status: "Upcoming",
+            sheet_name: v[3],
+            location: v[4],
+            description: v[5],
+            org_id: v[6],
+            time: v[7],
+          },
+        ]
+      }
+      return [{ id: "EVT-007" }]
+    })
+  }
+
+  it("resolves event org ids against Sheets organizers by default", async () => {
+    mockEventInsert()
+    await createEventNeon({
+      name: "New",
+      date: "2026-10-20",
+      description: "Welcome.",
+      orgId: "ORG-001",
+    })
+    expect(orgMock).toHaveBeenCalledWith("ORG-001")
+    expect(neonOrgMock).not.toHaveBeenCalled()
+  })
+
+  it("resolves event org ids against Neon organizers when flagged", async () => {
+    process.env.NEON_ORGANIZATIONS = "neon"
+    try {
+      mockEventInsert()
+      const event = await createEventNeon({
+        name: "New",
+        date: "2026-10-20",
+        description: "Welcome.",
+        orgId: "ORG-001",
+      })
+      expect(neonOrgMock).toHaveBeenCalledWith("ORG-001")
+      expect(orgMock).not.toHaveBeenCalled()
+      expect(event.orgId).toBe("ORG-001")
+    } finally {
+      delete process.env.NEON_ORGANIZATIONS
+    }
   })
 })
 
