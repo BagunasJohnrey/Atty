@@ -26,7 +26,8 @@ export async function POST(request: Request) {
     await requireAdmin()
     const body = await parseJsonBody(request)
     const name = requireString(body, "name", 150)
-    const email = optionalString(body, "email", 150)
+    // Organizer emails are always stored lowercase.
+    const email = optionalString(body, "email", 150).toLowerCase()
     const organization = await createOrganization({ name, email })
     expireOrganizations()
     return NextResponse.json(

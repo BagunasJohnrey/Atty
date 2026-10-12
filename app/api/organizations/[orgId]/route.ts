@@ -61,8 +61,8 @@ export async function DELETE(_request: Request, context: OrgParams) {
 
 /**
  * Accepts a subset of the editable fields. Mirrors the event PATCH
- * body: unknown keys are dropped, an empty body is rejected, and each value
- * must be a non-empty string. A blank email is cleared upstream by
+ * body: unknown keys are dropped, an empty body is rejected, and name must
+ * be a non-empty string when present. A blank email is cleared upstream by
  * sending "" rather than by omitting the key.
  */
 function parsePatchBody(raw: string): UpdateOrganizationInput {
@@ -80,10 +80,22 @@ function parsePatchBody(raw: string): UpdateOrganizationInput {
   for (const field of UPDATABLE_FIELDS) {
     const value = record[field]
     if (value === undefined || value === null) continue
-    if (typeof value !== "string" || value.trim() === "") {
+    if (typeof value !== "string") {
       throw new HttpError(400, "INVALID_FIELD", `Invalid field: ${field}.`)
     }
-    input[field] = value.trim()
+    const trimmed = value.trim()
+    if (field === "email") {
+      if (trimmed.length > 150) {
+        throw new HttpError(400, "INVALID_FIELD", `Invalid field: ${field}.`)
+      }
+      // Organizer emails are always stored lowercase.
+      input[field] = trimmed.toLowerCase()
+      continue
+    }
+    if (trimmed === "" || trimmed.length > 150) {
+      throw new HttpError(400, "INVALID_FIELD", `Invalid field: ${field}.`)
+    }
+    input[field] = trimmed
   }
   if (Object.keys(input).length === 0) {
     throw new HttpError(

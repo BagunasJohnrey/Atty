@@ -12,7 +12,10 @@ import type {
 } from "@/models/api"
 import type { AttendanceFilters } from "@/lib/attendance"
 import type { CreateEventInput, UpdateEventInput } from "@/models/event"
-import type { CreateOrganizationInput } from "@/models/organization"
+import type {
+  CreateOrganizationInput,
+  UpdateOrganizationInput,
+} from "@/models/organization"
 
 /** Result of a sign-in attempt. */
 export type LoginResponse = { success: true } | ApiFailure
@@ -106,6 +109,28 @@ export function createOrganization(
     method: "POST",
     body: JSON.stringify(input),
   })
+}
+
+export function updateOrganization(
+  orgId: string,
+  input: UpdateOrganizationInput
+): Promise<OrganizationResponse> {
+  return request<OrganizationResponse>(
+    `/api/organizations/${encodeURIComponent(orgId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }
+  )
+}
+
+export function deleteOrganization(orgId: string): Promise<OrganizationResponse> {
+  return request<OrganizationResponse>(
+    `/api/organizations/${encodeURIComponent(orgId)}`,
+    {
+      method: "DELETE",
+    }
+  )
 }
 
 export function openEvent(eventId: string): Promise<EventResponse> {

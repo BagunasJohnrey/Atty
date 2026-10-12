@@ -85,7 +85,8 @@ var Organizations = {
     lock.waitLock(10000)
     try {
       Sheets.ensureHeaders(Config.ORGANIZATIONS_SHEET, Config.ORGANIZATIONS_HEADERS)
-      var row = [Organizations.nextId(), name, email || ""]
+      // Organizer emails are always stored lowercase.
+      var row = [Organizations.nextId(), name, String(email || "").toLowerCase()]
       Sheets.appendRow(Config.ORGANIZATIONS_SHEET, row)
       return Models.organizationFromRow(row)
     } finally {
@@ -118,12 +119,13 @@ var Organizations = {
       )
     }
     if (patch.email !== undefined) {
+      // Organizer emails are always stored lowercase.
       organization.email = Validators.optionalString(
         patch,
         "email",
         "Organization email",
         Config.MAX_ORG_EMAIL_LENGTH
-      )
+      ).toLowerCase()
     }
     Sheets.setCell(Config.ORGANIZATIONS_SHEET, row, columns.NAME + 1, organization.name)
     Sheets.setCell(Config.ORGANIZATIONS_SHEET, row, columns.EMAIL + 1, organization.email)

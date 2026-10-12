@@ -1,5 +1,15 @@
-import { Mail } from "lucide-react"
+"use client"
+
+import * as React from "react"
+import { useRouter } from "next/navigation"
+import { Mail, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
+import { OrganizationFormDialog } from "./OrganizationFormDialog"
+import { ApiError, deleteOrganization } from "@/lib/api-client"
+import { useToast } from "@/components/ui/toast"
+import { invalidatePrefix } from "@/hooks/useCached"
 import type { Organization } from "@/models/organization"
 
 export function OrganizationCard({
@@ -7,6 +17,30 @@ export function OrganizationCard({
 }: {
   organization: Organization
 }) {
+  const router = useRouter()
+  const toast = useToast()
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
+
+  async function onDelete() {
+    // The modal stays open on failure so the operator can retry or back
+    // out; success closes it and refreshes the list.
+    setBusy(true)
+    try {
+      await deleteOrganization(org.id)
+      invalidatePrefix("organizations:")
+      setDeleteOpen(false)
+      toast.success("Organizer deleted.")
+      router.refresh()
+    } catch (e) {
+      toast.error(
+        e instanceof ApiError ? e.message : "Could not delete organizer."
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Card className="clay-topglow flex h-full flex-col">
       <CardHeader>
@@ -17,13 +51,37 @@ export function OrganizationCard({
           </p>
         </div>
       </CardHeader>
-      {org.email ? (
-        <CardContent className="flex-1">
+      <CardContent className="flex-1">
+        {org.email ? (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Mail className="size-3.5 shrink-0" aria-hidden /> {org.email}
           </p>
-        </CardContent>
-      ) : null}
+        ) : null}
+        <div className="mt-auto flex flex-wrap gap-2 pt-2">
+          <OrganizationFormDialog organization={org} />
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={busy}
+            onClick={() => setDeleteOpen(true)}
+            className="clay-btn"
+          >
+            <Trash2 className="size-4" aria-hidden />
+            Delete
+          </Button>
+        </div>
+      </CardContent>
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete organizer?"
+        message={`This permanently removes ${org.name}. Events using it will fall back to the default letterhead. This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onConfirm={() => void onDelete()}
+        busy={busy}
+        destructive
+      />
     </Card>
   )
 }
