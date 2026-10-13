@@ -278,7 +278,7 @@ export function CheckInForm({
                     className="clay-btn clay-btn-primary h-14 flex-1 text-base"
                   >
                     <CircleCheck className="size-5" aria-hidden />
-                    {recording ? "Recording…" : "Confirm Attendance"}
+                    {recording ? "Recording…" : "Confirm"}
                   </Button>
                   <Button
                     variant="outline"
@@ -350,8 +350,8 @@ export function CheckInForm({
                     aria-hidden
                   />
                   <span>
-                    Attendance recorded successfully. It will sync
-                    automatically when an internet connection is restored.
+                    Attendance recorded successfully. It will sync automatically
+                    when an internet connection is restored.
                     <span className="block text-muted-foreground">
                       {outcome.srcode}
                     </span>

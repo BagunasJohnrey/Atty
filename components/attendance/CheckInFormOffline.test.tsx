@@ -70,9 +70,7 @@ describe("CheckInForm offline", () => {
         },
       },
     })
-    render(
-      <CheckInForm eventId="EVT-TAP-1" eventName="E" eventActive={true} />
-    )
+    render(<CheckInForm eventId="EVT-TAP-1" eventName="E" eventActive={true} />)
     fireEvent.change(screen.getByLabelText("Enter SR Code"), {
       target: { value: "26-00001" },
     })
@@ -81,12 +79,13 @@ describe("CheckInForm offline", () => {
       expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
     })
     // 56px targets clear the 44px minimum comfortably on phones.
-    for (const name of [/confirm attendance/i, /^back$/i]) {
+    for (const name of [/^confirm$/i, /^back$/i]) {
       expect(screen.getByRole("button", { name }).className).toMatch(/h-14/)
     }
   })
 
-  it("shows the confirm UI (not queued) when the network succeeds", async () => {    vi.mocked(checkAttendance).mockResolvedValue({
+  it("shows the confirm UI (not queued) when the network succeeds", async () => {
+    vi.mocked(checkAttendance).mockResolvedValue({
       success: true,
       check: {
         present: false,
@@ -160,7 +159,7 @@ describe("CheckInForm offline", () => {
     await waitFor(() => {
       expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
     })
-    fireEvent.click(screen.getByRole("button", { name: /confirm attendance/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await waitFor(() => {
       expect(screen.getByText(/recorded successfully/i).textContent).toContain(
         "It will sync automatically"

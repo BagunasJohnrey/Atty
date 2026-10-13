@@ -1,13 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { CheckInForm } from "./CheckInForm"
 import { checkAttendance, recordAttendance } from "@/lib/api-client"
@@ -79,7 +73,7 @@ describe("CheckInForm auto-dismiss", () => {
     mockSuccessfulRecord()
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
-    fireEvent.click(screen.getByRole("button", { name: /confirm attendance/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
     })
@@ -101,15 +95,11 @@ describe("CheckInForm auto-dismiss", () => {
     })
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
-    expect(
-      screen.getByText("Attendance already recorded today.")
-    ).toBeTruthy()
+    expect(screen.getByText("Attendance already recorded today.")).toBeTruthy()
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5300)
     })
-    expect(
-      screen.queryByText("Attendance already recorded today.")
-    ).toBeNull()
+    expect(screen.queryByText("Attendance already recorded today.")).toBeNull()
   })
 
   it("fades out and clears the queued card within 5 seconds", async () => {
@@ -134,9 +124,7 @@ describe("CheckInForm auto-dismiss", () => {
       await vi.advanceTimersByTimeAsync(8000)
     })
     expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
-    expect(
-      screen.getByRole("button", { name: /confirm attendance/i })
-    ).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^confirm$/i })).toBeTruthy()
   })
 
   it("restarts the clock when a new scan lands before dismissal", async () => {
@@ -144,7 +132,7 @@ describe("CheckInForm auto-dismiss", () => {
     mockSuccessfulRecord()
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
-    fireEvent.click(screen.getByRole("button", { name: /confirm attendance/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0)
     })
