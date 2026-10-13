@@ -55,7 +55,7 @@ describe("CheckInForm offline", () => {
     expect(recordAttendance).not.toHaveBeenCalled()
   })
 
-  it("gives the confirm step big tap targets for phones", async () => {
+  it("records immediately after successful verification", async () => {
     vi.mocked(checkAttendance).mockResolvedValue({
       success: true,
       check: {
@@ -70,34 +70,17 @@ describe("CheckInForm offline", () => {
         },
       },
     })
-    render(<CheckInForm eventId="EVT-TAP-1" eventName="E" eventActive={true} />)
-    fireEvent.change(screen.getByLabelText("Enter SR Code"), {
-      target: { value: "26-00001" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
-    await waitFor(() => {
-      expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
-    })
-    // 56px targets clear the 44px minimum comfortably on phones.
-    for (const name of [/^confirm$/i, /^back$/i]) {
-      expect(screen.getByRole("button", { name }).className).toMatch(/h-14/)
-    }
-  })
-
-  it("shows the confirm UI (not queued) when the network succeeds", async () => {
-    vi.mocked(checkAttendance).mockResolvedValue({
+    vi.mocked(recordAttendance).mockResolvedValue({
       success: true,
-      check: {
-        present: false,
-        student: {
-          srcode: "26-00001",
-          name: "Juan Dela Cruz",
-          college: "Engineering",
-          program: "BS Computer Engineering",
-          yearLevel: "3rd Year",
-          gender: "Male",
-        },
+      student: {
+        srcode: "26-00001",
+        name: "Juan Dela Cruz",
+        college: "Engineering",
+        program: "BS Computer Engineering",
+        yearLevel: "3rd Year",
+        gender: "Male",
       },
+      timestamp: "2026-10-11T08:00:00+08:00",
     })
     render(
       <CheckInForm eventId="EVT-ONLINE-1" eventName="E" eventActive={true} />
@@ -107,10 +90,11 @@ describe("CheckInForm offline", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
     await waitFor(() => {
-      expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
+      expect(screen.getByText("Attendance Confirmed.")).toBeTruthy()
     })
+    expect(recordAttendance).toHaveBeenCalledTimes(1)
+    expect(recordAttendance).toHaveBeenCalledWith("EVT-ONLINE-1", "26-00001")
     expect(screen.queryByText(/queued/i)).toBeNull()
-    expect(recordAttendance).not.toHaveBeenCalled()
     await expect(getSharedQueue().pendingCount("EVT-ONLINE-1")).resolves.toBe(0)
   })
 
@@ -133,7 +117,7 @@ describe("CheckInForm offline", () => {
     await expect(getSharedQueue().pendingCount("EVT-ONLINE-2")).resolves.toBe(0)
   })
 
-  it("queues the confirmation when recording fails offline", async () => {
+  it("queues the scan when recording fails offline", async () => {
     vi.mocked(checkAttendance).mockResolvedValue({
       success: true,
       check: {
@@ -157,15 +141,12 @@ describe("CheckInForm offline", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
     await waitFor(() => {
-      expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
-    })
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
-    await waitFor(() => {
       expect(screen.getByText(/recorded successfully/i).textContent).toContain(
         "It will sync automatically"
       )
     })
-    // The server call was attempted once and failed; the scan is queued.
+    // Verify passed, so the single tap recorded: the server call was
+    // attempted once and failed; the scan is queued.
     expect(recordAttendance).toHaveBeenCalledTimes(1)
     await expect(getSharedQueue().pendingCount("EVT-CONF-1")).resolves.toBe(1)
     expect(screen.queryByRole("alert")).toBeNull()

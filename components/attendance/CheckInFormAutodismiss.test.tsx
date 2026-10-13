@@ -73,10 +73,6 @@ describe("CheckInForm auto-dismiss", () => {
     mockSuccessfulRecord()
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0)
-    })
     expect(screen.getByText("Attendance Confirmed.")).toBeTruthy()
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5300)
@@ -115,39 +111,26 @@ describe("CheckInForm auto-dismiss", () => {
     expect(screen.queryByText(/recorded successfully/i)).toBeNull()
   })
 
-  it("leaves the pre-confirm card up until the user acts", async () => {
-    mockSuccessfulCheck()
-    render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
-    await validateScan()
-    expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(8000)
-    })
-    expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
-    expect(screen.getByRole("button", { name: /^confirm$/i })).toBeTruthy()
-  })
-
   it("restarts the clock when a new scan lands before dismissal", async () => {
     mockSuccessfulCheck()
     mockSuccessfulRecord()
     render(<CheckInForm eventId="EVT-1" eventName="E" eventActive={true} />)
     await validateScan()
-    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0)
-    })
     expect(screen.getByText("Attendance Confirmed.")).toBeTruthy()
-    // 3s in, a new scan replaces the result with a fresh confirm card.
+    // 3s in, a new scan replaces the result with a fresh done card.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000)
     })
     await validateScan()
-    expect(screen.queryByText("Attendance Confirmed.")).toBeNull()
-    expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
-    // The fresh confirm card also waits on the user, not the timer.
+    expect(screen.getByText("Attendance Confirmed.")).toBeTruthy()
+    // The fresh card gets its own full 5s before clearing.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(8000)
+      await vi.advanceTimersByTimeAsync(3000)
     })
-    expect(screen.getByText("Juan Dela Cruz")).toBeTruthy()
+    expect(screen.getByText("Attendance Confirmed.")).toBeTruthy()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2300)
+    })
+    expect(screen.queryByText("Attendance Confirmed.")).toBeNull()
   })
 })
