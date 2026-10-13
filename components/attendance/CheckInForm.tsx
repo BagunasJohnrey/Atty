@@ -221,6 +221,10 @@ export function CheckInForm({
               placeholder="26-12345"
               autoComplete="off"
               spellCheck={false}
+              // Digits-and-dash code: touch devices get the numeric layout
+              // (dash included where the OS offers it). Desktop is unaffected
+              // — inputMode only shapes virtual keyboards.
+              inputMode="numeric"
               maxLength={SRCODE_MAX_LENGTH}
               disabled={!eventActive || busy}
               className="h-14 text-center font-mono text-xl tracking-widest"
