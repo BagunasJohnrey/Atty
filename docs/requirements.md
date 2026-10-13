@@ -385,7 +385,7 @@ Example:
 ```json
 {
   "success": false,
-  "message": "Student has already attended this event."
+  "message": "Already recorded today."
 }
 ```
 

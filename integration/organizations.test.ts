@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Organization } from "@/models/organization"
 import {
   createOrganization,
@@ -8,12 +8,33 @@ import {
   updateOrganization,
 } from "./organizations"
 import { requestAppsScript } from "./http"
+import {
+  createOrganizationNeon,
+  deleteOrganizationNeon,
+  getOrganizationNeon,
+  getOrganizationsNeon,
+  updateOrganizationNeon,
+} from "./neon-organizations"
 
 vi.mock("./http", () => ({
   requestAppsScript: vi.fn(),
 }))
+vi.mock("./neon-organizations", () => ({
+  createOrganizationNeon: vi.fn(),
+  deleteOrganizationNeon: vi.fn(),
+  getOrganizationNeon: vi.fn(),
+  getOrganizationsNeon: vi.fn(),
+  updateOrganizationNeon: vi.fn(),
+}))
 
 const requestMock = vi.mocked(requestAppsScript)
+const neonMocks = {
+  getAll: vi.mocked(getOrganizationsNeon),
+  getOne: vi.mocked(getOrganizationNeon),
+  create: vi.mocked(createOrganizationNeon),
+  update: vi.mocked(updateOrganizationNeon),
+  remove: vi.mocked(deleteOrganizationNeon),
+}
 
 const sampleOrg: Organization = {
   id: "ORG-001",
@@ -23,6 +44,8 @@ const sampleOrg: Organization = {
 
 beforeEach(() => {
   requestMock.mockReset()
+  Object.values(neonMocks).forEach((m) => m.mockReset())
+  delete process.env.NEON_ORGANIZATIONS
 })
 
 function mockSuccess(payload: object): void {
@@ -84,5 +107,51 @@ describe("organizations integration", () => {
     expect(requestMock).toHaveBeenCalledWith("deleteOrganization", {
       orgId: "ORG-001",
     })
+  })
+})
+
+describe("organizations cutover", () => {
+  beforeEach(() => {
+    process.env.NEON_ORGANIZATIONS = "neon"
+    neonMocks.getAll.mockResolvedValue([sampleOrg])
+    neonMocks.getOne.mockResolvedValue(sampleOrg)
+    neonMocks.create.mockResolvedValue(sampleOrg)
+    neonMocks.update.mockResolvedValue(sampleOrg)
+  })
+
+  afterEach(() => {
+    delete process.env.NEON_ORGANIZATIONS
+  })
+
+  it("lists organizers from Neon when flagged", async () => {
+    await expect(getOrganizations()).resolves.toEqual([sampleOrg])
+    expect(neonMocks.getAll).toHaveBeenCalledTimes(1)
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("reads one organizer from Neon when flagged", async () => {
+    await expect(getOrganization("ORG-001")).resolves.toEqual(sampleOrg)
+    expect(neonMocks.getOne).toHaveBeenCalledWith("ORG-001")
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("creates via Neon with a defaulted email when flagged", async () => {
+    await createOrganization({ name: sampleOrg.name })
+    expect(neonMocks.create).toHaveBeenCalledWith({
+      name: sampleOrg.name,
+      email: "",
+    })
+    expect(requestMock).not.toHaveBeenCalled()
+  })
+
+  it("updates and deletes via Neon when flagged", async () => {
+    await updateOrganization("ORG-001", { email: "new@example.edu" })
+    expect(neonMocks.update).toHaveBeenCalledWith("ORG-001", {
+      email: "new@example.edu",
+    })
+    neonMocks.remove.mockResolvedValue(sampleOrg)
+    await expect(deleteOrganization("ORG-001")).resolves.toEqual(sampleOrg)
+    expect(neonMocks.remove).toHaveBeenCalledWith("ORG-001")
+    expect(requestMock).not.toHaveBeenCalled()
   })
 })

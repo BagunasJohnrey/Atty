@@ -12,7 +12,10 @@ import type {
 } from "@/models/api"
 import type { AttendanceFilters } from "@/lib/attendance"
 import type { CreateEventInput, UpdateEventInput } from "@/models/event"
-import type { CreateOrganizationInput } from "@/models/organization"
+import type {
+  CreateOrganizationInput,
+  UpdateOrganizationInput,
+} from "@/models/organization"
 
 /** Result of a sign-in attempt. */
 export type LoginResponse = { success: true } | ApiFailure
@@ -108,6 +111,28 @@ export function createOrganization(
   })
 }
 
+export function updateOrganization(
+  orgId: string,
+  input: UpdateOrganizationInput
+): Promise<OrganizationResponse> {
+  return request<OrganizationResponse>(
+    `/api/organizations/${encodeURIComponent(orgId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }
+  )
+}
+
+export function deleteOrganization(orgId: string): Promise<OrganizationResponse> {
+  return request<OrganizationResponse>(
+    `/api/organizations/${encodeURIComponent(orgId)}`,
+    {
+      method: "DELETE",
+    }
+  )
+}
+
 export function openEvent(eventId: string): Promise<EventResponse> {
   return request<EventResponse>(
     `/api/events/${encodeURIComponent(eventId)}/open`,
@@ -148,6 +173,7 @@ export function listAttendance(
   if (filters?.program) params.set("program", filters.program)
   if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel)
   if (filters?.gender) params.set("gender", filters.gender)
+  if (filters?.day) params.set("day", filters.day)
   if (pagination) {
     params.set("page", String(pagination.page))
     params.set("pageSize", String(pagination.pageSize))
@@ -161,11 +187,22 @@ export function listAttendance(
 
 export function recordAttendance(
   eventId: string,
-  srcode: string
+  srcode: string,
+  /**
+   * Device ms epoch for offline replays, so a queued scan lands on the
+   * day it was taken rather than the day it synced. Omitted by the live
+   * kiosk, which always records now.
+   */
+  scannedAt?: number
 ): Promise<AttendanceRecordResponse> {
   return request<AttendanceRecordResponse>(
     `/api/events/${encodeURIComponent(eventId)}/attendance`,
-    { method: "POST", body: JSON.stringify({ srcode }) }
+    {
+      method: "POST",
+      body: JSON.stringify(
+        scannedAt === undefined ? { srcode } : { srcode, scannedAt }
+      ),
+    }
   )
 }
 
@@ -203,6 +240,7 @@ export function exportUrl(
   if (filters?.program) params.set("program", filters.program)
   if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel)
   if (filters?.gender) params.set("gender", filters.gender)
+  if (filters?.day) params.set("day", filters.day)
   const qs = params.toString()
   return `/api/events/${encodeURIComponent(eventId)}/attendance/export${qs ? `?${qs}` : ""}`
 }
@@ -215,6 +253,7 @@ export function printUrl(eventId: string, filters?: AttendanceFilters): string {
   if (filters?.program) params.set("program", filters.program)
   if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel)
   if (filters?.gender) params.set("gender", filters.gender)
+  if (filters?.day) params.set("day", filters.day)
   const qs = params.toString()
   return `/events/${encodeURIComponent(eventId)}/report/print${qs ? `?${qs}` : ""}`
 }

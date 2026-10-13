@@ -12,9 +12,22 @@ import * as React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { OrganizationFormDialog } from "./OrganizationFormDialog"
 import { ToastProvider } from "@/components/ui/toast"
-import { createOrganization } from "@/lib/api-client"
+import { ApiError, createOrganization } from "@/lib/api-client"
 
-vi.mock("@/lib/api-client", () => ({ createOrganization: vi.fn() }))
+vi.mock("@/lib/api-client", () => ({
+  createOrganization: vi.fn(),
+  updateOrganization: vi.fn(),
+  ApiError: class ApiError extends Error {
+    code: string
+    status: number
+    constructor(code: string, message: string, status: number) {
+      super(message)
+      this.name = "ApiError"
+      this.code = code
+      this.status = status
+    }
+  },
+}))
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 beforeEach(() => {
@@ -57,6 +70,29 @@ describe("OrganizationFormDialog", () => {
       name: "Batangas State University",
       email: "sscbalayan@g.batstate-u.edu.ph",
     })
+  })
+
+  it("keeps typed values when save fails so the operator can retry", async () => {
+    vi.mocked(createOrganization).mockRejectedValue(
+      new ApiError("INTERNAL_ERROR", "Could not create organizer.", 500)
+    )
+    open()
+    fireEvent.change(screen.getByLabelText("Organizer name"), {
+      target: { value: "My Test Org" },
+    })
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "TEST@EXAMPLE.COM" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create organizer$/i }))
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeTruthy()
+    })
+    expect(
+      (screen.getByLabelText("Organizer name") as HTMLInputElement).value
+    ).toBe("My Test Org")
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe(
+      "TEST@EXAMPLE.COM"
+    )
   })
 
   it("refuses a blank name without calling", async () => {

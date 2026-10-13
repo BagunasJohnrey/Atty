@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
+  formatDayLabel,
   formatSrcodeInput,
   formatTimeInput,
   isValidSrcodeFormat,
+  manilaDayKey,
   normalizeSrcode,
   SRCODE_MAX_LENGTH,
   toDateInputValue,
@@ -92,8 +94,7 @@ describe("toDateInputValue", () => {
   })
 })
 
-describe("toTimeInputValue", () => {
-  it("converts 12-hour display times back to picker values", () => {
+describe("toTimeInputValue", () => {  it("converts 12-hour display times back to picker values", () => {
     expect(toTimeInputValue("8:00 AM")).toBe("08:00")
     expect(toTimeInputValue("5:00 PM")).toBe("17:00")
     expect(toTimeInputValue("12:00 PM")).toBe("12:00")
@@ -108,5 +109,25 @@ describe("toTimeInputValue", () => {
     expect(toTimeInputValue("")).toBe("")
     expect(toTimeInputValue("08:00")).toBe("")
     expect(toTimeInputValue("morning")).toBe("")
+  })
+})
+
+describe("formatDayLabel", () => {
+  it("numbers event days with short month labels", () => {
+    expect(formatDayLabel("2026-10-11", 0)).toBe("Day 1 · Oct 11")
+    expect(formatDayLabel("2026-10-12", 1)).toBe("Day 2 · Oct 12")
+    expect(formatDayLabel("2026-01-03", 9)).toBe("Day 10 · Jan 3")
+  })
+})
+
+describe("manilaDayKey", () => {  it("keys by the Manila calendar day across the midnight boundary", () => {
+    // 23:59 Manila.
+    expect(manilaDayKey(new Date("2026-10-11T15:59:00Z"))).toBe("2026-10-11")
+    // 00:01 Manila, next day.
+    expect(manilaDayKey(new Date("2026-10-11T16:01:00Z"))).toBe("2026-10-12")
+  })
+
+  it("accepts ISO strings", () => {
+    expect(manilaDayKey("2026-10-11T08:00:00+08:00")).toBe("2026-10-11")
   })
 })

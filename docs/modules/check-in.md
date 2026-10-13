@@ -2,7 +2,8 @@
 
 The door tablet flow at `/events/[eventId]/check-in`: look up a student by
 SR code, verify whether they already attended, and record attendance with
-one tap. Only `Active` events accept records.
+one tap. Only `Active` events accept records — and only on the event's own
+dates (see "Event dates gate" below).
 
 ## How it works
 
@@ -16,6 +17,17 @@ one tap. Only `Active` events accept records.
   kiosk rhythm is never interrupted by popups.
 - Recording against an `Upcoming` or `Closed` event fails closed (409); the
   form disables itself when the event is not Active.
+- **Event dates gate:** record (`POST …/attendance`) and verify
+  (`POST …/attendance/check`) both refuse scans landing outside the event's
+  date range from its details with `409 EVENT_DATE_CLOSED` ("Check-in is
+  closed for this date…"). The scan's Manila day decides: live scans use
+  today, offline-queue replays use their original `scannedAt`, so a late
+  sync still records scans taken on event days. An unparseable event date
+  fails open (old behavior) so a bad date string can never brick check-ins.
+  Enforced in the Next.js routes (covers both backends), Neon, and Apps
+  Script — the script side takes effect after the web app is redeployed.
+  Out-of-range replays surface as `failed` in the sync report, where the
+  operator discards them.
 - `FullscreenToggle` hides the app chrome for distraction-free door operation.
   The tab title is `Check in · <name> · Atty`.
 

@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { ApiError, closeEvent, deleteEvent, openEvent } from "@/lib/api-client"
 import { useToast } from "@/components/ui/toast"
 import { invalidatePrefix } from "@/hooks/useCached"
@@ -13,7 +14,7 @@ export function EventActions({ event }: { event: SchoolEvent }) {
   const router = useRouter()
   const toast = useToast()
   const [busy, setBusy] = React.useState(false)
-  const [confirmingDelete, setConfirmingDelete] = React.useState(false)
+  const [deleteOpen, setDeleteOpen] = React.useState(false)
 
   async function run(
     action: () => Promise<unknown>,
@@ -36,15 +37,12 @@ export function EventActions({ event }: { event: SchoolEvent }) {
   }
 
   function onDelete() {
-    // Two-step confirm: deletion removes the event and its scans for good.
-    if (!confirmingDelete) {
-      setConfirmingDelete(true)
-      return
-    }
-    setConfirmingDelete(false)
-    void run(() => deleteEvent(event.id), "Event deleted.", () =>
+    // The modal stays open on failure so the operator can retry or back
+    // out; success closes it and leaves for the list.
+    void run(() => deleteEvent(event.id), "Event deleted.", () => {
+      setDeleteOpen(false)
       router.push("/events")
-    )
+    })
   }
 
   return (
@@ -73,12 +71,23 @@ export function EventActions({ event }: { event: SchoolEvent }) {
       <Button
         disabled={busy}
         variant="destructive"
-        onClick={onDelete}
+        onClick={() => setDeleteOpen(true)}
         className="clay-btn"
       >
         <Trash2 className="size-4" aria-hidden />
-        {confirmingDelete ? "Confirm delete" : "Delete event"}
+        Delete event
       </Button>
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete event?"
+        message={`This permanently removes ${event.name} and all of its scans. This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onConfirm={onDelete}
+        busy={busy}
+        destructive
+      />
     </div>
   )
 }

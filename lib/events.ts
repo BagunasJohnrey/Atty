@@ -1,5 +1,6 @@
 import type { EventStatus, SchoolEvent } from "@/models/event"
 import { EVENT_STATUSES } from "@/models/event"
+import { manilaDayKey, toDateInputValue } from "@/lib/format"
 
 /** Status tabs shown on the events listing, in display order. */
 export const EVENT_FILTER_TABS = [
@@ -21,6 +22,54 @@ export function parseEventStatusParam(
   return (EVENT_STATUSES as readonly string[]).includes(value ?? "")
     ? (value as EventStatus)
     : "All"
+}
+
+/**
+ * Every Manila day an event spans, as `YYYY-MM-DD` in order. Single dates
+ * yield one day; stored ranges (numeric or pretty) enumerate inclusively.
+ * Unparseable input yields nothing, so day pickers stay hidden instead of
+ * offering junk. Iteration rides UTC noon to stay DST-proof everywhere.
+ */
+export function eventDays(date: string): string[] {
+  const halves = date.split(" - ")
+  if (halves.length > 2) return []
+  const starts = halves.map((half) => toDateInputValue(half))
+  if (starts.some((iso) => !iso)) return []
+  const [y1, m1, d1] = starts[0].split("-").map(Number)
+  const last = starts.length > 1 ? starts[1] : starts[0]
+  const [y2, m2, d2] = last.split("-").map(Number)
+  let cursor = Date.UTC(y1, m1 - 1, d1, 12)
+  const end = Date.UTC(y2, m2 - 1, d2, 12)
+  if (end < cursor) return [manilaDayKey(new Date(cursor))]
+  const days: string[] = []
+  while (cursor <= end) {
+    days.push(manilaDayKey(new Date(cursor)))
+    cursor += 86400000
+  }
+  return days
+}
+
+/**
+ * Whether a Manila day (`YYYY-MM-DD`) falls within the event's date range
+ * from its details. Powers the check-in gate: scans land only on event
+ * days, so a kiosk opened on the wrong day cannot record attendance.
+ *
+ * An unparseable event date yields no days and fails open (`true`), so a
+ * bad date string degrades to the old behavior instead of bricking
+ * check-ins for the whole event.
+ */
+export function isDayWithinEvent(eventDate: string, dayIso: string): boolean {
+  const days = eventDays(eventDate)
+  if (days.length === 0) return true
+  return days.includes(dayIso.trim())
+}
+
+/**
+ * Kiosk- and sync-report-facing message for a scan outside the event's
+ * dates. Names the event and its dates so staff know why it was refused.
+ */
+export function outsideEventDatesMessage(event: SchoolEvent): string {
+  return `Check-in is closed for this date. ${event.name} only accepts attendance on ${event.date}.`
 }
 
 /**

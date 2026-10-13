@@ -24,3 +24,18 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
     />
   )
 }
+
+export function Textarea({ className, ref, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: React.Ref<HTMLTextAreaElement> }) {
+  return (
+    <textarea
+      ref={ref}
+      data-slot="textarea"
+      className={cn(
+        "clay-input w-full border-2 border-transparent bg-card px-4 py-3 text-sm outline-none",
+        "placeholder:text-muted-foreground/50 focus:border-ring",
+        className
+      )}
+      {...props}
+    />
+  )
+}

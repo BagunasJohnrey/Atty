@@ -5,10 +5,17 @@ server-side pagination, and CSV export.
 
 ## How it works
 
-- **Filters** (`AttendanceFilters`, URL-driven `?q=&college=&program=&yearLevel=&gender=`):
+- **Filters** (`AttendanceFilters`, URL-driven `?q=&college=&program=&yearLevel=&gender=&day=`):
   free-text search covers SR code and name; dropdown facets cover department,
-  course, year level, and gender. Facet options derive from the full list so
-  they never shrink as filters are applied.
+  course, year level, and gender; the day picker covers the event's dates.
+  Facet options derive from the full list so they never shrink as filters
+  are applied.
+- **Live day filter:** the table and the Export PDF link parse their filters
+  from the URL (`useSearchParams`), not from server props. Picking a day
+  updates the URL instantly via `router.replace`, so the table refetches the
+  picked day immediately instead of waiting for the server roundtrip — the
+  same pattern `ReportSummary` already uses. `printUrl` carries `day` so the
+  export matches the picked day at click time.
 - **Server pagination** (`GET …/attendance?page=&pageSize=`): only the current
   page (50 rows) travels to the browser. The upstream sheet read stays whole
   behind the 10s server cache, so page turns cost one cached read total.

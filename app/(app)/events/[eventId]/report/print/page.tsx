@@ -6,10 +6,12 @@ import {
   getOrganizationCachedFor,
 } from "@/integration/cached"
 import { filterAttendance, parseAttendanceFilters } from "@/lib/attendance"
+import { eventDays } from "@/lib/events"
 import { requireAdminPage } from "@/lib/auth/dal"
 import { PaginatedReport } from "@/components/reports/PaginatedReport"
 import { DownloadPdfButton } from "@/components/reports/DownloadPdfButton"
 import { PrintButton } from "@/components/reports/PrintButton"
+import { DayFilter } from "@/components/reports/DayFilter"
 
 export const dynamic = "force-dynamic"
 
@@ -90,6 +92,12 @@ export default async function PrintReportPage({
           ← Back to event
         </Link>
         <div className="flex items-center gap-2">
+          <DayFilter
+            days={eventDays(event.date)}
+            basePath={`/events/${event.id}/report/print`}
+            variant="button"
+            layout="inline"
+          />
           <PrintButton />
           <DownloadPdfButton
             eventMeta={{

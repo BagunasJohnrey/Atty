@@ -15,8 +15,54 @@ var Reports = {
     var event = Events.assertById(eventId)
     var attendance = Attendance.list(eventId)
     var totalStudents = Students.count()
-    var totalPresent = attendance.length
+    var totalScans = attendance.length
+    var presentSrcodes = {}
+    for (var i = 0; i < attendance.length; i++) {
+      presentSrcodes[attendance[i].srcode] = true
+    }
+    var totalPresent = Object.keys(presentSrcodes).length
     var totalAbsent = Math.max(0, totalStudents - totalPresent)
+    // Overall groups count distinct students (first scan wins), so shares
+    // never exceed 100% on multi-day events.
+    var seenSrcodes = {}
+    var distinct = []
+    for (var d = 0; d < attendance.length; d++) {
+      if (!seenSrcodes[attendance[d].srcode]) {
+        seenSrcodes[attendance[d].srcode] = true
+        distinct.push(attendance[d])
+      }
+    }
+
+    var byDay = {}
+    var dayOrder = []
+    for (var j = 0; j < attendance.length; j++) {
+      var day = Attendance.dayKey(attendance[j].timestamp)
+      if (!byDay[day]) {
+        byDay[day] = []
+        dayOrder.push(day)
+      }
+      byDay[day].push(attendance[j])
+    }
+    dayOrder.sort()
+    var days = []
+    for (var k = 0; k < dayOrder.length; k++) {
+      var records = byDay[dayOrder[k]]
+      var daySrcodes = {}
+      for (var m = 0; m < records.length; m++) {
+        daySrcodes[records[m].srcode] = true
+      }
+      var dayPresent = Object.keys(daySrcodes).length
+      days.push({
+        day: dayOrder[k],
+        present: dayPresent,
+        absent: Math.max(0, totalStudents - dayPresent),
+        rate: Reports.rate(dayPresent, totalStudents),
+        byCollege: Reports.groupBy(records, "college"),
+        byProgram: Reports.groupBy(records, "program"),
+        byYearLevel: Reports.groupBy(records, "yearLevel"),
+        byGender: Reports.groupBy(records, "gender"),
+      })
+    }
 
     return {
       event: event,
@@ -24,10 +70,12 @@ var Reports = {
       totalPresent: totalPresent,
       totalAbsent: totalAbsent,
       attendanceRate: Reports.rate(totalPresent, totalStudents),
-      byCollege: Reports.groupBy(attendance, "college"),
-      byProgram: Reports.groupBy(attendance, "program"),
-      byYearLevel: Reports.groupBy(attendance, "yearLevel"),
-      byGender: Reports.groupBy(attendance, "gender"),
+      totalScans: totalScans,
+      byCollege: Reports.groupBy(distinct, "college"),
+      byProgram: Reports.groupBy(distinct, "program"),
+      byYearLevel: Reports.groupBy(distinct, "yearLevel"),
+      byGender: Reports.groupBy(distinct, "gender"),
+      days: days,
     }
   },
 

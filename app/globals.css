@@ -336,6 +336,34 @@
   .clay-search {
     border-radius: var(--clay-radius-pill);
   }
+  /* ---- Visible clay scrollbar for scrollable wells (the app hides
+     page-level scrollbars, so this opts back in locally). Scoped to the
+     element: track stays transparent, thumb picks up the clay tone. */
+  .clay-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 45%, transparent) transparent;
+  }
+  .clay-scroll::-webkit-scrollbar {
+    display: block;
+    width: 10px;
+  }
+  .clay-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .clay-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 45%, transparent);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .dark .clay-scroll {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 60%, transparent) transparent;
+  }
+  .dark .clay-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 60%, transparent);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
   /* ---- Puffy extruded pills: buttons ---- */
   .clay-btn {
     border-radius: var(--clay-radius-pill);

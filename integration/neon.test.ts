@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AppsScriptError } from "./errors"
+import { manilaDayKey } from "@/lib/format"
 import {
   checkAttendanceNeon,
   closeEventNeon,
@@ -17,13 +18,16 @@ import {
   updateEventNeon,
 } from "./neon"
 import { getOrganization } from "./organizations"
+import { getOrganizationNeon } from "./neon-organizations"
 import { neon } from "@neondatabase/serverless"
 
 vi.mock("@neondatabase/serverless", () => ({ neon: vi.fn() }))
 vi.mock("./organizations", () => ({ getOrganization: vi.fn() }))
+vi.mock("./neon-organizations", () => ({ getOrganizationNeon: vi.fn() }))
 
 const neonMock = vi.mocked(neon)
 const orgMock = vi.mocked(getOrganization)
+const neonOrgMock = vi.mocked(getOrganizationNeon)
 const OLD_URL = process.env.NEON_DATABASE_URL
 
 function queryText(strings: TemplateStringsArray | string): string {
@@ -50,6 +54,9 @@ beforeEach(() => {
   neonMock.mockReset()
   orgMock.mockReset()
   orgMock.mockResolvedValue({ id: "ORG-001", name: "Org", email: "" })
+  neonOrgMock.mockReset()
+  neonOrgMock.mockResolvedValue({ id: "ORG-001", name: "Org", email: "" })
+  delete process.env.NEON_ORGANIZATIONS
   process.env.NEON_DATABASE_URL = "postgresql://test/test"
 })
 
@@ -423,6 +430,61 @@ describe("neon events", () => {
   })
 })
 
+describe("neon organization resolution", () => {
+  function mockEventInsert() {
+    return mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("insert into events")) {
+        const v = values as string[]
+        return [
+          {
+            id: v[0],
+            name: v[1],
+            event_date: v[2],
+            status: "Upcoming",
+            sheet_name: v[3],
+            location: v[4],
+            description: v[5],
+            org_id: v[6],
+            time: v[7],
+          },
+        ]
+      }
+      return [{ id: "EVT-007" }]
+    })
+  }
+
+  it("resolves event org ids against Sheets organizers by default", async () => {
+    mockEventInsert()
+    await createEventNeon({
+      name: "New",
+      date: "2026-10-20",
+      description: "Welcome.",
+      orgId: "ORG-001",
+    })
+    expect(orgMock).toHaveBeenCalledWith("ORG-001")
+    expect(neonOrgMock).not.toHaveBeenCalled()
+  })
+
+  it("resolves event org ids against Neon organizers when flagged", async () => {
+    process.env.NEON_ORGANIZATIONS = "neon"
+    try {
+      mockEventInsert()
+      const event = await createEventNeon({
+        name: "New",
+        date: "2026-10-20",
+        description: "Welcome.",
+        orgId: "ORG-001",
+      })
+      expect(neonOrgMock).toHaveBeenCalledWith("ORG-001")
+      expect(orgMock).not.toHaveBeenCalled()
+      expect(event.orgId).toBe("ORG-001")
+    } finally {
+      delete process.env.NEON_ORGANIZATIONS
+    }
+  })
+})
+
 const neonStudentRow = {
   srcode: "26-12345",
   full_name: "Juan Dela Cruz",
@@ -435,7 +497,7 @@ const neonStudentRow = {
 function mockAttendanceDb() {
   return mockSql((strings) => {
     const q = queryText(strings)
-    if (q.includes("from events")) return [neonEventRow]
+    if (q.includes("from events")) return [eventRowOn(new Date())]
     if (q.includes("from students") && q.includes("where"))
       return [neonStudentRow]
     if (q.includes("insert into attendance"))
@@ -443,6 +505,16 @@ function mockAttendanceDb() {
     if (q.includes("from attendance")) return []
     throw new Error(`unexpected query: ${q}`)
   })
+}
+
+/**
+ * Event fixture whose dates cover the given instant's Manila day, as
+ * `MM/DD/YYYY`. Record/check tests pin "today" this way so the date gate
+ * passes without coupling the suite to the calendar date it runs on.
+ */
+function eventRowOn(at: number | Date = new Date()) {
+  const [year, month, day] = manilaDayKey(at).split("-")
+  return { ...neonEventRow, event_date: `${month}/${day}/${year}` }
 }
 
 describe("neon attendance", () => {
@@ -482,7 +554,7 @@ describe("neon attendance", () => {
   it("reports a duplicate scan instead of writing twice", async () => {
     mockSql((strings) => {
       const q = queryText(strings)
-      if (q.includes("from events")) return [neonEventRow]
+      if (q.includes("from events")) return [eventRowOn(new Date())]
       if (q.includes("from students")) return [neonStudentRow]
       if (q.includes("insert into attendance")) return []
       throw new Error(`unexpected query: ${q}`)
@@ -492,10 +564,228 @@ describe("neon attendance", () => {
     })
   })
 
+  it("scopes the duplicate guard to the Manila day", async () => {
+    const days: unknown[] = []
+    const seen = new Set<string>()
+    const sql = mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [eventRowOn(new Date())]
+      if (q.includes("from students")) return [neonStudentRow]
+      if (q.includes("insert into attendance")) {
+        // Emulate the (event_id, srcode, day) primary key.
+        const key = `${values[0]}|${values[1]}|${values[2]}`
+        if (seen.has(key)) return []
+        seen.add(key)
+        days.push(values[2])
+        return [{ scanned_at: values[3] }]
+      }
+      throw new Error(`unexpected query: ${q}`)
+    })
+    await recordAttendanceNeon("EVT-001", "26-12345")
+    await expect(
+      recordAttendanceNeon("EVT-001", "26-12345")
+    ).rejects.toMatchObject({ code: "DUPLICATE_ATTENDANCE" })
+    expect(days).toHaveLength(1)
+    expect(days[0]).toBe(manilaDayKey(new Date()))
+    const insertCall = sql.mock.calls.find((call) =>
+      String(call).includes("insert into attendance")
+    )
+    expect(String(insertCall)).toContain("on conflict (event_id, srcode, day)")
+  })
+
+  it("stores scans straddling Manila midnight on different days", async () => {
+    vi.useFakeTimers()
+    try {
+      const days: unknown[] = []
+      mockSql((strings, ...values) => {
+        const q = queryText(strings)
+        if (q.includes("from events"))
+          return [
+            { ...neonEventRow, event_date: "10/11/2026 - 10/12/2026" },
+          ]
+        if (q.includes("from students")) return [neonStudentRow]
+        if (q.includes("insert into attendance")) {
+          days.push(values[2])
+          return [{ scanned_at: values[3] }]
+        }
+        throw new Error(`unexpected query: ${q}`)
+      })
+      vi.setSystemTime(new Date("2026-10-11T15:59:00Z")) // 23:59 Manila
+      await recordAttendanceNeon("EVT-001", "26-12345")
+      vi.setSystemTime(new Date("2026-10-11T16:01:00Z")) // 00:01 Manila
+      await recordAttendanceNeon("EVT-001", "26-12345")
+      expect(days).toEqual(["2026-10-11", "2026-10-12"])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("stores an explicit scan timestamp on its Manila day", async () => {
+    const seen: unknown[][] = []
+    const yesterday = Date.now() - 86400000
+    mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [eventRowOn(yesterday)]
+      if (q.includes("from students")) return [neonStudentRow]
+      if (q.includes("insert into attendance")) {
+        seen.push(values)
+        return [{ scanned_at: values[3] }]
+      }
+      throw new Error(`unexpected query: ${q}`)
+    })
+    await recordAttendanceNeon("EVT-001", "26-12345", yesterday)
+    expect(seen).toHaveLength(1)
+    expect(seen[0][2]).toBe(manilaDayKey(yesterday))
+    expect((seen[0][3] as Date).getTime()).toBe(yesterday)
+  })
+
+  it("refuses a scan outside the event's dates", async () => {
+    vi.useFakeTimers()
+    try {
+      const sql = mockSql((strings) => {
+        const q = queryText(strings)
+        if (q.includes("from events"))
+          return [
+            { ...neonEventRow, event_date: "10/11/2026 - 10/12/2026" },
+          ]
+        if (q.includes("from students")) return [neonStudentRow]
+        throw new Error(`unexpected query: ${q}`)
+      })
+      // 08:00 Manila on Oct 13: the day after the event ended.
+      vi.setSystemTime(new Date("2026-10-13T00:00:00.000Z"))
+      await expect(
+        recordAttendanceNeon("EVT-001", "26-12345")
+      ).rejects.toMatchObject({ code: "EVENT_DATE_CLOSED" })
+      expect(
+        sql.mock.calls.some((call) =>
+          String(call).includes("insert into attendance")
+        )
+      ).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("judges a replay by its scan day, not the sync day", async () => {
+    vi.useFakeTimers()
+    try {
+      mockSql((strings, ...values) => {
+        const q = queryText(strings)
+        if (q.includes("from events"))
+          return [
+            { ...neonEventRow, event_date: "10/11/2026 - 10/12/2026" },
+          ]
+        if (q.includes("from students")) return [neonStudentRow]
+        if (q.includes("insert into attendance"))
+          return [{ scanned_at: values[3] }]
+        throw new Error(`unexpected query: ${q}`)
+      })
+      // Synced Oct 13, but scanned Oct 12 while the event was open.
+      vi.setSystemTime(new Date("2026-10-13T00:00:00.000Z"))
+      const scannedAt = new Date("2026-10-12T15:00:00.000Z").getTime()
+      const result = await recordAttendanceNeon(
+        "EVT-001",
+        "26-12345",
+        scannedAt
+      )
+      expect(result.student).toMatchObject({ srcode: "26-12345" })
+      // A replay scanned after the event ended is still refused.
+      await expect(
+        recordAttendanceNeon(
+          "EVT-001",
+          "26-12345",
+          new Date("2026-10-13T00:00:00.000Z").getTime()
+        )
+      ).rejects.toMatchObject({ code: "EVENT_DATE_CLOSED" })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("fails open when the event date is unparseable", async () => {
+    mockSql((strings, ...values) => {
+      const q = queryText(strings)
+      if (q.includes("from events"))
+        return [{ ...neonEventRow, event_date: "someday" }]
+      if (q.includes("from students")) return [neonStudentRow]
+      if (q.includes("insert into attendance"))
+        return [{ scanned_at: values[3] }]
+      throw new Error(`unexpected query: ${q}`)
+    })
+    const result = await recordAttendanceNeon("EVT-001", "26-12345")
+    expect(result.student).toMatchObject({ srcode: "26-12345" })
+  })
+
+  it("refuses validation outside the event's dates", async () => {
+    vi.useFakeTimers()
+    try {
+      mockSql((strings) => {
+        const q = queryText(strings)
+        if (q.includes("from events"))
+          return [
+            { ...neonEventRow, event_date: "10/11/2026 - 10/12/2026" },
+          ]
+        if (q.includes("from students")) return [neonStudentRow]
+        throw new Error(`unexpected query: ${q}`)
+      })
+      vi.setSystemTime(new Date("2026-10-13T00:00:00.000Z"))
+      await expect(
+        checkAttendanceNeon("EVT-001", "26-12345")
+      ).rejects.toMatchObject({ code: "EVENT_DATE_CLOSED" })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("collapses simultaneous same-day scans to one row", async () => {    let inserts = 0
+    mockSql((strings) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [eventRowOn(new Date())]
+      if (q.includes("from students")) return [neonStudentRow]
+      if (q.includes("insert into attendance")) {
+        inserts += 1
+        return inserts === 1
+          ? [{ scanned_at: new Date("2026-09-20T00:01:23.000Z") }]
+          : []
+      }
+      throw new Error(`unexpected query: ${q}`)
+    })
+    const [a, b] = await Promise.allSettled([
+      recordAttendanceNeon("EVT-001", "26-12345"),
+      recordAttendanceNeon("EVT-001", "26-12345"),
+    ])
+    const fulfilled = [a, b].filter((r) => r.status === "fulfilled")
+    const dupes = [a, b].filter(
+      (r) =>
+        r.status === "rejected" &&
+        (r.reason as { code?: string })?.code === "DUPLICATE_ATTENDANCE"
+    )
+    expect(fulfilled).toHaveLength(1)
+    expect(dupes).toHaveLength(1)
+  })
+
+  it("checks presence for today only", async () => {
+    const sql = mockSql((strings) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [eventRowOn(new Date())]
+      if (q.includes("from students")) return [neonStudentRow]
+      // Day filter excluded the yesterday-only scan.
+      if (q.includes("from attendance")) return []
+      throw new Error(`unexpected query: ${q}`)
+    })
+    await expect(
+      checkAttendanceNeon("EVT-001", "26-12345")
+    ).resolves.toMatchObject({ present: false })
+    const checkCall = sql.mock.calls.find((call) =>
+      String(call).includes("from attendance")
+    )
+    expect(String(checkCall)).toContain("day")
+  })
+
   it("checks presence with timestamp and student", async () => {
     mockSql((strings) => {
       const q = queryText(strings)
-      if (q.includes("from events")) return [neonEventRow]
+      if (q.includes("from events")) return [eventRowOn(new Date())]
       if (q.includes("from students")) return [neonStudentRow]
       if (q.includes("from attendance"))
         return [{ scanned_at: new Date("2026-09-20T00:01:23.000Z") }]
@@ -511,7 +801,7 @@ describe("neon attendance", () => {
   it("checks absence without a timestamp", async () => {
     mockSql((strings) => {
       const q = queryText(strings)
-      if (q.includes("from events")) return [neonEventRow]
+      if (q.includes("from events")) return [eventRowOn(new Date())]
       if (q.includes("from students")) return [neonStudentRow]
       if (q.includes("from attendance")) return []
       throw new Error(`unexpected query: ${q}`)
@@ -569,5 +859,31 @@ describe("neon attendance", () => {
       byCollege: { CICS: 2 },
       byProgram: { BSIT: 1, BSCS: 1 },
     })
+  })
+
+  it("breaks the report down by day with distinct-student totals", async () => {
+    mockSql((strings) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [neonEventRow]
+      if (q.includes("count(")) return [{ n: 4 }]
+      if (q.includes("from attendance"))
+        return [
+          { srcode: "a", scanned_at: "2026-09-20T00:01:23.000Z", full_name: "A", college: "CICS", program: "BSIT", year_level: "First Year", gender: "Male" },
+          { srcode: "b", scanned_at: "2026-09-20T00:02:23.000Z", full_name: "B", college: "CICS", program: "BSCS", year_level: "First Year", gender: "Female" },
+          { srcode: "a", scanned_at: "2026-09-21T00:01:23.000Z", full_name: "A", college: "CICS", program: "BSIT", year_level: "First Year", gender: "Male" },
+        ]
+      throw new Error(`unexpected query: ${q}`)
+    })
+    const report = await getAttendanceReportNeon("EVT-001")
+    expect(report.totalScans).toBe(3)
+    expect(report.totalPresent).toBe(2)
+    expect(report.totalAbsent).toBe(2)
+    expect(report.attendanceRate).toBe(50)
+    expect(report.days).toHaveLength(2)
+    expect(report.days[0]).toMatchObject({ day: "2026-09-20", present: 2 })
+    expect(report.days[1]).toMatchObject({ day: "2026-09-21", present: 1 })
+    // Overall groups dedupe by student: A scanned twice but counts once.
+    expect(report.byCollege).toEqual({ CICS: 2 })
+    expect(report.byProgram).toEqual({ BSIT: 1, BSCS: 1 })
   })
 })

@@ -17,7 +17,7 @@ export interface SyncReport {
 export async function syncQueue(deps: {
   queue: ScanQueue
   eventId: string
-  record: (eventId: string, srcode: string) => Promise<unknown>
+  record: (eventId: string, srcode: string, scannedAt: number) => Promise<unknown>
   isAuthError?: (error: unknown) => boolean
   onProgress?: (done: number, total: number) => void
 }): Promise<SyncReport> {
@@ -30,7 +30,7 @@ export async function syncQueue(deps: {
   for (const [index, scan] of pending.entries()) {
     await queue.markSyncing(scan.id)
     try {
-      await record(eventId, scan.srcode)
+      await record(eventId, scan.srcode, scan.scannedAt)
       await queue.markDone(scan.id)
       results.push({ scan, outcome: "recorded" })
     } catch (error) {

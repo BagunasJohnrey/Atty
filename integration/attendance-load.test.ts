@@ -28,10 +28,18 @@ describe.skipIf(!LOAD_URL)("attendance load (dev branch only)", () => {
   beforeAll(async () => {
     process.env.NEON_DATABASE_URL = LOAD_URL
     const sql = neon(LOAD_URL as string)
+    // Check-ins land only on the event's dates, so the fixture always
+    // covers today instead of a fixed date the suite would age past.
+    const today = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date())
     await sql`delete from attendance where event_id = ${EVENT_ID}`
     await sql`delete from events where id = ${EVENT_ID}`
     await sql`insert into events (id, name, event_date, status, sheet_name)
-      values (${EVENT_ID}, 'Load Test', '10/10/2026', 'Active', ${EVENT_ID})`
+      values (${EVENT_ID}, 'Load Test', ${today}, 'Active', ${EVENT_ID})`
   }, 60000)
 
   afterAll(async () => {

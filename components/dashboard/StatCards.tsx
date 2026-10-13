@@ -11,9 +11,24 @@ export function StatCards({ active, upcoming, closed }: { active: number; upcomi
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       {stats.map(({ label, value, icon: Icon, tile, tag, variant }) => (
-        <Card key={label} className="clay-topglow">
+        <Card
+          key={label}
+          className={
+            // The upcoming tile caps its width on phones (full-bleed
+            // single-column cards look oversized); sm+ keeps the grid fit.
+            variant === "upcoming" ? "clay-topglow max-w-md sm:max-w-none" : "clay-topglow"
+          }
+        >
           <CardContent className="flex-row items-center gap-3">
-            <span className={`${tile} flex size-11 items-center justify-center rounded-2xl`} aria-hidden>
+            <span
+              className={`${tile} flex size-11 items-center justify-center rounded-2xl ${
+                // Optical nudge: the clock glyph reads right-heavy next to
+                // the check/archive glyphs, so the upcoming tile shifts 5px
+                // left to sit on the same visual axis.
+                variant === "upcoming" ? "-translate-x-[5px]" : ""
+              }`}
+              aria-hidden
+            >
               <Icon className="size-5" />
             </span>
             <span className="min-w-0 flex-1">

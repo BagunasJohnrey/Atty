@@ -24,10 +24,12 @@ export function BreakdownBar({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between gap-2 text-xs">
-        <span className="truncate font-medium" title={label}>
+        <span className="min-w-0 truncate font-medium" title={label}>
           {label}
         </span>
-        <span className="shrink-0 text-muted-foreground tabular-nums">
+        {/* One line always: without this the "17 · 85%" readout wraps
+            under long department names on phones. */}
+        <span className="shrink-0 whitespace-nowrap text-muted-foreground tabular-nums">
           {count} · {pct}%
         </span>
       </div>

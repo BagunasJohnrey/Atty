@@ -13,8 +13,8 @@ export function ReportBars({ report }: { report: AttendanceReport }) {
   const years = Object.entries(report.byYearLevel).map(([label, value]) => ({ label, value }))
 
   return (
-    <div className="mt-4 flex flex-col gap-4">
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="mt-4 flex min-w-0 flex-col gap-4">
+      <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div className="clay-pressed p-4 sm:p-5">
           <h4 className="mb-3 text-xs font-bold tracking-wide text-muted-foreground uppercase">
             Overall turnout
@@ -38,7 +38,7 @@ export function ReportBars({ report }: { report: AttendanceReport }) {
           />
         ) : null}
       </div>
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
         <CategoryChart
           title="By department"
           entries={Object.entries(report.byCollege)}

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Search } from "lucide-react"
 import { Input, Label } from "@/components/ui/input"
 import { ClaySelect, ClayCombobox } from "@/components/ui/select"
+import { formatDayLabel } from "@/lib/format"
 import type { FilterOptions } from "@/lib/attendance"
 
 const DROPDOWNS = [
@@ -30,6 +31,12 @@ export function AttendanceFilters({
     router.replace(`/events/${eventId}?${next.toString()}`, { scroll: false })
   }
 
+  const dayLabels = options.days.map((value, index) => ({
+    value,
+    label: formatDayLabel(value, index),
+  }))
+  const dayParam = params.get("day") ?? ""
+
   return (
     <form
       aria-label="Search and filter attendance"
@@ -54,7 +61,25 @@ export function AttendanceFilters({
           />
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {options.days.length > 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="f-day">Day</Label>
+            <ClaySelect
+              id="f-day"
+              value={dayLabels.find((l) => l.value === dayParam)?.label ?? ""}
+              onChange={(label) =>
+                update(
+                  "day",
+                  dayLabels.find((l) => l.label === label)?.value ?? ""
+                )
+              }
+              placeholder="All days"
+              options={dayLabels.map((l) => l.label)}
+              allLabel="All days"
+            />
+          </div>
+        ) : null}
         {DROPDOWNS.map(({ key, label, values, searchable }) => {
           const current = params.get(key) ?? ""
           const list = values(options)

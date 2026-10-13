@@ -111,7 +111,7 @@ export function CheckInForm({
       } else if (res.check.present) {
         setOutcome({
           kind: "duplicate",
-          message: "Attendance already recorded for this event.",
+          message: "Attendance already recorded today.",
           timestamp: res.check.timestamp,
         })
       } else {
@@ -180,7 +180,7 @@ export function CheckInForm({
       if (err instanceof ApiError && err.code === "DUPLICATE_ATTENDANCE") {
         setOutcome({
           kind: "duplicate",
-          message: "Attendance already recorded for this event.",
+          message: "Attendance already recorded today.",
         })
       } else {
         setOutcome({ kind: "idle" })
@@ -275,7 +275,7 @@ export function CheckInForm({
                   <Button
                     onClick={() => void onConfirm()}
                     disabled={recording}
-                    className="clay-btn clay-btn-primary h-12 flex-1 text-base"
+                    className="clay-btn clay-btn-primary h-14 flex-1 text-base"
                   >
                     <CircleCheck className="size-5" aria-hidden />
                     {recording ? "Recording…" : "Confirm Attendance"}
@@ -284,7 +284,7 @@ export function CheckInForm({
                     variant="outline"
                     onClick={cancelConfirm}
                     disabled={recording}
-                    className="clay-btn h-12"
+                    className="clay-btn h-14"
                   >
                     <Undo2 className="size-4" aria-hidden /> Back
                   </Button>

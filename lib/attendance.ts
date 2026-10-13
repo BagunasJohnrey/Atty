@@ -1,4 +1,5 @@
 import type { AttendanceRecord } from "@/models/attendance"
+import { manilaDayKey } from "@/lib/format"
 
 /**
  * Server-side search/filter for attendance records (FR-13/FR-14).
@@ -14,6 +15,8 @@ export interface AttendanceFilters {
   program?: string
   yearLevel?: string
   gender?: string
+  /** Manila day (`YYYY-MM-DD`); narrows rows, report, and export to one day. */
+  day?: string
 }
 
 export function parseAttendanceFilters(
@@ -29,6 +32,7 @@ export function parseAttendanceFilters(
     program: pick("program"),
     yearLevel: pick("yearLevel"),
     gender: pick("gender"),
+    day: pick("day"),
   }
 }
 
@@ -42,6 +46,7 @@ export interface FilterOptions {
   programs: string[]
   yearLevels: string[]
   genders: string[]
+  days: string[]
 }
 
 /**
@@ -58,6 +63,7 @@ export function distinctFilterOptions(
   const programs = new Set<string>()
   const yearLevels = new Set<string>()
   const genders = new Set<string>()
+  const days = new Set<string>()
 
   for (const record of records) {
     const college = record.college.trim()
@@ -68,6 +74,7 @@ export function distinctFilterOptions(
     if (yearLevel) yearLevels.add(yearLevel)
     const gender = record.gender.trim()
     if (gender) genders.add(gender)
+    if (record.timestamp.trim()) days.add(manilaDayKey(record.timestamp))
   }
 
   const sorted = (values: Set<string>): string[] =>
@@ -78,6 +85,7 @@ export function distinctFilterOptions(
     programs: sorted(programs),
     yearLevels: sorted(yearLevels),
     genders: sorted(genders),
+    days: sorted(days),
   }
 }
 
@@ -86,25 +94,21 @@ export function filterAttendance(
   filters: AttendanceFilters
 ): AttendanceRecord[] {
   const q = filters.q?.trim().toLowerCase()
+  const day = filters.day?.trim()
+  const facet = (record: AttendanceRecord): boolean =>
+    matches(record.college, filters.college) &&
+    matches(record.program, filters.program) &&
+    matches(record.yearLevel, filters.yearLevel) &&
+    matches(record.gender, filters.gender) &&
+    (!day || manilaDayKey(record.timestamp) === day)
   if (!q) {
     // No free-text term: facet predicates alone, no per-record haystack.
-    return records.filter(
-      (record) =>
-        matches(record.college, filters.college) &&
-        matches(record.program, filters.program) &&
-        matches(record.yearLevel, filters.yearLevel) &&
-        matches(record.gender, filters.gender)
-    )
+    return records.filter(facet)
   }
   return records.filter((record) => {
     const haystack = `${record.srcode} ${record.name}`.toLowerCase()
     if (!haystack.includes(q)) return false
-    return (
-      matches(record.college, filters.college) &&
-      matches(record.program, filters.program) &&
-      matches(record.yearLevel, filters.yearLevel) &&
-      matches(record.gender, filters.gender)
-    )
+    return facet(record)
   })
 }
 

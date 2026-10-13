@@ -82,6 +82,7 @@ Error codes are mapped to HTTP status by the BFF in `lib/api.ts`:
 | `METHOD_NOT_ALLOWED` | 405 | `GET` on the web app. |
 | `EVENT_NOT_FOUND` / `SRCODE_NOT_FOUND` / `ORG_NOT_FOUND` | 404 | |
 | `DUPLICATE_ATTENDANCE` / `EVENT_NOT_ACTIVE` | 409 | |
+| `EVENT_DATE_CLOSED` | 409 | Scan lands outside the event's dates (record + check). |
 | `CONFIGURATION_ERROR` | 503 | A Script Property or env var is missing. |
 | `UPSTREAM_UNAVAILABLE` | 502 | Network failure or non-JSON response. |
 | `INTERNAL_ERROR` | 502 | Unexpected backend error. |

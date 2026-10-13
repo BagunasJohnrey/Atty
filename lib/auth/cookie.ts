@@ -9,7 +9,7 @@
 import "server-only"
 
 import { cookies } from "next/headers"
-import { SESSION_COOKIE, SESSION_TTL_SECONDS } from "./constants"
+import { SESSION_COOKIE } from "./constants"
 import { type Session, signSession, verifySession } from "./session"
 
 /**
@@ -17,6 +17,10 @@ import { type Session, signSession, verifySession } from "./session"
  *
  * Called only from a Server Action or Route Handler, never during render:
  * Next.js forbids cookie mutation while rendering.
+ *
+ * Deliberately a session cookie (no maxAge/expires): the login ends when
+ * the browser exits, so a closed kiosk or laptop never hands its session
+ * to the next person. The JWT's own 12-hour expiry stays as a backstop.
  */
 export async function createSession(): Promise<void> {
   const token = await signSession()
@@ -28,7 +32,6 @@ export async function createSession(): Promise<void> {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_TTL_SECONDS,
   })
 }
 

@@ -67,6 +67,91 @@ var Events = {
   },
 
   /**
+   * Every day key (`yyyy-MM-dd` in the script timezone) the event spans.
+   * Single dates yield one day; stored ranges (`MM/DD/YYYY - MM/DD/YYYY`
+   * or ISO) enumerate inclusively. Anything unparseable yields nothing, so
+   * callers fail open instead of bricking check-ins.
+   *
+   * @param {string} date - The event's stored date value.
+   * @returns {string[]}
+   */
+  dayKeys: function (date) {
+    var halves = String(date || "").split(" - ")
+    if (halves.length > 2) return []
+    var starts = []
+    for (var i = 0; i < halves.length; i++) {
+      var parsed = Events.parseDayHalf(halves[i])
+      if (!parsed) return []
+      starts.push(parsed)
+    }
+    var end = starts.length > 1 ? starts[1] : starts[0]
+    if (end.getTime() < starts[0].getTime()) {
+      return [Utilities.formatDate(starts[0], Session.getScriptTimeZone(), "yyyy-MM-dd")]
+    }
+    var days = []
+    var cursor = new Date(starts[0].getTime())
+    while (cursor.getTime() <= end.getTime() && days.length < 366) {
+      days.push(Utilities.formatDate(cursor, Session.getScriptTimeZone(), "yyyy-MM-dd"))
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    return days
+  },
+
+  /**
+   * Parses one range half as a local date, or null. Accepts the ISO and
+   * `M/D/YYYY` storage shapes; manual parsing only, never `new Date` on a
+   * bare string, which parses as UTC and shifts a day under Manila.
+   *
+   * @param {string} half
+   * @returns {Date|null}
+   */
+  parseDayHalf: function (half) {
+    var text = String(half || "").trim()
+    if (!text) return null
+    var iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+    if (iso) return Events.validDate(Number(iso[1]), Number(iso[2]), Number(iso[3]))
+    var mdy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text)
+    if (mdy) return Events.validDate(Number(mdy[3]), Number(mdy[1]), Number(mdy[2]))
+    return null
+  },
+
+  /**
+   * Local date for valid parts, or null when the parts are not a real day.
+   *
+   * @param {number} year
+   * @param {number} month - 1..12
+   * @param {number} day - 1..31
+   * @returns {Date|null}
+   */
+  validDate: function (year, month, day) {
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null
+    var date = new Date(year, month - 1, day)
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return null
+    }
+    return date
+  },
+
+  /**
+   * Throws unless the scan day falls within the event's dates. Replays are
+   * judged by the day they were taken, so `dayKey` is the scan day, not
+   * necessarily today. Unparseable event dates fail open, degrading to the
+   * old behavior instead of bricking check-ins.
+   *
+   * @param {SchoolEvent} event
+   * @param {string} dayKey - Scan day from Attendance.dayKey.
+   */
+  assertDateOpen: function (event, dayKey) {
+    var days = Events.dayKeys(event.date)
+    if (days.length === 0) return
+    if (days.indexOf(dayKey) >= 0) return
+    throw new AppError(
+      Responses.CODES.EVENT_DATE_CLOSED,
+      "Check-in is closed for this date. " + event.name + " only accepts attendance on " + event.date + "."
+    )
+  },
+
+  /**
    * Creates an event, its registry row, and its attendance sheet.
    * Location and description are optional and default to "".
    *
