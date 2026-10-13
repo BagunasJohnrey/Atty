@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   formatDayLabel,
-  formatSrcodeInput,
   formatTimeInput,
   isValidSrcodeFormat,
   manilaDayKey,
@@ -34,26 +33,6 @@ describe("isValidSrcodeFormat", () => {
   })
 })
 
-describe("formatSrcodeInput", () => {
-  it("inserts the dash after the second digit while typing", () => {
-    expect(formatSrcodeInput("")).toBe("")
-    expect(formatSrcodeInput("2")).toBe("2")
-    expect(formatSrcodeInput("26")).toBe("26")
-    expect(formatSrcodeInput("261")).toBe("26-1")
-    expect(formatSrcodeInput("2612345")).toBe("26-12345")
-  })
-
-  it("leaves complete codes untouched and truncates overflow", () => {
-    expect(formatSrcodeInput("26-12345")).toBe("26-12345")
-    expect(formatSrcodeInput("26-12345678")).toBe("26-12345")
-  })
-
-  it("drops non-digits, keeping any digits typed", () => {
-    expect(formatSrcodeInput("ab26cd1")).toBe("26-1")
-    expect(formatSrcodeInput("2-6-1")).toBe("26-1")
-  })
-})
-
 describe("formatTimeInput", () => {
   it("converts 24-hour picker values to 12-hour display", () => {
     expect(formatTimeInput("08:00")).toBe("8:00 AM")
@@ -83,9 +62,9 @@ describe("toDateInputValue", () => {
 
   it("takes the start half of a stored range", () => {
     expect(toDateInputValue("11/01/2026 - 11/03/2026")).toBe("2026-11-01")
-    expect(
-      toDateInputValue("November 1, 2026 - November 3, 2026")
-    ).toBe("2026-11-01")
+    expect(toDateInputValue("November 1, 2026 - November 3, 2026")).toBe(
+      "2026-11-01"
+    )
   })
 
   it("returns blank when the stored value is not a date", () => {
@@ -94,7 +73,8 @@ describe("toDateInputValue", () => {
   })
 })
 
-describe("toTimeInputValue", () => {  it("converts 12-hour display times back to picker values", () => {
+describe("toTimeInputValue", () => {
+  it("converts 12-hour display times back to picker values", () => {
     expect(toTimeInputValue("8:00 AM")).toBe("08:00")
     expect(toTimeInputValue("5:00 PM")).toBe("17:00")
     expect(toTimeInputValue("12:00 PM")).toBe("12:00")
@@ -120,7 +100,8 @@ describe("formatDayLabel", () => {
   })
 })
 
-describe("manilaDayKey", () => {  it("keys by the Manila calendar day across the midnight boundary", () => {
+describe("manilaDayKey", () => {
+  it("keys by the Manila calendar day across the midnight boundary", () => {
     // 23:59 Manila.
     expect(manilaDayKey(new Date("2026-10-11T15:59:00Z"))).toBe("2026-10-11")
     // 00:01 Manila, next day.

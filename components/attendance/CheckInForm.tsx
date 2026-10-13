@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input, Label } from "@/components/ui/input"
 import { ApiError, checkAttendance, recordAttendance } from "@/lib/api-client"
 import {
-  formatSrcodeInput,
   formatTimestamp,
   isValidSrcodeFormat,
   normalizeSrcode,
@@ -212,10 +211,10 @@ export function CheckInForm({
               id="srcode"
               value={srcode}
               onChange={(e) => {
-                // Auto-dash: keystrokes regroup into 00-00000 as typed or
-                // pasted, so the dash never needs typing. Output is always
-                // digits-and-dash, which also retires the live gate below.
-                setSrcode(formatSrcodeInput(e.target.value))
+                // Manual dash: the operator types 00-00000 exactly.
+                // Keystrokes filter to digits-and-dash only; placement is
+                // validated on submit, never reformatted while typing.
+                setSrcode(e.target.value.toUpperCase().replace(/[^0-9-]/g, ""))
                 setError(null)
               }}
               placeholder="26-12345"
