@@ -233,7 +233,7 @@ export function CheckInForm({
                 ? "Validating…"
                 : recording
                   ? "Recording…"
-                  : "Validate SR Code"}
+                  : "Confirm"}
             </Button>
             {!eventActive ? (
               <p role="note" className="text-sm text-muted-foreground">

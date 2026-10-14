@@ -51,7 +51,7 @@ async function validateScan() {
   fireEvent.change(screen.getByLabelText("Enter SR Code"), {
     target: { value: "26-00001" },
   })
-  fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
+  fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0)
   })

@@ -45,7 +45,7 @@ describe("CheckInForm offline", () => {
     fireEvent.change(screen.getByLabelText("Enter SR Code"), {
       target: { value: "26-00001" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await waitFor(() => {
       expect(screen.getByText(/recorded successfully/i).textContent).toContain(
         "It will sync automatically"
@@ -88,7 +88,7 @@ describe("CheckInForm offline", () => {
     fireEvent.change(screen.getByLabelText("Enter SR Code"), {
       target: { value: "26-00001" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await waitFor(() => {
       expect(screen.getByText("Attendance Confirmed.")).toBeTruthy()
     })
@@ -108,7 +108,7 @@ describe("CheckInForm offline", () => {
     fireEvent.change(screen.getByLabelText("Enter SR Code"), {
       target: { value: "26-00001" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toContain("Invalid SR Code")
     })
@@ -139,7 +139,7 @@ describe("CheckInForm offline", () => {
     fireEvent.change(screen.getByLabelText("Enter SR Code"), {
       target: { value: "26-00001" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /validate sr code/i }))
+    fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }))
     await waitFor(() => {
       expect(screen.getByText(/recorded successfully/i).textContent).toContain(
         "It will sync automatically"
