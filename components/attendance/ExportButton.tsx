@@ -28,9 +28,13 @@ export function ExportButton({
       href={printUrl(eventId, filters)}
       target="_blank"
       rel="noreferrer"
-      className={buttonVariants({ variant: "outline", size: "sm", className: "clay-btn" })}
+      className={buttonVariants({
+        variant: "outline",
+        size: "default",
+        className: "clay-btn border-border",
+      })}
     >
-      <FileText className="size-3.5" aria-hidden /> Export PDF
+      <FileText className="size-4" aria-hidden /> Export PDF
     </a>
   )
 }

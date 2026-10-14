@@ -24,7 +24,6 @@ export function RefreshButton() {
     <Button
       type="button"
       variant="outline"
-      size="sm"
       className="clay-btn"
       disabled={busy}
       onClick={refreshAllReads}

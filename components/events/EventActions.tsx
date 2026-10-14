@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Trash2 } from "lucide-react"
+import { CircleX, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { ApiError, closeEvent, deleteEvent, openEvent } from "@/lib/api-client"
@@ -65,6 +65,7 @@ export function EventActions({ event }: { event: SchoolEvent }) {
           onClick={() => void run(() => closeEvent(event.id), "Event closed.")}
           className="clay-btn"
         >
+          <CircleX className="size-4" aria-hidden />
           {busy ? "Working…" : "Close event"}
         </Button>
       ) : null}

@@ -506,6 +506,15 @@
     background: transparent;
     box-shadow: none;
   }
+  .clay-empty-state {
+    border: 1px solid color-mix(in oklch, var(--border) 85%, var(--primary) 15%);
+    border-radius: var(--clay-radius-card);
+    background: color-mix(in oklch, var(--card) 82%, var(--primary) 18%);
+    box-shadow:
+      var(--clay-rim),
+      var(--clay-ambient),
+      inset 0 1px 0 rgb(255 255 255 / 0.45);
+  }
   .clay-table-head {
     background: color-mix(in oklch, var(--muted) 55%, transparent);
   }

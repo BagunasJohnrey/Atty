@@ -46,10 +46,15 @@ export function ClaySelect({
         />
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Positioner sideOffset={6} className="z-50">
+        <SelectPrimitive.Positioner
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          className="z-50"
+        >
           <SelectPrimitive.Popup
             className={cn(
-              "clay animate-clay-pop max-h-64 w-[var(--anchor-width)] overflow-y-auto p-2"
+              "clay animate-clay-pop max-h-64 min-w-56 w-[var(--anchor-width)] overflow-y-auto p-2"
             )}
           >
             <SelectPrimitive.List>
@@ -137,8 +142,13 @@ export function ClayCombobox({
         </ComboboxPrimitive.Trigger>
       </ComboboxPrimitive.InputGroup>
       <ComboboxPrimitive.Portal>
-        <ComboboxPrimitive.Positioner sideOffset={6} className="z-50">
-          <ComboboxPrimitive.Popup className="clay animate-clay-pop max-h-64 w-[var(--anchor-width)] overflow-y-auto p-2">
+        <ComboboxPrimitive.Positioner
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          className="z-50"
+        >
+          <ComboboxPrimitive.Popup className="clay animate-clay-pop max-h-64 min-w-56 w-[var(--anchor-width)] overflow-y-auto p-2">
             <ComboboxPrimitive.Empty className="px-3 py-2.5 text-sm text-muted-foreground">
               No matches found.
             </ComboboxPrimitive.Empty>
