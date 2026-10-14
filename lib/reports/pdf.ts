@@ -1,7 +1,10 @@
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
-import { formatEventDate, toDateInputValue } from "@/lib/format"
-import type { ReportEventMeta, ReportRow } from "@/components/reports/PaginatedReport"
+import { formatReportDate, toDateInputValue } from "@/lib/format"
+import type {
+  ReportEventMeta,
+  ReportRow,
+} from "@/components/reports/PaginatedReport"
 
 const FOOTER_TEXT =
   "Leading Innovations, Transforming Lives, Building the Nation"
@@ -69,8 +72,7 @@ export function letterheadLayout(
   logoWidth: number | null,
   gap: number = LETTERHEAD_LOGO_GAP_PT
 ): { logoX: number | null; textCenterX: number } {
-  if (logoWidth == null)
-    return { logoX: null, textCenterX: pageWidth / 2 }
+  if (logoWidth == null) return { logoX: null, textCenterX: pageWidth / 2 }
   const logoX = (pageWidth - (logoWidth + gap + textBlockWidth)) / 2
   return {
     logoX,
@@ -79,15 +81,18 @@ export function letterheadLayout(
 }
 
 /**
- * Download filename in `YYYY-MM-DD_AttendanceReport_EventName` form. The
- * date takes the start of the stored value (ranges file under day one);
- * the name is dasherized and stripped of filesystem-unsafe characters.
+ * Download filename in `YYYY-MM-DD_AttendanceReport_EventName` form. A
+ * selected day files under itself; otherwise the date takes the start of
+ * the stored value (ranges file under day one); the name is dasherized and
+ * stripped of filesystem-unsafe characters.
  */
 export function reportPdfFilename(eventMeta: {
   name: string
   date: string
+  day?: string
 }): string {
-  const day = toDateInputValue(eventMeta.date) || "undated"
+  const day =
+    eventMeta.day?.trim() || toDateInputValue(eventMeta.date) || "undated"
   const name =
     eventMeta.name
       .trim()
@@ -191,7 +196,7 @@ function drawReportHeader(args: ReportHeaderArgs): number {
   doc.text(`Event: ${eventMeta.name}`, pageWidth / 2, y, { align: "center" })
   y += 16
   doc.text(
-    `Date: ${formatEventDate(eventMeta.date)}  |  Time: ${eventMeta.time || " "}  |  Venue: ${eventMeta.location || " "}`,
+    `Date: ${formatReportDate(eventMeta.date, eventMeta.day)}  |  Time: ${eventMeta.time || " "}  |  Venue: ${eventMeta.location || " "}`,
     pageWidth / 2,
     y,
     { align: "center" }
@@ -205,12 +210,9 @@ function drawReportFooter(doc: jsPDF, pageWidth: number): void {
   doc.setFont("helvetica", "bolditalic")
   doc.setFontSize(12)
   doc.setTextColor(210, 54, 59)
-  doc.text(
-    FOOTER_TEXT,
-    pageWidth / 2,
-    doc.internal.pageSize.getHeight() - 30,
-    { align: "center" }
-  )
+  doc.text(FOOTER_TEXT, pageWidth / 2, doc.internal.pageSize.getHeight() - 30, {
+    align: "center",
+  })
   doc.setTextColor(0, 0, 0)
 }
 
@@ -223,7 +225,11 @@ export function buildAttendanceReportPdf(args: {
   logoDataUrl?: string
 }): Uint8Array {
   const { eventMeta, orgName, orgEmail, rows, logoDataUrl } = args
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "legal" })
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "pt",
+    format: "legal",
+  })
   const pageWidth = doc.internal.pageSize.getWidth()
 
   const letterheadLines: {
@@ -259,8 +265,7 @@ export function buildAttendanceReportPdf(args: {
   if (logoDataUrl) {
     try {
       const props = doc.getImageProperties(logoDataUrl)
-      logoWidth =
-        (props.width * LETTERHEAD_LOGO_HEIGHT_PT) / props.height
+      logoWidth = (props.width * LETTERHEAD_LOGO_HEIGHT_PT) / props.height
     } catch {
       logoWidth = null
     }
@@ -332,8 +337,7 @@ export function buildAttendanceReportPdf(args: {
       REPORT_TABLE_COLUMN_WIDTHS_PCT.map((pct, i) => [
         i,
         {
-          cellWidth:
-            ((pageWidth - PAGE_MARGIN_PT * 2) * pct) / 100,
+          cellWidth: ((pageWidth - PAGE_MARGIN_PT * 2) * pct) / 100,
         },
       ])
     ),

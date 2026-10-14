@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
   formatDayLabel,
+  formatEventDate,
+  formatReportDate,
   formatTimeInput,
   isValidSrcodeFormat,
   manilaDayKey,
@@ -110,5 +112,25 @@ describe("manilaDayKey", () => {
 
   it("accepts ISO strings", () => {
     expect(manilaDayKey("2026-10-11T08:00:00+08:00")).toBe("2026-10-11")
+  })
+})
+
+describe("formatReportDate", () => {
+  it("prints a selected day alone", () => {
+    expect(formatReportDate("2026-10-14 - 2026-10-15", "2026-10-15")).toBe(
+      formatEventDate("2026-10-15")
+    )
+  })
+
+  it("keeps the stored range with no selection", () => {
+    expect(formatReportDate("10/14/2026 - 10/15/2026")).toBe(
+      "10/14/2026 - 10/15/2026"
+    )
+  })
+
+  it("treats a blank day as no selection", () => {
+    expect(formatReportDate("2026-10-02", "   ")).toBe(
+      formatEventDate("2026-10-02")
+    )
   })
 })

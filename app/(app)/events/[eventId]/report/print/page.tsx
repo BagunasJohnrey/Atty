@@ -54,6 +54,11 @@ export default async function PrintReportPage({
   if (!event) notFound()
   const rows = filterAttendance(attendance, filters)
 
+  // A picked day prints alone in the Date line; anything unpicked (or a
+  // hand-edited ?day= outside the event) keeps the stored range.
+  const days = eventDays(event.date)
+  const day = flat.day && days.includes(flat.day) ? flat.day : undefined
+
   // The letterhead identity belongs to the event's organization; events
   // without one keep the historic SSC identity.
   const org = event.orgId
@@ -76,6 +81,7 @@ export default async function PrintReportPage({
     event.id,
     event.name,
     event.date,
+    day ?? null,
     event.time,
     event.location,
     orgName,
@@ -103,6 +109,7 @@ export default async function PrintReportPage({
             eventMeta={{
               name: event.name,
               date: event.date,
+              day,
               time: event.time,
               location: event.location,
             }}
@@ -124,6 +131,7 @@ export default async function PrintReportPage({
         eventMeta={{
           name: event.name,
           date: event.date,
+          day,
           time: event.time,
           location: event.location,
         }}

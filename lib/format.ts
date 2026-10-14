@@ -9,6 +9,17 @@ export function formatEventDate(value: string): string {
 }
 
 /**
+ * Report Date line: a selected day prints alone ("October 14, 2026"); with
+ * no selection the stored value prints as today (ranges pass through
+ * verbatim, single dates render long-form).
+ */
+export function formatReportDate(date: string, day?: string): string {
+  const selected = day?.trim()
+  if (selected) return formatEventDate(selected)
+  return formatEventDate(date)
+}
+
+/**
  * Formats a native time-picker value ("HH:MM", 24-hour) into the 12-hour
  * display style event times use ("8:00 AM"). Pure string mapping, no Date
  * involved — ranges like "8:00 AM - 5:00 PM" are composed by the caller.

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { formatEventDate } from "@/lib/format"
+import { formatReportDate } from "@/lib/format"
 
 const TNR = '"Times New Roman", Times, serif'
 const ARIAL = "Arial, Helvetica, sans-serif"
@@ -30,6 +30,8 @@ export interface ReportEventMeta {
   date: string
   time: string
   location: string
+  /** Selected Manila day (YYYY-MM-DD); prints alone instead of the range. */
+  day?: string
 }
 
 /**
@@ -38,7 +40,10 @@ export interface ReportEventMeta {
  * table rows in print); a single row taller than the capacity takes a chunk
  * of its own rather than vanishing.
  */
-export function paginateRows(rowHeights: number[], capacity: number): number[][] {
+export function paginateRows(
+  rowHeights: number[],
+  capacity: number
+): number[][] {
   const chunks: number[][] = [[]]
   let used = 0
   rowHeights.forEach((height, index) => {
@@ -68,9 +73,18 @@ export const SPACER_HEIGHT_PX = 32
  * reserve is the tallest measured row rather than a fixed guess, so a table
  * of wrapped two-line rows reserves two-line room.
  */
-export function pageCapacity(headerHeight: number, rowHeights: number[]): number {
+export function pageCapacity(
+  headerHeight: number,
+  rowHeights: number[]
+): number {
   const tallest = rowHeights.length ? Math.max(...rowHeights) : 0
-  return SHEET_CONTENT_HEIGHT_PX - PAGINATION_SLACK_PX - headerHeight - tallest - SPACER_HEIGHT_PX
+  return (
+    SHEET_CONTENT_HEIGHT_PX -
+    PAGINATION_SLACK_PX -
+    headerHeight -
+    tallest -
+    SPACER_HEIGHT_PX
+  )
 }
 
 const cell: React.CSSProperties = {
@@ -80,7 +94,8 @@ const cell: React.CSSProperties = {
   fontSize: "10pt",
 }
 
-const FOOTER_TEXT = "Leading Innovations, Transforming Lives, Building the Nation"
+const FOOTER_TEXT =
+  "Leading Innovations, Transforming Lives, Building the Nation"
 
 function ReportLetterhead({
   eventMeta,
@@ -111,39 +126,103 @@ function ReportLetterhead({
           style={{ height: "92px", width: "auto", flexShrink: 0 }}
         />
         <div style={{ textAlign: "center" }}>
-          <p style={{ fontFamily: TNR, fontSize: "12pt", fontWeight: "bold", margin: 0 }}>
+          <p
+            style={{
+              fontFamily: TNR,
+              fontSize: "12pt",
+              fontWeight: "bold",
+              margin: 0,
+            }}
+          >
             Republic of the Philippines
           </p>
-          <p style={{ fontFamily: TNR, fontSize: "16pt", fontWeight: "bold", margin: 0 }}>
+          <p
+            style={{
+              fontFamily: TNR,
+              fontSize: "16pt",
+              fontWeight: "bold",
+              margin: 0,
+            }}
+          >
             BATANGAS STATE UNIVERSITY
           </p>
-          <p style={{ fontFamily: ARIAL, fontSize: "12pt", fontWeight: "bold", color: ACCENT, margin: 0 }}>
+          <p
+            style={{
+              fontFamily: ARIAL,
+              fontSize: "12pt",
+              fontWeight: "bold",
+              color: ACCENT,
+              margin: 0,
+            }}
+          >
             The National Engineering University
           </p>
-          <p style={{ fontFamily: TNR, fontSize: "12pt", fontWeight: "bold", margin: 0 }}>
+          <p
+            style={{
+              fontFamily: TNR,
+              fontSize: "12pt",
+              fontWeight: "bold",
+              margin: 0,
+            }}
+          >
             Balayan Campus
           </p>
-          <p style={{ fontFamily: TNR, fontSize: "10pt", fontWeight: "bold", margin: 0 }}>
+          <p
+            style={{
+              fontFamily: TNR,
+              fontSize: "10pt",
+              fontWeight: "bold",
+              margin: 0,
+            }}
+          >
             Caloocan, Balayan, Batangas, Philippines 4213
           </p>
           <p style={{ fontFamily: TNR, fontSize: "10pt", margin: 0 }}>
             Tel Nos.: (+63 43) 980-0385 local 6101
           </p>
-          <p style={{ fontFamily: TNR, fontSize: "10pt", margin: 0, whiteSpace: "nowrap" }}>
-            E-mail Address: {orgEmail} | Website Address: http://www.batstate-u.edu.ph
+          <p
+            style={{
+              fontFamily: TNR,
+              fontSize: "10pt",
+              margin: 0,
+              whiteSpace: "nowrap",
+            }}
+          >
+            E-mail Address: {orgEmail} | Website Address:
+            http://www.batstate-u.edu.ph
           </p>
         </div>
       </div>
 
       <hr style={{ border: 0, borderTop: "4pt solid #000", margin: "6pt 0" }} />
 
-      <p style={{ fontFamily: TNR, fontSize: "12pt", fontWeight: "bold", margin: "0 0 6pt 0" }}>
+      <p
+        style={{
+          fontFamily: TNR,
+          fontSize: "12pt",
+          fontWeight: "bold",
+          margin: "0 0 6pt 0",
+        }}
+      >
         {orgName}
       </p>
 
       {/* Event line centered by its flex wrapper, with text-align kept. */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: "8pt" }}>
-        <p style={{ fontFamily: TNR, fontSize: "11pt", margin: 0, textAlign: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: "8pt",
+        }}
+      >
+        <p
+          style={{
+            fontFamily: TNR,
+            fontSize: "11pt",
+            margin: 0,
+            textAlign: "center",
+          }}
+        >
           Event:{" "}
           <span style={{ borderBottom: "1pt solid #000", padding: "0 24pt" }}>
             <strong>{eventMeta.name}</strong>
@@ -166,7 +245,7 @@ function ReportLetterhead({
         <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>
           Date:{" "}
           <span style={{ borderBottom: "1pt solid #000", padding: "0 12pt" }}>
-            {formatEventDate(eventMeta.date)}
+            {formatReportDate(eventMeta.date, eventMeta.day)}
           </span>
         </span>
         <span style={{ flexShrink: 0 }}>|</span>
@@ -234,8 +313,11 @@ export function PaginatedReport({
       }
       if (cancelled) return
       const headerHeight =
-        (letterheadRef.current?.offsetHeight ?? 0) + (colHeadRef.current?.offsetHeight ?? 0)
-      const heights = rows.map((_, i) => rowEls.current.get(i)?.offsetHeight ?? 0)
+        (letterheadRef.current?.offsetHeight ?? 0) +
+        (colHeadRef.current?.offsetHeight ?? 0)
+      const heights = rows.map(
+        (_, i) => rowEls.current.get(i)?.offsetHeight ?? 0
+      )
       setChunks(paginateRows(heights, pageCapacity(headerHeight, heights)))
     }
     void measure()
@@ -260,7 +342,11 @@ export function PaginatedReport({
             />
             <table
               className="print-table"
-              style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                tableLayout: "fixed",
+              }}
             >
               <colgroup>
                 <col style={{ width: "12%" }} />
