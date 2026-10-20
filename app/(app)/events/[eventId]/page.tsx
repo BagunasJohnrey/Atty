@@ -208,10 +208,14 @@ export default async function EventDetailPage({
           </div>
         </CardContent>
       </Card>
-      <ReportSummary eventId={event.id} />
       <React.Suspense fallback={<FilterSkeleton />}>
-        <FilterSection eventId={event.id} eventDate={event.date} data={attendanceData} />
+        <FilterSection
+          eventId={event.id}
+          eventDate={event.date}
+          data={attendanceData}
+        />
       </React.Suspense>
+      <ReportSummary eventId={event.id} />
       <AttendanceTable eventId={event.id} filters={filters} />
     </div>
   )
