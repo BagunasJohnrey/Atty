@@ -13,7 +13,7 @@ const DROPDOWNS = [
     key: "college",
     label: "Department",
     values: (o: FilterOptions) => o.colleges,
-    searchable: false,
+    searchable: true,
   },
   {
     key: "program",
@@ -118,6 +118,7 @@ export function AttendanceFilters({
                   value={list.includes(current) ? current : ""}
                   onChange={(v) => update(key, v)}
                   placeholder={`Search ${label.toLowerCase()}s…`}
+                  clearLabel={`Clear ${label.toLowerCase()} filter`}
                   options={list}
                 />
               ) : (

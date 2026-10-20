@@ -39,7 +39,10 @@ export function ClaySelect({
           className
         )}
       >
-        <SelectPrimitive.Value placeholder={placeholder} />
+        <SelectPrimitive.Value
+          placeholder={placeholder}
+          className="min-w-0 flex-1 truncate"
+        />
         <ChevronDown
           className="size-4 shrink-0 text-muted-foreground transition-transform"
           aria-hidden
@@ -54,7 +57,7 @@ export function ClaySelect({
         >
           <SelectPrimitive.Popup
             className={cn(
-              "clay animate-clay-pop max-h-64 min-w-56 w-[var(--anchor-width)] overflow-y-auto p-2"
+              "clay animate-clay-pop max-h-64 w-[var(--anchor-width)] min-w-56 overflow-y-auto p-2"
             )}
           >
             <SelectPrimitive.List>
@@ -75,7 +78,10 @@ export function ClaySelect({
                 >
                   <SelectPrimitive.ItemText>{option}</SelectPrimitive.ItemText>
                   <SelectPrimitive.ItemIndicator>
-                    <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                    <Check
+                      className="size-4 shrink-0 text-primary"
+                      aria-hidden
+                    />
                   </SelectPrimitive.ItemIndicator>
                 </SelectPrimitive.Item>
               ))}
@@ -96,6 +102,7 @@ export function ClayCombobox({
   value,
   onChange,
   placeholder,
+  clearLabel = "Clear selection",
   options,
   className,
 }: {
@@ -103,6 +110,7 @@ export function ClayCombobox({
   value: string
   onChange: (value: string) => void
   placeholder: string
+  clearLabel?: string
   options: string[]
   className?: string
 }) {
@@ -128,7 +136,7 @@ export function ClayCombobox({
         />
         {value ? (
           <ComboboxPrimitive.Clear
-            aria-label="Clear course filter"
+            aria-label={clearLabel}
             className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" aria-hidden />
@@ -148,7 +156,7 @@ export function ClayCombobox({
           sideOffset={6}
           className="z-50"
         >
-          <ComboboxPrimitive.Popup className="clay animate-clay-pop max-h-64 min-w-56 w-[var(--anchor-width)] overflow-y-auto p-2">
+          <ComboboxPrimitive.Popup className="clay animate-clay-pop max-h-64 w-[var(--anchor-width)] min-w-56 overflow-y-auto p-2">
             <ComboboxPrimitive.Empty className="px-3 py-2.5 text-sm text-muted-foreground">
               No matches found.
             </ComboboxPrimitive.Empty>
@@ -161,7 +169,10 @@ export function ClayCombobox({
                 >
                   {item}
                   <ComboboxPrimitive.ItemIndicator>
-                    <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                    <Check
+                      className="size-4 shrink-0 text-primary"
+                      aria-hidden
+                    />
                   </ComboboxPrimitive.ItemIndicator>
                 </ComboboxPrimitive.Item>
               )}
