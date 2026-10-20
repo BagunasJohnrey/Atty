@@ -13,6 +13,7 @@ import { EventActions } from "@/components/events/EventActions"
 import { DayFilter } from "@/components/reports/DayFilter"
 import { EventFormDialog } from "@/components/events/EventFormDialog"
 import { EventStatusBadge } from "@/components/events/EventStatusBadge"
+import { ExpandableDescription } from "@/components/events/ExpandableDescription"
 import { AttendanceFilters } from "@/components/attendance/AttendanceFilters"
 import { AttendanceTable } from "@/components/attendance/AttendanceTable"
 import { RefreshButton } from "@/components/attendance/RefreshButton"
@@ -152,12 +153,7 @@ export default async function EventDetailPage({
             </span>
           </div>
           {event.description ? (
-            <p
-              className="line-clamp-1 text-sm text-muted-foreground"
-              title={event.description}
-            >
-              {event.description}
-            </p>
+            <ExpandableDescription text={event.description} />
           ) : null}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
             {org?.name ? (
