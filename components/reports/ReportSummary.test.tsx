@@ -121,3 +121,30 @@ describe("ReportSummary day filter", () => {
     expect(screen.getByText(/no attendance recorded on/i)).toBeTruthy()
   })
 })
+
+describe("ReportSummary facet filters", () => {
+  afterEach(() => {
+    cleanup()
+    searchQuery = ""
+    vi.clearAllMocks()
+  })
+
+  it("passes the facet filters to the report read", () => {
+    searchQuery = "college=CICS&program=BSIT&gender=Male&q=juan"
+    mockReport(report)
+    render(<ReportSummary eventId="EVT-001" />)
+    expect(vi.mocked(useReport)).toHaveBeenCalledWith("EVT-001", {
+      college: "cics",
+      program: "bsit",
+      gender: "male",
+    })
+    expect(screen.getByText("Filtered")).toBeTruthy()
+  })
+
+  it("keeps the unfiltered read free of a filtered badge", () => {
+    mockReport(report)
+    render(<ReportSummary eventId="EVT-001" />)
+    expect(vi.mocked(useReport)).toHaveBeenCalledWith("EVT-001", {})
+    expect(screen.queryByText("Filtered")).toBeNull()
+  })
+})

@@ -35,7 +35,30 @@ describe("report cutover", () => {
   it("reads the report via Neon when flagged", async () => {
     process.env.NEON_ATTENDANCE = "neon"
     await expect(getAttendanceReport("EVT-001")).resolves.toEqual(report)
-    expect(reportMock).toHaveBeenCalledWith("EVT-001")
+    expect(reportMock).toHaveBeenCalledWith("EVT-001", {})
     expect(requestMock).not.toHaveBeenCalled()
+  })
+})
+
+describe("report facet filters", () => {
+  it("forwards normalized facets to Apps Script", async () => {
+    await getAttendanceReport("EVT-001", {
+      college: " CICS ",
+      program: "BSIT",
+      yearLevel: "",
+      gender: "Male",
+    })
+    expect(requestMock).toHaveBeenCalledWith("getAttendanceReport", {
+      eventId: "EVT-001",
+      college: "cics",
+      program: "bsit",
+      gender: "male",
+    })
+  })
+
+  it("forwards normalized facets to Neon", async () => {
+    process.env.NEON_ATTENDANCE = "neon"
+    await getAttendanceReport("EVT-001", { college: "CICS" })
+    expect(reportMock).toHaveBeenCalledWith("EVT-001", { college: "cics" })
   })
 })

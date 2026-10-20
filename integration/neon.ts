@@ -15,6 +15,12 @@ import type { AttendanceReport } from "@/models/report"
 import type { Student } from "@/models/student"
 import { manilaDayKey } from "@/lib/format"
 import { isDayWithinEvent, outsideEventDatesMessage } from "@/lib/events"
+import {
+  hasReportFilters,
+  matchesReportFilters,
+  normalizeReportFilters,
+  type ReportFilters,
+} from "@/lib/reports/filters"
 import { AppsScriptError } from "./errors"
 import { getOrganization } from "./organizations"
 import { getOrganizationNeon } from "./neon-organizations"
@@ -48,9 +54,7 @@ export interface NeonAttendanceRow {
 function getSql() {
   const url = process.env.NEON_DATABASE_URL
   if (!url) {
-    throw new Error(
-      "NEON_DATABASE_URL is not configured. See .env.example."
-    )
+    throw new Error("NEON_DATABASE_URL is not configured. See .env.example.")
   }
   return neon(url)
 }
@@ -221,9 +225,7 @@ function normalizeSingleEventDate(text: string): string {
       }
     }
   }
-  const probe = parts
-    ? new Date(parts.y, parts.m - 1, parts.d)
-    : null
+  const probe = parts ? new Date(parts.y, parts.m - 1, parts.d) : null
   if (
     !parts ||
     !probe ||
@@ -295,7 +297,8 @@ async function assertOrgNeon(orgId: string): Promise<string> {
   return orgId
 }
 
-export async function getEventNeon(eventId: string): Promise<SchoolEvent> {  const sql = getSql()
+export async function getEventNeon(eventId: string): Promise<SchoolEvent> {
+  const sql = getSql()
   const rows = await sql`
     select id, name, event_date, status, sheet_name, location, description, org_id, time
     from events where id = ${eventId} limit 1
@@ -313,8 +316,18 @@ export async function createEventNeon(
   const action = "createEvent"
   const name = requiredEventString(input.name, "Event name", 150, action)
   const date = normalizeEventDateTS(input.date)
-  const location = optionalEventString(input.location, "Event location", 150, action)
-  const description = requiredEventString(input.description, "Event description", 500, action)
+  const location = optionalEventString(
+    input.location,
+    "Event location",
+    150,
+    action
+  )
+  const description = requiredEventString(
+    input.description,
+    "Event description",
+    500,
+    action
+  )
   const orgId = optionalEventString(input.orgId, "Organization ID", 20, action)
   const time = optionalEventString(input.time, "Event time", 100, action)
   const owner = await assertOrgNeon(orgId)
@@ -359,7 +372,12 @@ export async function updateEventNeon(
     columns.event_date = normalizeEventDateTS(patch.date)
   }
   if (patch.location !== undefined) {
-    columns.location = optionalEventString(patch.location, "Event location", 150, action)
+    columns.location = optionalEventString(
+      patch.location,
+      "Event location",
+      150,
+      action
+    )
   }
   if (patch.description !== undefined) {
     columns.description = optionalEventString(
@@ -373,7 +391,12 @@ export async function updateEventNeon(
     columns.status = normalizeEventStatusTS(patch.status)
   }
   if (patch.orgId !== undefined) {
-    const orgId = optionalEventString(patch.orgId, "Organization ID", 20, action)
+    const orgId = optionalEventString(
+      patch.orgId,
+      "Organization ID",
+      20,
+      action
+    )
     columns.org_id = await assertOrgNeon(orgId)
   }
   if (patch.time !== undefined) {
@@ -601,29 +624,46 @@ function groupAttendanceBy(
 }
 
 export async function getAttendanceReportNeon(
-  eventId: string
+  eventId: string,
+  filters?: ReportFilters
 ): Promise<AttendanceReport> {
   const event = await getEventNeon(eventId)
   const attendance = await listAttendanceRowsNeon(eventId)
+  const normalized = normalizeReportFilters(filters)
+  const hasFilters = hasReportFilters(normalized)
+  const scoped = hasFilters
+    ? attendance.filter((record) => matchesReportFilters(record, normalized))
+    : attendance
   const sql = getSql()
+  // A facet filter also narrows the roster the rate is measured against;
+  // otherwise filtering by one department would still count every student
+  // on campus as absent.
+  const college = normalized.college ?? ""
+  const program = normalized.program ?? ""
+  const yearLevel = normalized.yearLevel ?? ""
+  const gender = normalized.gender ?? ""
   const counted = (await sql`
     select count(*)::int as n from students
+    where (${college} = '' or lower(trim(college)) = lower(${college}))
+      and (${program} = '' or lower(trim(program)) = lower(${program}))
+      and (${yearLevel} = '' or lower(trim(year_level)) = lower(${yearLevel}))
+      and (${gender} = '' or lower(trim(gender)) = lower(${gender}))
   `) as { n: number }[]
   const totalStudents = counted[0]?.n ?? 0
-  const totalScans = attendance.length
-  const presentSrcodes = new Set(attendance.map((record) => record.srcode))
+  const totalScans = scoped.length
+  const presentSrcodes = new Set(scoped.map((record) => record.srcode))
   const totalPresent = presentSrcodes.size
   const totalAbsent = Math.max(0, totalStudents - totalPresent)
   // Overall groups count distinct students (first scan wins), so shares
   // never exceed 100% on multi-day events.
   const seenSrcodes = new Set<string>()
-  const distinct = attendance.filter((record) => {
+  const distinct = scoped.filter((record) => {
     if (seenSrcodes.has(record.srcode)) return false
     seenSrcodes.add(record.srcode)
     return true
   })
   const byDay = new Map<string, AttendanceRecord[]>()
-  for (const record of attendance) {
+  for (const record of scoped) {
     const day = manilaDayKey(record.timestamp)
     const group = byDay.get(day)
     if (group) group.push(record)

@@ -20,7 +20,13 @@ On-page summaries and the official print view for an event.
   and Export PDF link read the same param (see attendance-records.md), so
   every consumer stays in sync.
 - `ReportSummary` fetches via `useReport` and renders chart breakdowns
-  (donut, category bars) with skeleton fallbacks while loading.
+  (donut, category bars) with skeleton fallbacks while loading. The table's
+  department/course/year-level/gender filters also scope the charts through
+  the same URL params (`?college=&program=&yearLevel=&gender=`), and the
+  card shows a **Filtered** chip while any are active. The report read is
+  keyed by those facets and recomputes totals plus the roster denominator
+  for the filtered students in both the Neon and Apps Script paths; the
+  free-text search stays table-only.
 - The **print view** chunks rows into strict Legal-landscape sheets
   (`PaginatedReport` measure/chunk): repeated header/footer on every page,
   centered event details with Date/Time/Venue on one line, and a footer

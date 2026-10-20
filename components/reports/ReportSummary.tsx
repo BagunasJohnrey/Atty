@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReport } from "@/hooks/useQueries"
 import type { AttendanceReport } from "@/models/report"
+import { hasReportFilters, parseReportFilters } from "@/lib/reports/filters"
 
 const Bars = dynamic(() => import("./ReportBars").then((m) => m.ReportBars), {
   ssr: false,
@@ -14,8 +15,9 @@ const Bars = dynamic(() => import("./ReportBars").then((m) => m.ReportBars), {
 })
 
 export function ReportSummary({ eventId }: { eventId: string }) {
-  const { data, error, loading } = useReport(eventId)
   const params = useSearchParams()
+  const filters = parseReportFilters(params)
+  const { data, error, loading } = useReport(eventId, filters)
 
   if (loading && !data) return <Skeleton className="h-48" />
   if (error || !data) {
@@ -68,6 +70,11 @@ export function ReportSummary({ eventId }: { eventId: string }) {
     <Card>
       <CardHeader>
         <CardTitle>Attendance report</CardTitle>
+        {hasReportFilters(filters) ? (
+          <span className="clay-pressed shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+            Filtered
+          </span>
+        ) : null}
       </CardHeader>
       <CardContent>
         <Bars report={chartReport} />
