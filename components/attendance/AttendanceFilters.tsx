@@ -6,12 +6,33 @@ import { Input, Label } from "@/components/ui/input"
 import { ClaySelect, ClayCombobox } from "@/components/ui/select"
 import { formatDayLabel } from "@/lib/format"
 import type { FilterOptions } from "@/lib/attendance"
+import { cn } from "@/lib/utils"
 
 const DROPDOWNS = [
-  { key: "college", label: "Department", values: (o: FilterOptions) => o.colleges, searchable: false },
-  { key: "program", label: "Course", values: (o: FilterOptions) => o.programs, searchable: true },
-  { key: "yearLevel", label: "Year level", values: (o: FilterOptions) => o.yearLevels, searchable: false },
-  { key: "gender", label: "Gender", values: (o: FilterOptions) => o.genders, searchable: false },
+  {
+    key: "college",
+    label: "Department",
+    values: (o: FilterOptions) => o.colleges,
+    searchable: false,
+  },
+  {
+    key: "program",
+    label: "Course",
+    values: (o: FilterOptions) => o.programs,
+    searchable: true,
+  },
+  {
+    key: "yearLevel",
+    label: "Year level",
+    values: (o: FilterOptions) => o.yearLevels,
+    searchable: false,
+  },
+  {
+    key: "gender",
+    label: "Gender",
+    values: (o: FilterOptions) => o.genders,
+    searchable: false,
+  },
 ] as const
 
 export function AttendanceFilters({
@@ -43,25 +64,30 @@ export function AttendanceFilters({
       className="clay flex flex-col gap-3 p-4"
       onSubmit={(e) => e.preventDefault()}
     >
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="f-q">Search</Label>
-        <span className="relative block">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            id="f-q"
-            defaultValue={params.get("q") ?? ""}
-            placeholder="SR Code or name…"
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => update("q", e.target.value)}
-            className="clay-search pl-11"
-          />
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div
+        className={cn(
+          "grid grid-cols-2 gap-3",
+          options.days.length > 1 ? "lg:grid-cols-7" : "lg:grid-cols-6"
+        )}
+      >
+        <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-2">
+          <Label htmlFor="f-q">Search</Label>
+          <span className="relative block">
+            <Search
+              className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              id="f-q"
+              defaultValue={params.get("q") ?? ""}
+              placeholder="SR Code or name…"
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => update("q", e.target.value)}
+              className="clay-search pl-11"
+            />
+          </span>
+        </div>
         {options.days.length > 1 ? (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="f-day">Day</Label>

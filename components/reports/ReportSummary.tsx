@@ -68,7 +68,7 @@ export function ReportSummary({ eventId }: { eventId: string }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="mb-2">
         <CardTitle>Attendance report</CardTitle>
         {hasReportFilters(filters) ? (
           <span className="clay-pressed shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">

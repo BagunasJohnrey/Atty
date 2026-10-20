@@ -135,58 +135,64 @@ export default async function EventDetailPage({
   return (
     <div className="flex flex-col gap-4">
       <Card className="clay-topglow">
-        <CardContent className="gap-4">
-          <div className="flex flex-wrap items-start gap-2">
+        <CardContent className="gap-3">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <EventStatusBadge status={event.status} />
             <span className="clay-pressed inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold text-muted-foreground">
               {event.id}
             </span>
+            <CardTitle
+              className="display min-w-0 flex-1 truncate text-lg"
+              title={event.name}
+            >
+              {event.name}
+            </CardTitle>
             <span className="ml-auto">
               <HeaderDayFilter eventId={event.id} eventDate={event.date} />
             </span>
           </div>
-          <div className="mt-1 sm:-mt-4">
-            <CardTitle className="display">{event.name}</CardTitle>
-            {event.description ? (
-              <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">
-                {event.description}
-              </p>
-            ) : null}
-          </div>
-          <dl className="flex flex-col gap-2">
+          {event.description ? (
+            <p
+              className="line-clamp-1 text-sm text-muted-foreground"
+              title={event.description}
+            >
+              {event.description}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
             {org?.name ? (
-              <div className="flex items-center gap-1.5 text-sm">
+              <span className="flex min-w-0 items-center gap-1.5">
                 <Building2
                   className="size-4 shrink-0 text-muted-foreground"
                   aria-hidden
                 />
-                <dd className="font-semibold">{org.name}</dd>
-              </div>
+                <span className="truncate font-semibold">{org.name}</span>
+              </span>
             ) : null}
-            <div className="clay-pressed grid grid-cols-2 gap-x-4 gap-y-3 p-4 sm:grid-cols-3">
-              <div className="flex items-center gap-1.5 text-sm">
-                <CalendarDays
-                  className="size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <dd className="font-semibold">{formatEventDate(event.date)}</dd>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm">
-                <Clock
-                  className="size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <dd className="font-semibold">{event.time || "—"}</dd>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm">
-                <MapPin
-                  className="size-4 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <dd className="font-semibold">{event.location || "—"}</dd>
-              </div>
-            </div>
-          </dl>
+            <span className="flex items-center gap-1.5">
+              <CalendarDays
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <span className="font-semibold">
+                {formatEventDate(event.date)}
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <span className="font-semibold">{event.time || "—"}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MapPin
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <span className="font-semibold">{event.location || "—"}</span>
+            </span>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             {event.status === "Active" ? (
               <Link
