@@ -46,6 +46,16 @@ describe("reportPdfFilename", () => {
       "undated_AttendanceReport_event.pdf"
     )
   })
+
+  it("files a selected day under itself", () => {
+    expect(
+      reportPdfFilename({
+        name: "Fair",
+        date: "November 15, 2026 - November 16, 2026",
+        day: "2026-11-16",
+      })
+    ).toBe("2026-11-16_AttendanceReport_Fair.pdf")
+  })
 })
 
 describe("letterheadLayout", () => {
@@ -179,9 +189,8 @@ describe("buildAttendanceReportPdf", () => {
     const headerHits = text.split("BATANGAS STATE UNIVERSITY").length - 1
     expect(headerHits).toBe(pages)
     const footerHits =
-      text.split(
-        "Leading Innovations, Transforming Lives, Building the Nation"
-      ).length - 1
+      text.split("Leading Innovations, Transforming Lives, Building the Nation")
+        .length - 1
     expect(footerHits).toBe(pages)
   })
 })

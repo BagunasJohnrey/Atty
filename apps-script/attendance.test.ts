@@ -37,7 +37,12 @@ interface FakeOptions {
 
 interface Harness {
   api: Record<string, any>
-  reads: { masterlist: number; events: number; attendance: number; total: number }
+  reads: {
+    masterlist: number
+    events: number
+    attendance: number
+    total: number
+  }
   writes: number
 }
 
@@ -60,9 +65,33 @@ function manilaDay(offset: number): string {
  *  date gate passes without coupling the suite to the calendar date. */
 function eventRows(date: string): string[][] {
   return [
-    ["Event ID", "Event Name", "Event Date", "Status", "Sheet Name", "Location", "Description"],
-    ["EVT-001", "Freshmen Orientation", date, "Active", "EVT-001", "Gym", "Welcome"],
-    ["EVT-002", "Closed One", "09/21/2026", "Closed", "EVT-002", "Hall", "Done"],
+    [
+      "Event ID",
+      "Event Name",
+      "Event Date",
+      "Status",
+      "Sheet Name",
+      "Location",
+      "Description",
+    ],
+    [
+      "EVT-001",
+      "Freshmen Orientation",
+      date,
+      "Active",
+      "EVT-001",
+      "Gym",
+      "Welcome",
+    ],
+    [
+      "EVT-002",
+      "Closed One",
+      "09/21/2026",
+      "Closed",
+      "EVT-002",
+      "Hall",
+      "Done",
+    ],
   ]
 }
 
@@ -70,6 +99,43 @@ function eventRows(date: string): string[][] {
  *  the Manila midnight boundary. */
 function twoDayRange(): string {
   return `${manilaDay(-1)} - ${manilaDay(0)}`
+}
+
+/**
+ * Mirrors `Utilities.formatDate` for the three formats the scripts use.
+ *
+ * The timezone argument is the whole point: Apps Script reads the script's
+ * project timezone (`Asia/Manila`), not the machine's. A stub that formatted
+ * in the process timezone made the suite pass locally and fail in UTC CI
+ * whenever Manila had already rolled over to the next day.
+ */
+function formatInZone(value: Date, timeZone: string, format: string): string {
+  const withTime = format.includes("HH")
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(withTime
+      ? {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23",
+        }
+      : {}),
+  }).formatToParts(value)
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? ""
+  const date = `${part("month")}/${part("day")}/${part("year")}`
+  if (format === "MM/dd/yyyy") return date
+  if (format === "yyyy-MM-dd") {
+    return `${part("year")}-${part("month")}-${part("day")}`
+  }
+  if (format === "MM/dd/yyyy HH:mm:ss") {
+    return `${date} ${part("hour")}:${part("minute")}:${part("second")}`
+  }
+  throw new Error(`Unsupported date format in test harness: ${format}`)
 }
 
 /** Manila `MM/DD/YYYY HH:MM:SS` sheet timestamp on the given day offset. */
@@ -113,13 +179,18 @@ function loadScripts(options: FakeOptions = {}): Harness {
     return {
       getName: () => name,
       getLastRow: () => rows().length,
-      getLastColumn: () => (rows()[0]?.length ?? 0),
+      getLastColumn: () => rows()[0]?.length ?? 0,
       getDataRange: () => ({
         getValues: () => {
           return rows().map((r) => r.slice())
         },
       }),
-      getRange: (row: number, column: number, numRows?: number, numCols?: number) => ({
+      getRange: (
+        row: number,
+        column: number,
+        numRows?: number,
+        numCols?: number
+      ) => ({
         getValues: () => {
           const all = rows()
           const out: string[][] = []
@@ -132,7 +203,8 @@ function loadScripts(options: FakeOptions = {}): Harness {
               continue
             }
             const line: string[] = []
-            for (let c = 0; c < width; c++) line.push(source[column - 1 + c] ?? "")
+            for (let c = 0; c < width; c++)
+              line.push(source[column - 1 + c] ?? "")
             out.push(line)
           }
           return out
@@ -165,17 +237,20 @@ function loadScripts(options: FakeOptions = {}): Harness {
     Error,
     SpreadsheetApp: {
       getActiveSpreadsheet: () => ({
-        getSheetByName: (name: string) => (name in store ? makeSheet(name) : null),
+        getSheetByName: (name: string) =>
+          name in store ? makeSheet(name) : null,
         insertSheet: (name: string) => {
           store[keyFor(name)] = [["Timestamp", "SRCODE"]]
           return makeSheet(name)
         },
         openById: () => ({
-          getSheetByName: (name: string) => (name in store ? makeSheet(name) : null),
+          getSheetByName: (name: string) =>
+            name in store ? makeSheet(name) : null,
         }),
       }),
       openById: () => ({
-        getSheetByName: (name: string) => (name in store ? makeSheet(name) : null),
+        getSheetByName: (name: string) =>
+          name in store ? makeSheet(name) : null,
       }),
     },
     // Deliberately hostile: CacheService reads are network round trips, and
@@ -190,8 +265,8 @@ function loadScripts(options: FakeOptions = {}): Harness {
       },
     },
     Utilities: {
-      formatDate: (value: Date) =>
-        `${String(value.getMonth() + 1).padStart(2, "0")}/${String(value.getDate()).padStart(2, "0")}/${value.getFullYear()}`,
+      formatDate: (value: Date, timeZone: string, format: string) =>
+        formatInZone(value, timeZone, format),
     },
     Session: { getScriptTimeZone: () => "Asia/Manila" },
     LockService: {
@@ -250,24 +325,37 @@ function loadScripts(options: FakeOptions = {}): Harness {
       bump()
       return origData()
     }
-    sheet.getRange = ((row: number, column: number, numRows?: number, numCols?: number) => {
+    sheet.getRange = ((
+      row: number,
+      column: number,
+      numRows?: number,
+      numCols?: number
+    ) => {
       bump()
       return origRange(row, column, numRows, numCols)
     }) as typeof sheet.getRange
     return sheet
   }
   sandbox.SpreadsheetApp.getActiveSpreadsheet = () => ({
-    getSheetByName: (name: string) => (keyFor(name) in store ? wrap(name) : null),
+    getSheetByName: (name: string) =>
+      keyFor(name) in store ? wrap(name) : null,
     insertSheet: (name: string) => {
       store[keyFor(name)] = [["Timestamp", "SRCODE"]]
       return wrap(name)
     },
   })
   sandbox.SpreadsheetApp.openById = () => ({
-    getSheetByName: (name: string) => (keyFor(name) in store ? wrap(name) : null),
+    getSheetByName: (name: string) =>
+      keyFor(name) in store ? wrap(name) : null,
   })
 
-  return { api, reads: counted, get writes() { return writes } } as Harness
+  return {
+    api,
+    reads: counted,
+    get writes() {
+      return writes
+    },
+  } as Harness
 }
 
 describe("check-in read amplification", () => {
@@ -355,7 +443,10 @@ describe("per-day attendance", () => {
   it("accepts a scan on the day after a previous scan", () => {
     const h = loadScripts({
       events: eventRows(twoDayRange()),
-      attendance: [["Timestamp", "SRCODE"], [sheetStamp(-1), "26-12345"]],
+      attendance: [
+        ["Timestamp", "SRCODE"],
+        [sheetStamp(-1), "26-12345"],
+      ],
     })
     const result = h.api.Attendance.record("EVT-001", "26-12345")
     expect(result.timestamp).toBeTruthy()
@@ -369,18 +460,30 @@ describe("per-day attendance", () => {
     })
     const yesterday = Date.now() - 86400000
     const result = h.api.Attendance.record("EVT-001", "26-12345", yesterday)
-    const expected = new Intl.DateTimeFormat("en-US", {
+    const at = new Date(yesterday)
+    const expectedDay = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Manila",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(new Date(yesterday))
-    expect(result.timestamp).toBe(expected)
+    }).format(at)
+    const expectedTime = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).format(at)
+    expect(result.timestamp).toBe(`${expectedDay} ${expectedTime}`)
   })
 
-  it("checks presence for today only", () => {    const h = loadScripts({
+  it("checks presence for today only", () => {
+    const h = loadScripts({
       events: eventRows(twoDayRange()),
-      attendance: [["Timestamp", "SRCODE"], [sheetStamp(-1), "26-12346"]],
+      attendance: [
+        ["Timestamp", "SRCODE"],
+        [sheetStamp(-1), "26-12346"],
+      ],
     })
     expect(h.api.Attendance.check("EVT-001", "26-12346").present).toBe(false)
     h.api.Attendance.record("EVT-001", "26-12346")
@@ -471,6 +574,63 @@ describe("per-day report", () => {
     expect(report.days[1].present).toBe(1)
     // Overall groups dedupe by student: 26-12345 scanned twice, counts once.
     expect(report.byCollege).toEqual({ CICS: 2 })
+  })
+})
+
+describe("report facet filters", () => {
+  function filteredReport(filters: object) {
+    const h = loadScripts({
+      masterlist: [
+        ["SRCODE", "Full Name", "College", "Program", "Year Level", "Gender"],
+        ["26-12345", "Juan Dela Cruz", "CICS", "BSIT", "First Year", "Male"],
+        ["26-12346", "Maria Santos", "CICS", "BSCS", "Second Year", "Female"],
+        ["26-12347", "Jose Rizal", "COE", "BSCE", "Third Year", "Male"],
+      ],
+      attendance: [
+        ["Timestamp", "SRCODE"],
+        [sheetStamp(0), "26-12345"],
+        [sheetStamp(0), "26-12347"],
+      ],
+    })
+    return h.api.Reports.get("EVT-001", filters)
+  }
+
+  it("scopes attendance and the roster to the chosen facets", () => {
+    const report = filteredReport({ college: "cics" })
+    expect(report.totalStudents).toBe(2)
+    expect(report.totalPresent).toBe(1)
+    expect(report.totalAbsent).toBe(1)
+    expect(report.attendanceRate).toBe(50)
+    expect(report.byCollege).toEqual({ CICS: 1 })
+    expect(report.byProgram).toEqual({ BSIT: 1 })
+    expect(report.days[0]).toMatchObject({ present: 1, absent: 1 })
+  })
+
+  it("combines facets case-insensitively", () => {
+    const report = filteredReport({
+      college: "CICS",
+      program: "bsit",
+      gender: "MALE",
+    })
+    expect(report.totalStudents).toBe(1)
+    expect(report.totalPresent).toBe(1)
+    expect(report.totalAbsent).toBe(0)
+    expect(report.byGender).toEqual({ Male: 1 })
+  })
+
+  it("can narrow to no students", () => {
+    const report = filteredReport({ program: "BSIT", gender: "Female" })
+    expect(report.totalStudents).toBe(0)
+    expect(report.totalPresent).toBe(0)
+    expect(report.attendanceRate).toBe(0)
+    expect(report.days).toEqual([])
+  })
+
+  it("leaves the unfiltered report unchanged", () => {
+    const report = filteredReport({})
+    expect(report.totalStudents).toBe(3)
+    expect(report.totalPresent).toBe(2)
+    expect(report.byCollege).toEqual({ CICS: 1, COE: 1 })
   })
 })
 

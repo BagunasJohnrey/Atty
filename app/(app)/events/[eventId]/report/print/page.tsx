@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
 import {
   getAttendanceCachedFor,
   getEventCachedFor,
@@ -12,6 +13,7 @@ import { PaginatedReport } from "@/components/reports/PaginatedReport"
 import { DownloadPdfButton } from "@/components/reports/DownloadPdfButton"
 import { PrintButton } from "@/components/reports/PrintButton"
 import { DayFilter } from "@/components/reports/DayFilter"
+import { buttonVariants } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
 
@@ -54,6 +56,11 @@ export default async function PrintReportPage({
   if (!event) notFound()
   const rows = filterAttendance(attendance, filters)
 
+  // A picked day prints alone in the Date line; anything unpicked (or a
+  // hand-edited ?day= outside the event) keeps the stored range.
+  const days = eventDays(event.date)
+  const day = flat.day && days.includes(flat.day) ? flat.day : undefined
+
   // The letterhead identity belongs to the event's organization; events
   // without one keep the historic SSC identity.
   const org = event.orgId
@@ -76,6 +83,7 @@ export default async function PrintReportPage({
     event.id,
     event.name,
     event.date,
+    day ?? null,
     event.time,
     event.location,
     orgName,
@@ -87,9 +95,13 @@ export default async function PrintReportPage({
       <div className="no-print flex flex-wrap items-center justify-between gap-2">
         <Link
           href={`/events/${event.id}`}
-          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
+          className={buttonVariants({
+            variant: "outline",
+            size: "sm",
+            className: "clay-btn",
+          })}
         >
-          ← Back to event
+          <ArrowLeft className="size-3.5" aria-hidden /> Back to event
         </Link>
         <div className="flex items-center gap-2">
           <DayFilter
@@ -103,6 +115,7 @@ export default async function PrintReportPage({
             eventMeta={{
               name: event.name,
               date: event.date,
+              day,
               time: event.time,
               location: event.location,
             }}
@@ -124,6 +137,7 @@ export default async function PrintReportPage({
         eventMeta={{
           name: event.name,
           date: event.date,
+          day,
           time: event.time,
           location: event.location,
         }}

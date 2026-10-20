@@ -1,14 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { ScanLine, CircleCheck, TriangleAlert, Undo2 } from "lucide-react"
+import { ScanLine, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input, Label } from "@/components/ui/input"
 import { ApiError, checkAttendance, recordAttendance } from "@/lib/api-client"
 import {
-  formatSrcodeInput,
   formatTimestamp,
   isValidSrcodeFormat,
   normalizeSrcode,
@@ -19,7 +18,6 @@ import { getSharedQueue } from "@/lib/offline/shared"
 
 type Outcome =
   | { kind: "idle" }
-  | { kind: "confirm"; student: Student }
   | { kind: "duplicate"; message: string; timestamp?: string }
   | { kind: "done"; student: Student; timestamp: string }
   | { kind: "queued"; srcode: string }
@@ -61,11 +59,10 @@ export function CheckInForm({
   }, [])
 
   /** Auto-dismiss: result cards fade out 5s after appearing so the kiosk
-      returns to a clean state for the next scan. The pre-confirm card is
-      excluded — it waits on the user. A new scan replaces the outcome,
-      which restarts both timers via cleanup. */
+      returns to a clean state for the next scan. A new scan replaces the
+      outcome, which restarts both timers via cleanup. */
   React.useEffect(() => {
-    // Always reset first: a new scan landing on confirm/idle must render
+    // Always reset first: a new scan landing on a result must render
     // fully visible even if the previous result was mid-fade.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional cascading reset: each new outcome must render fully visible before its own timers arm; converges immediately (same-value bail-out, no loop).
     setDismissing(false)
@@ -87,7 +84,8 @@ export function CheckInForm({
     }
   }, [outcome])
 
-  /** Step 1 (FR-04/FR-05): validate the SR Code and show verified info below. */
+  /** One tap (FR-04/FR-05/FR-07/FR-08): validate the SR Code and record
+      immediately when the student is verified and not yet present. */
   async function onLookup(e: React.FormEvent) {
     e.preventDefault()
     const code = normalizeSrcode(srcode)
@@ -100,6 +98,7 @@ export function CheckInForm({
       return
     }
     setValidating(true)
+    let verified = false
     try {
       const res = await checkAttendance(eventId, code)
       // The form stays mounted and resets for the next scan in every path;
@@ -115,12 +114,13 @@ export function CheckInForm({
           timestamp: res.check.timestamp,
         })
       } else {
-        setOutcome({ kind: "confirm", student: res.check.student })
+        verified = true
       }
     } catch (err) {
       if (err instanceof TypeError) {
         let enqueueFailed = false
         try {
+          // eslint-disable-next-line react-hooks/purity -- stamps the scan at event time: onLookup runs only on form submit, never during render.
           await getSharedQueue().enqueue(eventId, code, Date.now())
         } catch {
           enqueueFailed = true
@@ -144,15 +144,14 @@ export function CheckInForm({
       setValidating(false)
       inputRef.current?.focus()
     }
+    if (verified) await recordCode(code)
   }
 
-  /** Step 2 (FR-07/FR-08): record only after the student confirms. */
-  async function onConfirm() {
-    if (outcome.kind !== "confirm" || busy) return
-    const student = outcome.student
+  /** Record right after verification, with no confirm step. */
+  async function recordCode(code: string) {
     setRecording(true)
     try {
-      const res = await recordAttendance(eventId, student.srcode)
+      const res = await recordAttendance(eventId, code)
       setOutcome({
         kind: "done",
         student: res.student,
@@ -161,18 +160,18 @@ export function CheckInForm({
       setSrcode("")
     } catch (err) {
       // Mirror the lookup path: a network-layer failure queues the scan
-      // instead of erroring, so a dropout between verify and confirm
-      // never loses the attendance.
+      // instead of erroring, so a dropout after verification never loses
+      // the attendance.
       if (err instanceof TypeError) {
         let enqueueFailed = false
         try {
-          await getSharedQueue().enqueue(eventId, student.srcode, Date.now())
+          await getSharedQueue().enqueue(eventId, code, Date.now())
         } catch {
           enqueueFailed = true
         }
         if (!enqueueFailed) {
           setError(null)
-          setOutcome({ kind: "queued", srcode: student.srcode })
+          setOutcome({ kind: "queued", srcode: code })
           return
         }
         // Storage/quota failure: fall through to the generic error branch.
@@ -196,11 +195,6 @@ export function CheckInForm({
     }
   }
 
-  function cancelConfirm() {
-    setOutcome({ kind: "idle" })
-    inputRef.current?.focus()
-  }
-
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -212,15 +206,19 @@ export function CheckInForm({
               id="srcode"
               value={srcode}
               onChange={(e) => {
-                // Auto-dash: keystrokes regroup into 00-00000 as typed or
-                // pasted, so the dash never needs typing. Output is always
-                // digits-and-dash, which also retires the live gate below.
-                setSrcode(formatSrcodeInput(e.target.value))
+                // Manual dash: the operator types 00-00000 exactly.
+                // Keystrokes filter to digits-and-dash only; placement is
+                // validated on submit, never reformatted while typing.
+                setSrcode(e.target.value.toUpperCase().replace(/[^0-9-]/g, ""))
                 setError(null)
               }}
               placeholder="26-12345"
               autoComplete="off"
               spellCheck={false}
+              // Digits-and-dash code: touch devices get the numeric layout
+              // (dash included where the OS offers it). Desktop is unaffected
+              // — inputMode only shapes virtual keyboards.
+              inputMode="numeric"
               maxLength={SRCODE_MAX_LENGTH}
               disabled={!eventActive || busy}
               className="h-14 text-center font-mono text-xl tracking-widest"
@@ -231,7 +229,11 @@ export function CheckInForm({
               className="clay-btn clay-btn-primary h-12 text-base"
             >
               <ScanLine className="size-5" aria-hidden />
-              {validating ? "Validating…" : "Validate SR Code"}
+              {validating
+                ? "Validating…"
+                : recording
+                  ? "Recording…"
+                  : "Confirm"}
             </Button>
             {!eventActive ? (
               <p role="note" className="text-sm text-muted-foreground">
@@ -254,46 +256,6 @@ export function CheckInForm({
         aria-live="polite"
         className={`flex flex-col gap-4 transition-opacity duration-300 motion-reduce:transition-none ${dismissing ? "opacity-0" : "opacity-100"}`}
       >
-        {outcome.kind === "confirm" ? (
-          <Card>
-            <CardContent>
-              <div className="animate-clay-pop flex flex-col gap-3">
-                <Badge variant="success" className="self-end">
-                  SR Code verified
-                </Badge>
-                <div className="clay-pressed flex flex-col gap-2 p-4">
-                  <Detail label="Department" value={outcome.student.college} />
-                  <Detail label="Full Name" value={outcome.student.name} />
-                  <Detail label="Course" value={outcome.student.program} />
-                  <Detail label="SR Code" value={outcome.student.srcode} />
-                </div>
-                <p className="text-center text-sm text-muted-foreground">
-                  Please confirm your attendance for{" "}
-                  <strong>{eventName}</strong>.
-                </p>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    onClick={() => void onConfirm()}
-                    disabled={recording}
-                    className="clay-btn clay-btn-primary h-14 flex-1 text-base"
-                  >
-                    <CircleCheck className="size-5" aria-hidden />
-                    {recording ? "Recording…" : "Confirm Attendance"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={cancelConfirm}
-                    disabled={recording}
-                    className="clay-btn h-14"
-                  >
-                    <Undo2 className="size-4" aria-hidden /> Back
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
         {outcome.kind === "done" ? (
           <Card>
             <CardContent>
@@ -350,8 +312,8 @@ export function CheckInForm({
                     aria-hidden
                   />
                   <span>
-                    Attendance recorded successfully. It will sync
-                    automatically when an internet connection is restored.
+                    Attendance recorded successfully. It will sync automatically
+                    when an internet connection is restored.
                     <span className="block text-muted-foreground">
                       {outcome.srcode}
                     </span>

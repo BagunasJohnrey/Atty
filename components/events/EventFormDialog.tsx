@@ -176,7 +176,10 @@ export function EventFormDialog({ event }: { event?: SchoolEvent }) {
     >
       <DialogTrigger
         render={
-          <Button className={isEdit ? "clay-btn" : "clay-btn clay-btn-primary"}>
+          <Button
+            variant={isEdit ? "outline" : "default"}
+            className={isEdit ? "clay-btn" : "clay-btn clay-btn-primary"}
+          >
             {isEdit ? (
               <Pencil className="size-4" aria-hidden />
             ) : (

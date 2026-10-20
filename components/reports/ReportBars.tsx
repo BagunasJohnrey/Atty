@@ -9,17 +9,27 @@ import { MiniDonut } from "./MiniDonut"
 export function ReportBars({ report }: { report: AttendanceReport }) {
   const present = Math.max(1, report.totalPresent)
   const rate = attendanceRate(report.totalPresent, report.totalStudents)
-  const genders = Object.entries(report.byGender).map(([label, value]) => ({ label, value }))
-  const years = Object.entries(report.byYearLevel).map(([label, value]) => ({ label, value }))
+  const genders = Object.entries(report.byGender).map(([label, value]) => ({
+    label,
+    value,
+  }))
+  const years = Object.entries(report.byYearLevel).map(([label, value]) => ({
+    label,
+    value,
+  }))
 
   return (
-    <div className="mt-4 flex min-w-0 flex-col gap-4">
-      <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="clay-pressed p-4 sm:p-5">
+    <div className="mt-1 flex min-w-0 flex-col gap-3">
+      <div className="grid min-w-0 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="clay-pressed p-3 sm:p-4">
           <h4 className="mb-3 text-xs font-bold tracking-wide text-muted-foreground uppercase">
             Overall turnout
           </h4>
-          <AttendanceDonut present={report.totalPresent} absent={report.totalAbsent} rate={rate} />
+          <AttendanceDonut
+            present={report.totalPresent}
+            absent={report.totalAbsent}
+            rate={rate}
+          />
         </div>
         {genders.length > 0 ? (
           <MiniDonut
@@ -38,7 +48,7 @@ export function ReportBars({ report }: { report: AttendanceReport }) {
           />
         ) : null}
       </div>
-      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
+      <div className="grid min-w-0 items-start gap-3 lg:grid-cols-2">
         <CategoryChart
           title="By department"
           entries={Object.entries(report.byCollege)}

@@ -2,7 +2,14 @@
 
 import * as React from "react"
 
-const PALETTE = ["#6366f1", "#fb7185", "#10b981", "#f59e0b", "#8b5cf6", "#0ea5e9"]
+const PALETTE = [
+  "#6366f1",
+  "#fb7185",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#0ea5e9",
+]
 
 export interface DonutSegment {
   label: string
@@ -38,14 +45,22 @@ export function MiniDonut({
   return (
     // Same min-w-0 contract as CategoryChart: the card must shrink inside
     // its grid cell on phones instead of overlapping its neighbour.
-    <div className="clay-pressed flex min-w-0 flex-col gap-3 p-4 sm:p-5">
-      <h4 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{title}</h4>
+    <div className="clay-pressed flex min-w-0 flex-col gap-2 p-3 sm:p-4">
+      <h4 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h4>
       <div
         className="flex min-w-0 flex-wrap items-center gap-4"
         role="img"
         aria-label={`${title}: ${arcs.map((a) => `${a.label} ${a.value}`).join(", ")}`}
       >
-        <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden className="shrink-0">
+        <svg
+          width="116"
+          height="116"
+          viewBox="0 0 132 132"
+          aria-hidden
+          className="shrink-0"
+        >
           <circle
             cx="66"
             cy="66"
@@ -85,10 +100,24 @@ export function MiniDonut({
               </g>
             )
           )}
-          <text x="66" y="64" textAnchor="middle" className="fill-foreground" fontSize="20" fontWeight="800">
+          <text
+            x="66"
+            y="64"
+            textAnchor="middle"
+            className="fill-foreground"
+            fontSize="20"
+            fontWeight="800"
+          >
             {centerValue}
           </text>
-          <text x="66" y="82" textAnchor="middle" className="fill-muted-foreground" fontSize="10" fontWeight="600">
+          <text
+            x="66"
+            y="82"
+            textAnchor="middle"
+            className="fill-muted-foreground"
+            fontSize="10"
+            fontWeight="600"
+          >
             {centerCaption}
           </text>
         </svg>

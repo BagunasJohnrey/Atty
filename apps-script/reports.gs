@@ -5,20 +5,94 @@
  * is never duplicated into event sheets.
  */
 var Reports = {
+  /** Facets that narrow the report, mirroring the attendance table. */
+  FILTER_FIELDS: ["college", "program", "yearLevel", "gender"],
+
+  /**
+   * Trims and lowercases facet filters; blanks mean "no filter".
+   *
+   * @param {Object} [filters]
+   * @returns {Object}
+   */
+  normalizeFilters: function (filters) {
+    var normalized = {}
+    for (var i = 0; i < Reports.FILTER_FIELDS.length; i++) {
+      var field = Reports.FILTER_FIELDS[i]
+      var value = filters && filters[field]
+      normalized[field] = value ? String(value).trim().toLowerCase() : ""
+    }
+    return normalized
+  },
+
+  /**
+   * @param {Object} filters - Output of normalizeFilters.
+   * @returns {boolean}
+   */
+  hasFilters: function (filters) {
+    for (var i = 0; i < Reports.FILTER_FIELDS.length; i++) {
+      if (filters[Reports.FILTER_FIELDS[i]]) return true
+    }
+    return false
+  },
+
+  /**
+   * Case-insensitive exact match for every active facet.
+   *
+   * @param {Object} record
+   * @param {Object} filters - Output of normalizeFilters.
+   * @returns {boolean}
+   */
+  matches: function (record, filters) {
+    for (var i = 0; i < Reports.FILTER_FIELDS.length; i++) {
+      var field = Reports.FILTER_FIELDS[i]
+      if (!filters[field]) continue
+      if (String(record[field] || "").trim().toLowerCase() !== filters[field]) {
+        return false
+      }
+    }
+    return true
+  },
+
+  /**
+   * Counts students in the Masterlist matching the active facets, so a
+   * filtered report measures its rate against the filtered roster rather
+   * than the whole campus.
+   *
+   * @param {Object} filters - Output of normalizeFilters.
+   * @returns {number}
+   */
+  countStudents: function (filters) {
+    var index = Students.index()
+    var count = 0
+    for (var srcode in index) {
+      if (Reports.matches(index[srcode], filters)) count++
+    }
+    return count
+  },
+
   /**
    * Builds the full report for an event.
    *
    * @param {string} eventId
+   * @param {Object} [filters] - Optional college/program/yearLevel/gender.
    * @returns {Object}
    */
-  get: function (eventId) {
+  get: function (eventId, filters) {
     var event = Events.assertById(eventId)
     var attendance = Attendance.list(eventId)
-    var totalStudents = Students.count()
-    var totalScans = attendance.length
+    var active = Reports.normalizeFilters(filters)
+    var filtered = Reports.hasFilters(active)
+    var scoped = filtered ? [] : attendance
+    if (filtered) {
+      for (var f = 0; f < attendance.length; f++) {
+        if (Reports.matches(attendance[f], active)) scoped.push(attendance[f])
+      }
+    }
+    var totalStudents = filtered ? Reports.countStudents(active) : Students.count()
+    var totalScans = scoped.length
     var presentSrcodes = {}
-    for (var i = 0; i < attendance.length; i++) {
-      presentSrcodes[attendance[i].srcode] = true
+    for (var i = 0; i < scoped.length; i++) {
+      presentSrcodes[scoped[i].srcode] = true
     }
     var totalPresent = Object.keys(presentSrcodes).length
     var totalAbsent = Math.max(0, totalStudents - totalPresent)
@@ -26,22 +100,22 @@ var Reports = {
     // never exceed 100% on multi-day events.
     var seenSrcodes = {}
     var distinct = []
-    for (var d = 0; d < attendance.length; d++) {
-      if (!seenSrcodes[attendance[d].srcode]) {
-        seenSrcodes[attendance[d].srcode] = true
-        distinct.push(attendance[d])
+    for (var d = 0; d < scoped.length; d++) {
+      if (!seenSrcodes[scoped[d].srcode]) {
+        seenSrcodes[scoped[d].srcode] = true
+        distinct.push(scoped[d])
       }
     }
 
     var byDay = {}
     var dayOrder = []
-    for (var j = 0; j < attendance.length; j++) {
-      var day = Attendance.dayKey(attendance[j].timestamp)
+    for (var j = 0; j < scoped.length; j++) {
+      var day = Attendance.dayKey(scoped[j].timestamp)
       if (!byDay[day]) {
         byDay[day] = []
         dayOrder.push(day)
       }
-      byDay[day].push(attendance[j])
+      byDay[day].push(scoped[j])
     }
     dayOrder.sort()
     var days = []
@@ -115,6 +189,14 @@ var Reports = {
    */
   handleReport: function (body) {
     var eventId = Validators.requireString(body, "eventId", "Event ID")
-    return Responses.ok("Attendance report generated.", { report: Reports.get(eventId) })
+    var filters = {
+      college: Validators.optionalString(body, "college", "College", 160),
+      program: Validators.optionalString(body, "program", "Program", 160),
+      yearLevel: Validators.optionalString(body, "yearLevel", "Year level", 160),
+      gender: Validators.optionalString(body, "gender", "Gender", 160),
+    }
+    return Responses.ok("Attendance report generated.", {
+      report: Reports.get(eventId, filters),
+    })
   },
 }

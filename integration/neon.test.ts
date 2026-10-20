@@ -886,4 +886,30 @@ describe("neon attendance", () => {
     expect(report.byCollege).toEqual({ CICS: 2 })
     expect(report.byProgram).toEqual({ BSIT: 1, BSCS: 1 })
   })
+
+  it("scopes attendance and the roster count to facet filters", async () => {
+    const sql = mockSql((strings) => {
+      const q = queryText(strings)
+      if (q.includes("from events")) return [neonEventRow]
+      if (q.includes("count(")) return [{ n: 2 }]
+      if (q.includes("from attendance"))
+        return [
+          { srcode: "a", scanned_at: "2026-09-20T00:01:23.000Z", full_name: "A", college: "CICS", program: "BSIT", year_level: "First Year", gender: "Male" },
+          { srcode: "b", scanned_at: "2026-09-20T00:02:23.000Z", full_name: "B", college: "COE", program: "BSCE", year_level: "Second Year", gender: "Female" },
+        ]
+      throw new Error(`unexpected query: ${q}`)
+    })
+    const report = await getAttendanceReportNeon("EVT-001", { college: "cics" })
+    expect(report.totalStudents).toBe(2)
+    expect(report.totalScans).toBe(1)
+    expect(report.totalPresent).toBe(1)
+    expect(report.byCollege).toEqual({ CICS: 1 })
+    expect(report.days[0]).toMatchObject({ present: 1, absent: 1 })
+    const countQuery = sql.mock.calls.find((call) =>
+      String(call[0]).includes("count(")
+    )
+    expect(String(countQuery?.[0])).toContain("lower(trim(college))")
+    // The filter is bound, not interpolated into the SQL text.
+    expect(countQuery).toContain("cics")
+  })
 })

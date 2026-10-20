@@ -9,6 +9,17 @@ export function formatEventDate(value: string): string {
 }
 
 /**
+ * Report Date line: a selected day prints alone ("October 14, 2026"); with
+ * no selection the stored value prints as today (ranges pass through
+ * verbatim, single dates render long-form).
+ */
+export function formatReportDate(date: string, day?: string): string {
+  const selected = day?.trim()
+  if (selected) return formatEventDate(selected)
+  return formatEventDate(date)
+}
+
+/**
  * Formats a native time-picker value ("HH:MM", 24-hour) into the 12-hour
  * display style event times use ("8:00 AM"). Pure string mapping, no Date
  * involved — ranges like "8:00 AM - 5:00 PM" are composed by the caller.
@@ -111,17 +122,6 @@ export function formatTimeOnly(value: string): string {
 
 export function normalizeSrcode(value: string): string {
   return value.trim().toUpperCase()
-}
-
-/**
- * Live SR Code mask: keeps digits only (max 7) and inserts the dash after
- * the second digit, so typing or pasting yields 00-00000 progressively.
- * Idempotent on complete codes, so submit-time validation is unaffected.
- */
-export function formatSrcodeInput(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 7)
-  if (digits.length <= 2) return digits
-  return `${digits.slice(0, 2)}-${digits.slice(2)}`
 }
 
 /** Kiosk SR Code shape: two digits, hyphen, five digits (e.g. 23-19300). */

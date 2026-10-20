@@ -21,10 +21,18 @@ export function CategoryChart({
   return (
     // min-w-0 lets the card shrink inside its grid cell: without it the
     // card keeps its content width on phones and overlaps its neighbour.
-    <div className="clay-pressed flex min-w-0 flex-col gap-3 p-4 sm:p-5">
-      <h4 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{title}</h4>
+    <div className="clay-pressed flex min-w-0 flex-col gap-2 p-3 sm:p-4">
+      <h4 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+        {title}
+      </h4>
       {top.map(([label, count]) => (
-        <BreakdownBar key={label} label={label} count={count} total={total} tone={tone} />
+        <BreakdownBar
+          key={label}
+          label={label}
+          count={count}
+          total={total}
+          tone={tone}
+        />
       ))}
     </div>
   )

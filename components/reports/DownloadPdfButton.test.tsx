@@ -33,26 +33,28 @@ describe("DownloadPdfButton", () => {
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "base64"
     )
-    const fetchSpy = vi
-      .spyOn(window, "fetch")
-      .mockResolvedValue(
-        new Response(new Blob([png], { type: "image/png" }), {
-          status: 200,
-        })
-      )
+    // A real `Response` cannot wrap jsdom's Blob: undici expects the Blob to
+    // expose `.stream()`, which jsdom's does not. The component only reads
+    // `ok` and `blob()`, so a minimal response keeps the logo path real
+    // (jsdom Blob -> FileReader) without crossing realms.
+    const fetchSpy = vi.spyOn(window, "fetch").mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob([png], { type: "image/png" }),
+    } as Response)
     const click = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
       .mockImplementation(() => {})
 
     const created: HTMLAnchorElement[] = []
     const origCreate = document.createElement.bind(document)
-    vi.spyOn(document, "createElement").mockImplementation(
-      ((tagName: string, options?: ElementCreationOptions) => {
-        const el = origCreate(tagName, options)
-        if (tagName === "a") created.push(el as HTMLAnchorElement)
-        return el
-      }) as typeof document.createElement
-    )
+    vi.spyOn(document, "createElement").mockImplementation(((
+      tagName: string,
+      options?: ElementCreationOptions
+    ) => {
+      const el = origCreate(tagName, options)
+      if (tagName === "a") created.push(el as HTMLAnchorElement)
+      return el
+    }) as typeof document.createElement)
 
     render(
       <DownloadPdfButton

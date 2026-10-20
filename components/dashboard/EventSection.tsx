@@ -19,8 +19,11 @@ export function EventSection({
         <h2>{title}</h2>
       </div>
       {events.length === 0 ? (
-        <p className="clay clay-dashed flex items-center gap-2 px-4 py-4 text-sm text-muted-foreground">
-          <CalendarX2 className="size-4 shrink-0" aria-hidden /> {empty}
+        <p className="clay-empty-state flex items-center gap-3 px-4 py-4 text-sm text-muted-foreground">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-primary">
+            <CalendarX2 className="size-4" aria-hidden />
+          </span>
+          <span>{empty}</span>
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

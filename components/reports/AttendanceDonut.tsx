@@ -22,7 +22,7 @@ export function AttendanceDonut({
       role="img"
       aria-label={`Attendance: ${present} present, ${absent} absent, ${rate} percent rate`}
     >
-      <svg width="148" height="148" viewBox="0 0 148 148" aria-hidden>
+      <svg width="132" height="132" viewBox="0 0 148 148" aria-hidden>
         <defs>
           <linearGradient id="donut-present" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#34d399" />

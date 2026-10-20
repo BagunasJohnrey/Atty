@@ -9,6 +9,11 @@ import {
   listOrganizations,
 } from "@/lib/api-client"
 import type { AttendanceFilters } from "@/lib/attendance"
+import {
+  normalizeReportFilters,
+  reportFiltersKey,
+  type ReportFilters,
+} from "@/lib/reports/filters"
 import { invalidatePrefix, useCached } from "./useCached"
 
 export function useEvents() {
@@ -76,10 +81,18 @@ export function useAttendance(
   return { ...result, refresh }
 }
 
-export function useReport(eventId: string | null) {
+export function useReport(eventId: string | null, filters?: ReportFilters) {
+  const filterKey = reportFiltersKey(filters)
+  // No-filter reads keep the bare key so offline snapshots saved before
+  // facet filters existed still resolve.
+  const key = eventId
+    ? filterKey === "{}"
+      ? `report:${eventId}`
+      : `report:${eventId}:${filterKey}`
+    : null
   const result = useCached(
-    eventId ? `report:${eventId}` : null,
-    eventId ? () => getReport(eventId) : null,
+    key,
+    eventId ? () => getReport(eventId, normalizeReportFilters(filters)) : null,
     10_000
   )
   return result

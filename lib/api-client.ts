@@ -11,6 +11,7 @@ import type {
   StudentResponse,
 } from "@/models/api"
 import type { AttendanceFilters } from "@/lib/attendance"
+import type { ReportFilters } from "@/lib/reports/filters"
 import type { CreateEventInput, UpdateEventInput } from "@/models/event"
 import type {
   CreateOrganizationInput,
@@ -124,7 +125,9 @@ export function updateOrganization(
   )
 }
 
-export function deleteOrganization(orgId: string): Promise<OrganizationResponse> {
+export function deleteOrganization(
+  orgId: string
+): Promise<OrganizationResponse> {
   return request<OrganizationResponse>(
     `/api/organizations/${encodeURIComponent(orgId)}`,
     {
@@ -216,9 +219,18 @@ export function checkAttendance(
   )
 }
 
-export function getReport(eventId: string): Promise<ReportResponse> {
+export function getReport(
+  eventId: string,
+  filters?: ReportFilters
+): Promise<ReportResponse> {
+  const params = new URLSearchParams()
+  if (filters?.college) params.set("college", filters.college)
+  if (filters?.program) params.set("program", filters.program)
+  if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel)
+  if (filters?.gender) params.set("gender", filters.gender)
+  const qs = params.toString()
   return request<ReportResponse>(
-    `/api/events/${encodeURIComponent(eventId)}/report`,
+    `/api/events/${encodeURIComponent(eventId)}/report${qs ? `?${qs}` : ""}`,
     { cache: "no-store" }
   )
 }

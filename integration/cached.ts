@@ -7,6 +7,11 @@ import type { AttendanceRecord } from "@/models/attendance"
 import type { AttendanceReport } from "@/models/report"
 import type { SchoolEvent } from "@/models/event"
 import type { Organization } from "@/models/organization"
+import {
+  normalizeReportFilters,
+  reportFiltersKey,
+  type ReportFilters,
+} from "@/lib/reports/filters"
 
 /**
  * Persistent read cache for Apps Script reads.
@@ -48,15 +53,23 @@ export const getOrganizationsCached = unstable_cache(
   { tags: [ORGANIZATIONS_TAG], revalidate: 30 }
 )
 
-export const getEventsCached = unstable_cache(getEvents, ["appsscript", "getEvents"], {
-  tags: [EVENTS_TAG],
-  revalidate: 30,
-})
+export const getEventsCached = unstable_cache(
+  getEvents,
+  ["appsscript", "getEvents"],
+  {
+    tags: [EVENTS_TAG],
+    revalidate: 30,
+  }
+)
 
-export const getEventCached = unstable_cache(getEvent, ["appsscript", "getEvent"], {
-  tags: [EVENTS_TAG],
-  revalidate: 30,
-})
+export const getEventCached = unstable_cache(
+  getEvent,
+  ["appsscript", "getEvent"],
+  {
+    tags: [EVENTS_TAG],
+    revalidate: 30,
+  }
+)
 
 export const getAttendanceCached = unstable_cache(
   getAttendance,
@@ -79,9 +92,7 @@ export const getAttendanceReportCached = unstable_cache(
  * Per-organization wrappers carrying the organization-scoped tag, so editing
  * one org expires exactly the reads that mention it.
  */
-export function getOrganizationCachedFor(
-  orgId: string
-): Promise<Organization> {
+export function getOrganizationCachedFor(orgId: string): Promise<Organization> {
   return unstable_cache(
     getOrganization,
     ["appsscript", "getOrganization", orgId],
@@ -99,18 +110,29 @@ export function getEventCachedFor(eventId: string): Promise<SchoolEvent> {
 export function getAttendanceCachedFor(
   eventId: string
 ): Promise<AttendanceRecord[]> {
-  return unstable_cache(getAttendance, ["appsscript", "getAttendance", eventId], {
-    tags: [attendanceTag(eventId), reportTag(eventId)],
-    revalidate: 10,
-  })(eventId)
+  return unstable_cache(
+    getAttendance,
+    ["appsscript", "getAttendance", eventId],
+    {
+      tags: [attendanceTag(eventId), reportTag(eventId)],
+      revalidate: 10,
+    }
+  )(eventId)
 }
 
 export function getAttendanceReportCachedFor(
-  eventId: string
+  eventId: string,
+  filters?: ReportFilters
 ): Promise<AttendanceReport> {
+  const normalized = normalizeReportFilters(filters)
   return unstable_cache(
     getAttendanceReport,
-    ["appsscript", "getAttendanceReport", eventId],
+    [
+      "appsscript",
+      "getAttendanceReport",
+      eventId,
+      reportFiltersKey(normalized),
+    ],
     { tags: [reportTag(eventId)], revalidate: 15 }
-  )(eventId)
+  )(eventId, normalized)
 }

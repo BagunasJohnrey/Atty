@@ -69,18 +69,24 @@ describe("ReportSummary", () => {
     vi.clearAllMocks()
   })
 
-  it("renders one section per day plus the overall summary", () => {
+  it("renders the overall summary without per-day rows", () => {
     mockReport(report)
     render(<ReportSummary eventId="EVT-001" />)
-    expect(screen.getByText("2026-10-10")).toBeTruthy()
-    expect(screen.getByText("2026-10-11")).toBeTruthy()
-    expect(screen.getByText("Scans")).toBeTruthy()
+    expect(screen.getByText("Attendance report")).toBeTruthy()
+    expect(screen.queryByText("Present")).toBeNull()
+    expect(screen.queryByText("Absent")).toBeNull()
+    expect(screen.queryByText("Rate %")).toBeNull()
+    expect(screen.queryByText("Scans")).toBeNull()
+    expect(screen.queryByText("2026-10-10")).toBeNull()
+    expect(screen.queryByText("2026-10-11")).toBeNull()
   })
 
-  it("renders a single section exactly like today for one-day events", () => {
+  it("renders a one-day report without metric tiles", () => {
     mockReport({ ...report, totalScans: 2, days: [day("2026-10-10", 2, 1)] })
     render(<ReportSummary eventId="EVT-001" />)
-    expect(screen.getByText("2026-10-10")).toBeTruthy()
+    expect(screen.getByText("Attendance report")).toBeTruthy()
+    expect(screen.queryByText("Present")).toBeNull()
+    expect(screen.queryByText("2026-10-10")).toBeNull()
     expect(screen.queryByText("2026-10-11")).toBeNull()
   })
 
@@ -88,7 +94,7 @@ describe("ReportSummary", () => {
     const legacy = { ...report, days: undefined, totalScans: undefined }
     mockReport(legacy as unknown as AttendanceReport)
     render(<ReportSummary eventId="EVT-001" />)
-    expect(screen.getByText("Present")).toBeTruthy()
+    expect(screen.getByText("Attendance report")).toBeTruthy()
     expect(screen.queryByText("2026-10-10")).toBeNull()
   })
 })
@@ -100,14 +106,12 @@ describe("ReportSummary day filter", () => {
     vi.clearAllMocks()
   })
 
-  it("narrows tiles and sections to the picked day", () => {
+  it("narrows tiles to the picked day", () => {
     searchQuery = "day=2026-10-11"
     mockReport(report)
     render(<ReportSummary eventId="EVT-001" />)
-    // The other day's section is gone (the picked day also shows in the
-    // header picker, so only absence is asserted by text).
     expect(screen.queryByText("2026-10-10")).toBeNull()
-    expect(screen.getAllByText("2026-10-11").length).toBeGreaterThan(0)
+    expect(screen.getByText("Attendance report")).toBeTruthy()
   })
 
   it("explains an unknown day instead of showing stale totals", () => {
@@ -115,5 +119,32 @@ describe("ReportSummary day filter", () => {
     mockReport(report)
     render(<ReportSummary eventId="EVT-001" />)
     expect(screen.getByText(/no attendance recorded on/i)).toBeTruthy()
+  })
+})
+
+describe("ReportSummary facet filters", () => {
+  afterEach(() => {
+    cleanup()
+    searchQuery = ""
+    vi.clearAllMocks()
+  })
+
+  it("passes the facet filters to the report read", () => {
+    searchQuery = "college=CICS&program=BSIT&gender=Male&q=juan"
+    mockReport(report)
+    render(<ReportSummary eventId="EVT-001" />)
+    expect(vi.mocked(useReport)).toHaveBeenCalledWith("EVT-001", {
+      college: "cics",
+      program: "bsit",
+      gender: "male",
+    })
+    expect(screen.getByText("Filtered")).toBeTruthy()
+  })
+
+  it("keeps the unfiltered read free of a filtered badge", () => {
+    mockReport(report)
+    render(<ReportSummary eventId="EVT-001" />)
+    expect(vi.mocked(useReport)).toHaveBeenCalledWith("EVT-001", {})
+    expect(screen.queryByText("Filtered")).toBeNull()
   })
 })
