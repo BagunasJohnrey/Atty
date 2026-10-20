@@ -153,7 +153,10 @@ export default async function EventDetailPage({
             </span>
           </div>
           {event.description ? (
-            <ExpandableDescription text={event.description} />
+            <ExpandableDescription
+              text={event.description}
+              className="max-w-full md:max-w-[50%]"
+            />
           ) : null}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
             {org?.name ? (
