@@ -101,6 +101,43 @@ function twoDayRange(): string {
   return `${manilaDay(-1)} - ${manilaDay(0)}`
 }
 
+/**
+ * Mirrors `Utilities.formatDate` for the three formats the scripts use.
+ *
+ * The timezone argument is the whole point: Apps Script reads the script's
+ * project timezone (`Asia/Manila`), not the machine's. A stub that formatted
+ * in the process timezone made the suite pass locally and fail in UTC CI
+ * whenever Manila had already rolled over to the next day.
+ */
+function formatInZone(value: Date, timeZone: string, format: string): string {
+  const withTime = format.includes("HH")
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(withTime
+      ? {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23",
+        }
+      : {}),
+  }).formatToParts(value)
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? ""
+  const date = `${part("month")}/${part("day")}/${part("year")}`
+  if (format === "MM/dd/yyyy") return date
+  if (format === "yyyy-MM-dd") {
+    return `${part("year")}-${part("month")}-${part("day")}`
+  }
+  if (format === "MM/dd/yyyy HH:mm:ss") {
+    return `${date} ${part("hour")}:${part("minute")}:${part("second")}`
+  }
+  throw new Error(`Unsupported date format in test harness: ${format}`)
+}
+
 /** Manila `MM/DD/YYYY HH:MM:SS` sheet timestamp on the given day offset. */
 function sheetStamp(dayOffset: number, time = "08:01:23"): string {
   const at = new Date(Date.now() + dayOffset * 86400000)
@@ -228,8 +265,8 @@ function loadScripts(options: FakeOptions = {}): Harness {
       },
     },
     Utilities: {
-      formatDate: (value: Date) =>
-        `${String(value.getMonth() + 1).padStart(2, "0")}/${String(value.getDate()).padStart(2, "0")}/${value.getFullYear()}`,
+      formatDate: (value: Date, timeZone: string, format: string) =>
+        formatInZone(value, timeZone, format),
     },
     Session: { getScriptTimeZone: () => "Asia/Manila" },
     LockService: {
@@ -423,13 +460,21 @@ describe("per-day attendance", () => {
     })
     const yesterday = Date.now() - 86400000
     const result = h.api.Attendance.record("EVT-001", "26-12345", yesterday)
-    const expected = new Intl.DateTimeFormat("en-US", {
+    const at = new Date(yesterday)
+    const expectedDay = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Manila",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(new Date(yesterday))
-    expect(result.timestamp).toBe(expected)
+    }).format(at)
+    const expectedTime = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Manila",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).format(at)
+    expect(result.timestamp).toBe(`${expectedDay} ${expectedTime}`)
   })
 
   it("checks presence for today only", () => {
